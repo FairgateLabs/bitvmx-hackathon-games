@@ -1,0 +1,11 @@
+server:
+  host: "0.0.0.0"
+  port: 8080
+
+logging:
+  level: "info"
+
+cors:
+  allowed_origins: ["*"]
+  allowed_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+  allowed_headers: ["*"]
