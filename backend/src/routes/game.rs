@@ -11,7 +11,7 @@ pub fn router() -> Router {
             let game_store = Arc::new(Mutex::new(GameStore::new()));
 
     Router::new()
-        .route("/new", post(create_game))
+        .route("/", post(create_game))
         .route("/{id}", get(get_game))
         .route("/{id}/move", post(make_move))
         .route("/{id}/status", get(get_game_status))
@@ -21,7 +21,7 @@ pub fn router() -> Router {
 /// Create a new tic-tac-toe game
 #[utoipa::path(
     post,
-    path = "/game/new",
+    path = "/game/",
     request_body = CreateGameRequest,
     responses(
         (status = 201, description = "Game created successfully"),

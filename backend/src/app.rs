@@ -15,7 +15,11 @@ use crate::routes;
         routes::game::create_game,
         routes::game::get_game,
         routes::game::make_move,
-        routes::game::get_game_status
+        routes::game::get_game_status,
+        routes::add_numbers::create_game,
+        routes::add_numbers::get_game,
+        routes::add_numbers::add_numbers,
+        routes::add_numbers::make_guess
     ),
     components(
         schemas(
@@ -26,12 +30,17 @@ use crate::routes;
             crate::types::CreateGameRequest,
             crate::types::MakeMoveRequest,
             crate::types::ErrorResponse,
-            crate::types::HealthResponse
+            crate::types::HealthResponse,
+            crate::types::AddNumbersGameStatus,
+            crate::types::CreateAddNumbersGameRequest,
+            crate::types::AddNumbersRequest,
+            crate::types::MakeGuessRequest
         )
     ),
     tags(
         (name = "Game", description = "Tic-tac-toe game management endpoints"),
-        (name = "Health", description = "Health check endpoints")
+        (name = "Health", description = "Health check endpoints"),
+        (name = "AddNumbers", description = "Add numbers game management endpoints")
     ),
     info(
         title = "Tic-Tac-Toe API",
@@ -47,6 +56,34 @@ use crate::routes;
     )
 )]
 struct ApiDoc;
+
+/// Create the application router with all routes and middleware
+/// 
+/// Error handling is implemented at the endpoint level:
+/// - Each endpoint returns Result<T, (StatusCode, Json<ErrorResponse>)>
+/// - Proper HTTP status codes for different error scenarios
+/// - Structured error responses with meaningful messages
+/// - Game logic validation (invalid moves, game not found, etc.)
+pub fn app() -> Router {
+    // Load configuration
+    let config = config::Config::load().unwrap_or_default();
+
+    // Configure CORS
+    let cors = create_cors_layer(&config);
+
+    // Configure trace layer
+    let trace_layer = TraceLayer::new_for_http();
+
+    // Build our application with routes and middleware
+    Router::new()
+        .nest("/health", routes::health::router())
+        .nest("/game", routes::game::router())
+        .nest("/add-numbers", routes::add_numbers::router())
+        .merge(SwaggerUi::new("/").url("/api-docs/openapi.json", ApiDoc::openapi()))
+        .layer(trace_layer)
+        .layer(cors)
+}
+
 
 /// Create CORS layer based on configuration
 fn create_cors_layer(config: &config::Config) -> CorsLayer {
@@ -79,30 +116,4 @@ fn create_cors_layer(config: &config::Config) -> CorsLayer {
     }
     
     cors_layer
-}
-
-/// Create the application router with all routes and middleware
-/// 
-/// Error handling is implemented at the endpoint level:
-/// - Each endpoint returns Result<T, (StatusCode, Json<ErrorResponse>)>
-/// - Proper HTTP status codes for different error scenarios
-/// - Structured error responses with meaningful messages
-/// - Game logic validation (invalid moves, game not found, etc.)
-pub fn app() -> Router {
-    // Load configuration
-    let config = config::Config::load().unwrap_or_default();
-
-    // Configure CORS
-    let cors = create_cors_layer(&config);
-
-    // Configure trace layer
-    let trace_layer = TraceLayer::new_for_http();
-
-    // Build our application with routes and middleware
-    Router::new()
-        .nest("/health", routes::health::router())
-        .nest("/game", routes::game::router())
-        .merge(SwaggerUi::new("/").url("/api-docs/openapi.json", ApiDoc::openapi()))
-        .layer(trace_layer)
-        .layer(cors)
 }
