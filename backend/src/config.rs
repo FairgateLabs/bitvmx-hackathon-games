@@ -22,7 +22,6 @@ pub struct LoggingConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CorsConfig {
     pub allowed_origins: Vec<String>,
-    pub allowed_methods: Vec<String>,
     pub allowed_headers: Vec<String>,
 }
 
@@ -56,13 +55,6 @@ impl Default for Config {
             },
             cors: CorsConfig {
                 allowed_origins: vec!["*".to_string()],
-                allowed_methods: vec![
-                    "GET".to_string(),
-                    "POST".to_string(),
-                    "PUT".to_string(),
-                    "DELETE".to_string(),
-                    "OPTIONS".to_string(),
-                ],
                 allowed_headers: vec!["*".to_string()],
             },
         }

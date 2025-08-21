@@ -1,0 +1,108 @@
+use axum::Router;
+use tower_http::cors::{CorsLayer, Any};
+use tower_http::trace::TraceLayer;
+use http::{HeaderValue, HeaderName};
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
+
+use crate::config;
+use crate::routes;
+
+#[derive(OpenApi)]
+#[openapi(
+    paths(
+        routes::health::health_check,
+        routes::game::create_game,
+        routes::game::get_game,
+        routes::game::make_move,
+        routes::game::get_game_status
+    ),
+    components(
+        schemas(
+            crate::types::Player,
+            crate::types::GameStatus,
+            crate::types::Position,
+            crate::types::Move,
+            crate::types::CreateGameRequest,
+            crate::types::MakeMoveRequest,
+            crate::types::ErrorResponse,
+            crate::types::HealthResponse
+        )
+    ),
+    tags(
+        (name = "Game", description = "Tic-tac-toe game management endpoints"),
+        (name = "Health", description = "Health check endpoints")
+    ),
+    info(
+        title = "Tic-Tac-Toe API",
+        version = "1.0.0",
+        description = "A REST API for playing tic-tac-toe games",
+        contact(
+            name = "BitVMX Hackathon",
+            url = "https://github.com/bitvmx-hackathon"
+        ),
+        license(
+            name = "MIT"
+        )
+    )
+)]
+struct ApiDoc;
+
+/// Create CORS layer based on configuration
+fn create_cors_layer(config: &config::Config) -> CorsLayer {
+    let mut cors_layer = CorsLayer::new().allow_methods([http::Method::GET, http::Method::POST]);
+    
+    // Configure origins
+    if config.cors.allowed_origins.contains(&"*".to_string()) {
+        // If wildcard is specified, allow all origins
+        cors_layer = cors_layer.allow_origin(Any);
+    } else {
+        // Use specific origins from config
+        for origin in &config.cors.allowed_origins {
+            if let Ok(origin_header) = origin.parse::<HeaderValue>() {
+                cors_layer = cors_layer.allow_origin(origin_header);
+            }
+        }
+    }
+
+    // Configure headers
+    if config.cors.allowed_headers.contains(&"*".to_string()) {
+        cors_layer = cors_layer.allow_headers(Any);
+    } else {
+        let headers: Vec<HeaderName> = config.cors.allowed_headers
+            .iter()
+            .filter_map(|header| header.parse().ok())
+            .collect();
+        if !headers.is_empty() {
+            cors_layer = cors_layer.allow_headers(headers);
+        }
+    }
+    
+    cors_layer
+}
+
+/// Create the application router with all routes and middleware
+/// 
+/// Error handling is implemented at the endpoint level:
+/// - Each endpoint returns Result<T, (StatusCode, Json<ErrorResponse>)>
+/// - Proper HTTP status codes for different error scenarios
+/// - Structured error responses with meaningful messages
+/// - Game logic validation (invalid moves, game not found, etc.)
+pub fn app() -> Router {
+    // Load configuration
+    let config = config::Config::load().unwrap_or_default();
+
+    // Configure CORS
+    let cors = create_cors_layer(&config);
+
+    // Configure trace layer
+    let trace_layer = TraceLayer::new_for_http();
+
+    // Build our application with routes and middleware
+    Router::new()
+        .nest("/health", routes::health::router())
+        .nest("/game", routes::game::router())
+        .merge(SwaggerUi::new("/").url("/api-docs/openapi.json", ApiDoc::openapi()))
+        .layer(trace_layer)
+        .layer(cors)
+}

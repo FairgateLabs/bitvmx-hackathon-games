@@ -2,13 +2,10 @@
 
 A Rust backend for the BitVMX Hackathon tic-tac-toe game, built with Axum web framework.
 
-## Features
+## Key Features
 
-- **REST API**: Built with Axum web framework
-- **TypeScript Types**: Manual TypeScript type definitions
-- **Game Logic**: Complete tic-tac-toe game implementation
-- **CORS Support**: Configured for cross-origin requests
-- **Logging**: Structured logging with tracing
+- **REST API**: Built with Axum web framework, includes Swagger with using utoipa framwork
+- **TypeScript Types**: Auto generated TypeScript type definitions
 
 ## Prerequisites
 
@@ -18,11 +15,13 @@ A Rust backend for the BitVMX Hackathon tic-tac-toe game, built with Axum web fr
 ## Setup
 
 1. **Build the project:**
+
    ```bash
    cargo build
    ```
 
 2. **Run the server:**
+
    ```bash
    cargo run
    ```
@@ -31,51 +30,20 @@ The server will start on `http://localhost:8080`
 
 ## API Documentation
 
-The API is documented using **OpenAPI/Swagger with automatic generation** from Rust types using `utoipa`. You can access the interactive documentation at:
+The API is documented using **OpenAPI/Swagger**, you can access the interactive documentation at:
 
 - **Swagger UI**: http://localhost:8080/swagger-ui
 - **OpenAPI JSON**: http://localhost:8080/api-docs/openapi.json
 
-### Automatic Documentation Generation
-
-The OpenAPI specification is **automatically generated** from:
-- **Rust structs and enums** with `#[derive(ToSchema)]`
-- **API endpoints** with `#[utoipa::path]` annotations
-- **Request/response types** with proper schema definitions
-
-### Endpoints
-
-- `GET /` - Health check endpoint
-- `POST /api/game` - Create a new game
-- `GET /api/game/{id}` - Get game details
-- `POST /api/game/{id}/move` - Make a move
-- `GET /api/game/{id}/status` - Get game status
-
-### Using Swagger UI
-
-1. Start the server: `cargo run`
-2. Open your browser and go to: http://localhost:8080/swagger-ui
-3. You can now:
-   - View all available endpoints
-   - Test the API directly from the browser
-   - See request/response schemas (automatically generated from Rust types)
-   - Try out different parameters
-   - View detailed type information
-
-
 
 ## TypeScript Types
 
-TypeScript types are available at:
-- `../types/types.ts` (project root directory)
-
-The Rust types are annotated with `#[derive(TS)]` and `#[ts(export)]` attributes for TypeScript generation. Currently, the types are manually maintained, but you can use ts-rs to generate them automatically.
-
-To generate TypeScript types from Rust types, you can use the ts-rs crate. The types are already annotated with the necessary attributes.
+TypeScript types are **automatically generated** using `ts-rs` from the Rust types in the bindings folder.
 
 ## API Examples
 
 ### Create a Game
+
 ```bash
 curl -X POST http://localhost:8080/api/game \
   -H "Content-Type: application/json" \
@@ -83,6 +51,7 @@ curl -X POST http://localhost:8080/api/game \
 ```
 
 ### Make a Move
+
 ```bash
 curl -X POST http://localhost:8080/api/game/{game-id}/move \
   -H "Content-Type: application/json" \
@@ -96,6 +65,7 @@ curl -X POST http://localhost:8080/api/game/{game-id}/move \
 ```
 
 ### Get Game Status
+
 ```bash
 curl http://localhost:8080/api/game/{game-id}/status
 ```
@@ -109,61 +79,75 @@ curl http://localhost:8080/api/game/{game-id}/status
 
 ## Development
 
-### Project Structure
-```
-src/
-├── main.rs          # Application entry point
-├── types.rs         # TypeScript-exportable types
-├── models.rs        # Game logic and state management
-└── api/
-    ├── mod.rs       # API module
-    ├── health.rs    # Health check endpoints
-    └── game.rs      # Game management endpoints
-```
-
-### Adding New Types
-
-To add new types that should be exported to TypeScript:
-
-1. Add the `#[derive(TS)]` and `#[ts(export)]` attributes to your struct/enum
-2. Import `ts_rs::TS` in the file
-3. Update the corresponding TypeScript types in `../types/types.ts`
-
-Example:
-```rust
-use ts_rs::TS;
-
-#[derive(Debug, Serialize, Deserialize, TS)]
-#[ts(export)]
-pub struct MyType {
-    pub field: String,
-}
-```
-
-Then add to `../types/types.ts`:
-```typescript
-export interface MyType {
-  field: string;
-}
-```
-
-### Adding New Endpoints
-
-1. Create the endpoint function
-2. Add the route to `main.rs`
-3. Update the TypeScript types if needed
-
-## Environment Variables
-
-- `RUST_LOG`: Log level (default: "info")
-- `PORT`: Server port (default: 8080)
-
 ## Testing
 
 Run tests with:
+
 ```bash
 cargo test
 ```
+
+## Error Handling
+
+The application implements comprehensive error handling at the endpoint level:
+
+### Error Response Format
+All errors return a structured `ErrorResponse`:
+```json
+{
+  "error": "Error message",
+  "code": "ERROR_CODE"
+}
+```
+
+### HTTP Status Codes
+- `200 OK` - Successful operations
+- `201 Created` - Game created successfully
+- `400 Bad Request` - Invalid request data or game logic errors
+- `404 Not Found` - Game not found
+- `409 Conflict` - Invalid move (cell already occupied, wrong player turn, etc.)
+- `422 Unprocessable Entity` - Game already finished
+
+### Error Scenarios
+- **Invalid moves**: Cell already occupied, wrong player turn, game finished
+- **Game not found**: Invalid game ID
+- **Invalid request data**: Missing required fields, invalid JSON
+- **Game logic errors**: Attempting to play on finished game
+
+## Configuration
+
+The application uses a `config.yaml` file for configuration, but all settings can also be overridden using environment variables with the `APP_` prefix.
+
+### Configuration File
+
+```yaml
+server:
+  host: "0.0.0.0"
+  port: 8080
+
+logging:
+  level: "info"
+
+cors:
+  allowed_origins: ["*"]
+  allowed_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+  allowed_headers: ["*"]
+```
+
+### Environment Variables
+
+All configuration values can be set using environment variables with the `APP_` prefix:
+
+| Environment Variable | Description | Default |
+|---------------------|-------------|---------|
+| `APP_SERVER__HOST` | Server host address | `0.0.0.0` |
+| `APP_SERVER__PORT` | Server port number | `8080` |
+| `APP_LOGGING__LEVEL` or `RUST_LOG` | Logging level (debug, info, warn, error) | `info` |
+| `APP_CORS__ALLOWED_ORIGINS` | Comma-separated list of allowed origins | `*` |
+| `APP_CORS__ALLOWED_METHODS` | Comma-separated list of allowed HTTP methods | `GET,POST,PUT,DELETE,OPTIONS` |
+| `APP_CORS__ALLOWED_HEADERS` | Comma-separated list of allowed headers | `*` |
+
+**Note**: Environment variables take precedence over the configuration file values.
 
 ## License
 
