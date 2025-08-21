@@ -24,7 +24,8 @@ utoipa = { version = "5.4", features = ["axum_extras"] }
 utoipa-axum = "0.2.0"
 utoipa-swagger-ui = { version = "9.0", features = ["axum", "vendored"] }
 
-# Error handling section removed - using standard error handling
+# Error handling
+anyhow = { version = "1.0" }
 
 # Logging
 tracing = "0.1"

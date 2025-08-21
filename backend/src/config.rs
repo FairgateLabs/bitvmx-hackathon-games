@@ -36,7 +36,7 @@ impl Config {
         Ok(config)
     }
 
-    pub fn socket_addr(&self) -> Result<SocketAddr, Box<dyn std::error::Error>> {
+    pub fn socket_addr(&self) -> anyhow::Result<SocketAddr> {
         let addr = format!("{}:{}", self.server.host, self.server.port);
         let socket_addr = addr.parse()?;
         Ok(socket_addr)

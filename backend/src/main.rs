@@ -3,7 +3,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> anyhow::Result<()> {
     // Load configuration
     let config = config::Config::load().unwrap_or_default();
     
@@ -15,7 +15,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    // --- Servidor TARPC ---
+    // --- TARPC server ---
     let tarpc_server = async {
         // let addr = "127.0.0.1:5000".parse().unwrap();
         // let listener = tarpc::serde_transport::tcp::listen(addr, Json::default).await.unwrap();
@@ -30,6 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         //     .for_each(|_| async {})
         //     .await;
         println!("TARPC server started");
+        Ok::<_, anyhow::Error>(()) // coercion to Result
     };
 
     // --- Axum server ---
@@ -37,15 +38,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Create the application
         let app = app::app();
         // Run it
-        let addr = config.socket_addr().unwrap();
+        let addr = config.socket_addr()?;
         println!("API REST at http://{}", addr);
-        let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-        axum::serve(listener, app).await.unwrap();
+        let listener = tokio::net::TcpListener::bind(addr).await?;
+        axum::serve(listener, app).await?;
+        Ok::<_, anyhow::Error>(()) // coercion to Result
     };
 
     // Run both in parallel
-    tokio::join!(tarpc_server, axum_server);
-    
+    tokio::try_join!(tarpc_server, axum_server)?;
     Ok(())
 }
 
