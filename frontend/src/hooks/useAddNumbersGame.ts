@@ -12,7 +12,7 @@ interface GameNumbers {
   number2?: number;
 }
 
-type GameState = 
+type GameState =
   | "setup"
   | "waiting_peer"
   | "waiting_response"
@@ -43,15 +43,15 @@ export const useAddNumbersGame = () => {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       // Simulate API call to get wallet info
       // In real implementation, this would call your backend
       const mockWalletInfo: WalletInfo = {
         address: "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
         balance: 1.0, // 1 BTC for regtest
-        network: "regtest"
+        network: "regtest",
       };
-      
+
       setWalletInfo(mockWalletInfo);
       setGameState("setup");
     } catch (err) {
@@ -71,20 +71,21 @@ export const useAddNumbersGame = () => {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       // Simulate API call to generate program
       // In real implementation, this would call your backend
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate delay
-      
-      const newGameId = `game_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate delay
+
+      const newGameId = `game_${Date.now()}_${Math.random()
+        .toString(36)
+        .substr(2, 9)}`;
       setGameId(newGameId);
       setGameState("waiting_peer");
-      
+
       // Simulate peer joining
       setTimeout(() => {
         setGameState("waiting_response");
       }, 3000);
-      
     } catch (err) {
       setError("Error generating program: " + (err as Error).message);
     } finally {
@@ -93,60 +94,63 @@ export const useAddNumbersGame = () => {
   }, [numbers]);
 
   // Submit answer (Player 2)
-  const submitAnswer = useCallback(async (answer: string) => {
-    if (!answer) {
-      setError("Please enter your answer");
-      return;
-    }
+  const submitAnswer = useCallback(
+    async (answer: string) => {
+      if (!answer) {
+        setError("Please enter your answer");
+        return;
+      }
 
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      const answerNum = parseInt(answer);
-      const correctSum = (numbers.number1 || 0) + (numbers.number2 || 0);
-      const isCorrect = answerNum === correctSum;
-      
-      // Simulate API call to submit answer
-      // In real implementation, this would call your backend
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate delay
-      
-      const response: GameResponse = {
-        answer: answerNum,
-        isCorrect,
-        timestamp: new Date().toISOString()
-      };
-      
-      setGameResponse(response);
-      setGameState("response_received");
-      
-      // Simulate Player 1 receiving the response
-      setTimeout(() => {
-        setGameState("waiting_response");
-      }, 1000);
-      
-    } catch (err) {
-      setError("Error submitting answer: " + (err as Error).message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [numbers]);
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const answerNum = parseInt(answer);
+        const correctSum = (numbers.number1 || 0) + (numbers.number2 || 0);
+        const isCorrect = answerNum === correctSum;
+
+        // Simulate API call to submit answer
+        // In real implementation, this would call your backend
+        await new Promise((resolve) => setTimeout(resolve, 1500)); // Simulate delay
+
+        const response: GameResponse = {
+          answer: answerNum,
+          isCorrect,
+          timestamp: new Date().toISOString(),
+        };
+
+        setGameResponse(response);
+        setGameState("response_received");
+
+        // Simulate Player 1 receiving the response
+        setTimeout(() => {
+          setGameState("waiting_response");
+        }, 1000);
+      } catch (err) {
+        setError("Error submitting answer: " + (err as Error).message);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [numbers]
+  );
 
   // Accept answer (Player 1)
   const acceptAnswer = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       // Simulate API call to accept answer
       // In real implementation, this would call your backend
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate delay
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate delay
+
       setGameState("completed");
-      
+
       // Show success message
-      alert("✅ Respuesta correcta! Los fondos han sido transferidos al Player 2.");
-      
+      alert(
+        "✅ Respuesta correcta! Los fondos han sido transferidos al Player 2."
+      );
     } catch (err) {
       setError("Error accepting answer: " + (err as Error).message);
     } finally {
@@ -159,16 +163,15 @@ export const useAddNumbersGame = () => {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       // Simulate API call to challenge answer
       // In real implementation, this would call your backend
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate delay
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate delay
+
       setGameState("disputed");
-      
+
       // Show challenge message
       alert("⚖️ Disputa iniciada. El Player 2 tiene tiempo para responder.");
-      
     } catch (err) {
       setError("Error challenging answer: " + (err as Error).message);
     } finally {
@@ -177,35 +180,37 @@ export const useAddNumbersGame = () => {
   }, []);
 
   // Join game (Player 2)
-  const joinGame = useCallback(async (gameId: string, peerIP: string, peerPort: string) => {
-    if (!gameId || !peerIP || !peerPort) {
-      setError("Please fill in all fields");
-      return;
-    }
+  const joinGame = useCallback(
+    async (gameId: string, peerIP: string, peerPort: string) => {
+      if (!gameId || !peerIP || !peerPort) {
+        setError("Please fill in all fields");
+        return;
+      }
 
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      // Simulate API call to join game
-      // In real implementation, this would call your backend
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate delay
-      
-      setGameId(gameId);
-      setGameState("waiting_peer");
-      
-      // Simulate receiving game numbers
-      setTimeout(() => {
-        setNumbers({ number1: 5, number2: 3 }); // Mock numbers
-        setGameState("waiting_response");
-      }, 2000);
-      
-    } catch (err) {
-      setError("Error joining game: " + (err as Error).message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // Simulate API call to join game
+        // In real implementation, this would call your backend
+        await new Promise((resolve) => setTimeout(resolve, 1500)); // Simulate delay
+
+        setGameId(gameId);
+        setGameState("waiting_peer");
+
+        // Simulate receiving game numbers
+        setTimeout(() => {
+          setNumbers({ number1: 5, number2: 3 }); // Mock numbers
+          setGameState("waiting_response");
+        }, 2000);
+      } catch (err) {
+        setError("Error joining game: " + (err as Error).message);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
 
   // Reset game
   const resetGame = useCallback(() => {
@@ -230,7 +235,7 @@ export const useAddNumbersGame = () => {
     gameResponse,
     isLoading,
     error,
-    
+
     // Actions
     setNumbers,
     generateProgram,
@@ -239,6 +244,6 @@ export const useAddNumbersGame = () => {
     challengeAnswer,
     joinGame,
     resetGame,
-    initializeWallet
+    initializeWallet,
   };
 };

@@ -1,4 +1,4 @@
-import { Home, Inbox, ArrowLeftRight } from "lucide-react";
+import { Home, Inbox, ArrowLeftRight, BookOpen } from "lucide-react";
 
 import {
   Sidebar,
@@ -26,7 +26,12 @@ const menu_items = [
     icon: Home,
     items: [
       {
-        title: "Jugar",
+        title: "How to Play",
+        url: "/add-numbers/how-to-play",
+        icon: BookOpen,
+      },
+      {
+        title: "Play",
         url: "/add-numbers",
         icon: ArrowLeftRight,
       },
@@ -37,7 +42,7 @@ const menu_items = [
     icon: Inbox,
     items: [
       {
-        title: "Próximamente",
+        title: "Coming soon",
         url: "#",
         icon: ArrowLeftRight,
       },
