@@ -1,11 +1,4 @@
-import {
-  Calendar,
-  Code,
-  Home,
-  Inbox,
-  Search,
-  ArrowLeftRight,
-} from "lucide-react";
+import { Home, Inbox, ArrowLeftRight } from "lucide-react";
 
 import {
   Sidebar,
@@ -25,6 +18,7 @@ import {
   CollapsibleTrigger,
 } from "@radix-ui/react-collapsible";
 import Link from "next/link";
+
 // Menu items.
 const menu_items = [
   {
@@ -32,8 +26,8 @@ const menu_items = [
     icon: Home,
     items: [
       {
-        title: "Blocks",
-        url: "/indexer/blocks",
+        title: "Jugar",
+        url: "/add-numbers",
         icon: ArrowLeftRight,
       },
     ],
@@ -43,8 +37,8 @@ const menu_items = [
     icon: Inbox,
     items: [
       {
-        title: "Game",
-        url: "/game",
+        title: "Próximamente",
+        url: "#",
         icon: ArrowLeftRight,
       },
     ],

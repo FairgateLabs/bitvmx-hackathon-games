@@ -9,7 +9,7 @@ export type MonitorData = {
   [MonitorType.SpendingUTXOTransaction]?: string[];
   [MonitorType.RskPeginTransaction]?: string[];
   [MonitorType.NewBlock]?: string[];
-  [key: string]: any;
+  [key: string]: string[] | undefined;
 };
 
 export function getMonitorType(monitorData: MonitorData): MonitorType {
@@ -27,7 +27,7 @@ export function getMonitorType(monitorData: MonitorData): MonitorType {
   return MonitorType.Transaction;
 }
 
-export function getMonitorTxid(monitorData: MonitorData): String {
+export function getMonitorTxid(monitorData: MonitorData): string {
   if (monitorData[MonitorType.Transaction]) {
     return monitorData[MonitorType.Transaction][0];
   }
@@ -40,7 +40,7 @@ export function getMonitorTxid(monitorData: MonitorData): String {
   return "";
 }
 
-export function getMonitorByString(monitorString: String): MonitorType {
+export function getMonitorByString(monitorString: string): MonitorType {
   if (monitorString === MonitorType.Transaction) {
     return MonitorType.Transaction;
   } else if (monitorString === MonitorType.SpendingUTXOTransaction) {
