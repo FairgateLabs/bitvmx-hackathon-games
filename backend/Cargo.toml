@@ -5,6 +5,9 @@ edition = "2021"
 
 
 [dependencies]
+# BitVMX client
+bitvmx-client = { path = "../../rust-bitvmx-workspace/rust-bitvmx-client" }
+
 # Web framework
 axum = "0.8"
 tokio = { version = "1.0", features = ["full"] }

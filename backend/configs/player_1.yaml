@@ -8,3 +8,6 @@ logging:
 cors:
   allowed_origins: ["*"]
   allowed_headers: ["*"]
+
+bitvmx:
+  broker_port: 22222

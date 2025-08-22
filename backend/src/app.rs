@@ -66,7 +66,7 @@ struct ApiDoc;
 /// - Game logic validation (invalid moves, game not found, etc.)
 pub fn app() -> Router {
     // Load configuration
-    let config = config::Config::load().unwrap_or_default();
+    let config = config::Config::load("player_1").unwrap_or_default();
 
     // Configure CORS
     let cors = create_cors_layer(&config);
