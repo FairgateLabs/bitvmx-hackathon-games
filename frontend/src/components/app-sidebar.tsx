@@ -1,5 +1,15 @@
-import { Home, Inbox, ArrowLeftRight, BookOpen } from "lucide-react";
-
+import {
+  BookOpen,
+  FileText,
+  GraduationCap,
+  Calculator,
+  Plus,
+  Gamepad2,
+  Shuffle,
+  AppWindow,
+  Grid3x3,
+  ArrowLeftRight,
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -20,30 +30,57 @@ import {
 import Link from "next/link";
 
 // Menu items.
+
 const menu_items = [
   {
-    title: "Add Numbers",
-    icon: Home,
+    title: "Learning BitVMX",
+    icon: GraduationCap, // más didáctico que BookOpen
     items: [
       {
-        title: "How to Play",
+        title: "Documentation",
+        url: "/learning-bitvmx/documentation",
+        icon: FileText, // más claro para docs
+      },
+    ],
+  },
+  {
+    title: "Add Numbers",
+    icon: Calculator, // comunica sumas directamente
+    items: [
+      {
+        title: "How to play",
         url: "/add-numbers/how-to-play",
-        icon: BookOpen,
+        icon: BookOpen, // tutorial/guide
       },
       {
-        title: "Play",
-        url: "/add-numbers",
-        icon: ArrowLeftRight,
+        title: "Play game",
+        url: "/add-numbers/play-game",
+        icon: Gamepad2, // acción de jugar
+      },
+      {
+        title: "Game Transactions",
+        url: "/add-numbers/transactions",
+        icon: ArrowLeftRight, // flujo de BTC/fondos
       },
     ],
   },
   {
     title: "Tic Tac Toe",
-    icon: Inbox,
+    icon: Grid3x3, // perfecto para el tablero
     items: [
       {
-        title: "Coming soon",
-        url: "#",
+        title: "How to play",
+        url: "tic-tac-toe/how-to-play",
+        icon: BookOpen,
+      },
+      {
+        title: "Play game",
+        url: "tic-tac-toe/play-game",
+        icon: Gamepad2,
+      },
+      {
+        title: "Game Transactions",
+        url: "/tic-tac-toe/transactions",
         icon: ArrowLeftRight,
       },
     ],
@@ -55,8 +92,12 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>BitVMX Games</SidebarGroupLabel>
-          <SidebarGroupContent>
+          <SidebarGroupLabel>
+            <Link href="/" className="text-lg">
+              BitVMX Berlin Hackathon
+            </Link>
+          </SidebarGroupLabel>
+          <SidebarGroupContent className="mt-4">
             <SidebarMenu>
               {menu_items.map((item) => (
                 <SidebarMenuItem key={item.title}>

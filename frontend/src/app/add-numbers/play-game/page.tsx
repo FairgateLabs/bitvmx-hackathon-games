@@ -51,15 +51,14 @@ export default function AddNumbersPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl text-center">
-              🎮 BitVMX Hackathon
+              🎮 Add Numbers Game
             </CardTitle>
             <CardDescription className="text-center">
-              Choose the game you want to play
+              Choose the role you want to play
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="text-center mb-6">
-              <h2 className="text-xl font-semibold mb-2">Add Numbers Game</h2>
               <p className="text-muted-foreground">
                 Two players compete by adding numbers. Who are you?
               </p>
