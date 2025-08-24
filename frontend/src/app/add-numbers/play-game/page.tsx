@@ -57,8 +57,8 @@ export default function AddNumbersPage() {
         <CardHeader>
           <CardTitle className="text-2xl">
             {gameRole === GameRole.Player1
-              ? "🎯 Player 1 - Add Numbers"
-              : "🎮 Player 2 - Add Numbers"}
+              ? "➕ Player 1 - Add Numbers"
+              : "🤝 Player 2 - Add Numbers"}
           </CardTitle>
           <CardDescription>
             {gameRole === GameRole.Player1

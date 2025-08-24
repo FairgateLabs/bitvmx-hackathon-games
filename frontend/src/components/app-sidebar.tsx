@@ -33,7 +33,7 @@ import Link from "next/link";
 
 const menu_items = [
   {
-    title: "Learning BitVMX",
+    title: "Learn BitVMX",
     icon: GraduationCap, // más didáctico que BookOpen
     items: [
       {

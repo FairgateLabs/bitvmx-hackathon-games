@@ -45,7 +45,7 @@ export function GameRoleSelector({
               className="h-24 text-lg cursor-pointer"
               variant="outline"
             >
-              🎯 Player 1<br />
+              ➕ Player 1<br />
               <span className="text-sm font-normal">Create the game</span>
             </Button>
 
@@ -54,7 +54,7 @@ export function GameRoleSelector({
               className="h-24 text-lg cursor-pointer"
               variant="outline"
             >
-              🎮 Player 2<br />
+              🤝 Player 2<br />
               <span className="text-sm font-normal">Join the game</span>
             </Button>
           </div>
