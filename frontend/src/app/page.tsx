@@ -13,7 +13,9 @@ export default function Home() {
   return (
     <div className="container mx-auto p-6 max-w-4xl">
       <div className="text-center mb-12">
-        <h1 className="text-5xl font-bold mb-4">🎮 BitVMX Games</h1>
+        <div className="flex items-center justify-center mb-4">
+          <h1 className="text-5xl font-bold">BitVMX Games 🎮</h1>
+        </div>
         <p className="text-xl text-muted-foreground">
           Experience the BitVMX protocol by playing and learning with different
           games. Challenge the results if you disagree with the outcome and
@@ -33,8 +35,10 @@ export default function Home() {
             </CardDescription>
           </CardContent>
           <CardFooter className="flex justify-center">
-            <Link href="/add-numbers" className="w-full">
-              <Button className="w-full">🎯 Play for 1 BTC in Regtest! </Button>
+            <Link href="/add-numbers/play-game" className="w-full">
+              <Button className="w-full cursor-pointer">
+                🎯 Play for 1 BTC in Regtest!{" "}
+              </Button>
             </Link>
           </CardFooter>
         </Card>
@@ -51,7 +55,7 @@ export default function Home() {
             </CardDescription>
           </CardContent>
           <CardFooter className="flex justify-center">
-            <Link href="/add-numbers" className="w-full">
+            <Link href="/tic-tac-toe/play-game" className="w-full">
               <Button className="w-full" disabled>
                 🚧 Coming Soon...
               </Button>
