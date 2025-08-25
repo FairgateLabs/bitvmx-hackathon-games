@@ -57,7 +57,7 @@ impl Default for Config {
                 port: 8080,
             },
             logging: LoggingConfig {
-                level: "info".to_string(),
+                level: "debug".to_string(),
             },
             cors: CorsConfig {
                 allowed_origins: vec!["*".to_string()],

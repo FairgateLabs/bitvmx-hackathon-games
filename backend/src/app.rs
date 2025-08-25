@@ -1,9 +1,10 @@
 use axum::Router;
 use tower_http::cors::{CorsLayer, Any};
 use tower_http::trace::TraceLayer;
-use http::{HeaderValue, HeaderName};
+use http::{HeaderValue, HeaderName, Request};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
+use uuid::Uuid;
 
 use crate::config;
 use crate::routes;
@@ -71,8 +72,17 @@ pub fn app() -> Router {
     // Configure CORS
     let cors = create_cors_layer(&config);
 
-    // Configure trace layer
-    let trace_layer = TraceLayer::new_for_http();
+    // Configure trace layer with custom span names
+    let trace_layer = TraceLayer::new_for_http()
+        .make_span_with(|request: &Request<_>| {
+            let request_id = Uuid::new_v4();
+            tracing::info_span!(
+                "http_request",
+                request_id = %request_id,
+                method = %request.method(),
+                uri = %request.uri(),
+            )
+        });
 
     // Build our application with routes and middleware
     Router::new()

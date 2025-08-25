@@ -1,13 +1,17 @@
 use axum::Json;
 use crate::stores::HealthStore;
 use crate::types::HealthResponse;
+use tracing::instrument;
 
 /// Health check endpoint
+#[instrument]
 pub async fn health_check() -> Json<HealthResponse> {
     let health_store = HealthStore::new();
+    let timestamp = health_store.get_current_timestamp();
+    
     Json(HealthResponse {
         status: "healthy".to_string(),
-        timestamp: health_store.get_current_timestamp(),
+        timestamp,
     })
 }
 

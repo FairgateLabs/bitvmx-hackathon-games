@@ -1,154 +1,105 @@
-# Tic-Tac-Toe Backend
+# BitVMX Tic-Tac-Toe Backend
 
-A Rust backend for the BitVMX Hackathon tic-tac-toe game, built with Axum web framework.
+A Rust backend for the BitVMX Tic-Tac-Toe game using Axum framework.
 
-## Key Features
+## Features
 
-- **REST API**: Built with Axum web framework, includes Swagger with using utoipa framwork
-- **TypeScript Types**: Auto generated TypeScript type definitions
+- RESTful API for Tic-Tac-Toe game management
+- Add Numbers game functionality
+- Health check endpoints
+- Request ID tracking for all logs
+- OpenAPI/Swagger documentation
+- CORS support
 
-## Prerequisites
+### How it works
 
-- Rust 1.70+ (install via [rustup](https://rustup.rs/))
-- Cargo (comes with Rust)
+1. **Automatic Span Generation**: Each request automatically gets a tracing span
+2. **Function Instrumentation**: Handlers are decorated with `#[instrument]` for automatic logging
+3. **Log Correlation**: All logs within a request span are automatically correlated
+4. **Structured Logging**: Logs include function names, parameters, and timing information
 
-## Setup
+### Using Tracing in Handlers
 
-1. **Build the project:**
+Simply add the `#[instrument]` attribute to your handler functions:
 
-   ```bash
-   cargo build
-   ```
+```rust
+use tracing::instrument;
 
-2. **Run the server:**
-
-   ```bash
-   cargo run
-   ```
-
-The server will start on `http://localhost:8080`
-
-## API Documentation
-
-The API is documented using **OpenAPI/Swagger**, you can access the interactive documentation at:
-
-- **Swagger UI**: http://localhost:8080/swagger-ui
-- **OpenAPI JSON**: http://localhost:8080/api-docs/openapi.json
-
-
-## TypeScript Types
-
-TypeScript types are **automatically generated** using `ts-rs` from the Rust types in the bindings folder.
-
-## API Examples
-
-### Create a Game
-
-```bash
-curl -X POST http://localhost:8080/api/game \
-  -H "Content-Type: application/json" \
-  -d '{"player_name": "Alice"}'
-```
-
-### Make a Move
-
-```bash
-curl -X POST http://localhost:8080/api/game/{game-id}/move \
-  -H "Content-Type: application/json" \
-  -d '{
-    "player": "X",
-    "position": {
-      "row": 0,
-      "col": 0
-    }
-  }'
-```
-
-### Get Game Status
-
-```bash
-curl http://localhost:8080/api/game/{game-id}/status
-```
-
-## Game Rules
-
-- Players take turns placing X and O on a 3x3 grid
-- First player to get 3 in a row (horizontally, vertically, or diagonally) wins
-- If all cells are filled without a winner, the game is a draw
-- Game states: Waiting, InProgress, Won, Draw
-
-## Development
-
-## Testing
-
-Run tests with:
-
-```bash
-cargo test
-```
-
-## Error Handling
-
-The application implements comprehensive error handling at the endpoint level:
-
-### Error Response Format
-All errors return a structured `ErrorResponse`:
-```json
-{
-  "error": "Error message",
-  "code": "ERROR_CODE"
+#[instrument]
+pub async fn my_handler() -> Json<Response> {
+    tracing::info!("Processing request");
+    
+    // Your handler logic here
+    
+    tracing::info!("Request completed successfully");
+    
+    Json(response)
 }
 ```
 
-### HTTP Status Codes
-- `200 OK` - Successful operations
-- `201 Created` - Game created successfully
-- `400 Bad Request` - Invalid request data or game logic errors
-- `404 Not Found` - Game not found
-- `409 Conflict` - Invalid move (cell already occupied, wrong player turn, etc.)
-- `422 Unprocessable Entity` - Game already finished
+### Example Log Output
 
-### Error Scenarios
-- **Invalid moves**: Cell already occupied, wrong player turn, game finished
-- **Game not found**: Invalid game ID
-- **Invalid request data**: Missing required fields, invalid JSON
-- **Game logic errors**: Attempting to play on finished game
+With tracing enabled, your logs will look like:
+
+```
+2024-01-15T10:30:45.123Z INFO health_check{request_id=550e8400-e29b-41d4-a716-446655440000}: Health check requested
+2024-01-15T10:30:45.124Z INFO health_check{request_id=550e8400-e29b-41d4-a716-446655440000}: Health check completed with timestamp=1705315845125
+```
+
+### Advanced Usage
+
+You can customize the instrumentation by adding parameters to `#[instrument]`:
+
+```rust
+#[instrument(skip(store), fields(player_name = %request.player_name))]
+pub async fn create_game(
+    State(store): State<Arc<Mutex<GameStore>>>,
+    request: CreateGameRequest,
+) -> Result<CreateGameResponse, (StatusCode, Json<ErrorResponse>)> {
+    tracing::info!("Creating new game");
+    // ...
+}
+```
+
+## Running the Application
+
+```bash
+cargo run
+```
+
+The server will start on the configured address (default: `0.0.0.0:8080`).
+
+## API Documentation
+
+Once the server is running, you can access the Swagger UI documentation at:
+- http://localhost:8080/
 
 ## Configuration
 
-The application uses a `config.yaml` file for configuration, but all settings can also be overridden using environment variables with the `APP_` prefix.
-
-### Configuration File
-
-```yaml
-server:
-  host: "0.0.0.0"
-  port: 8080
-
-logging:
-  level: "info"
-
-cors:
-  allowed_origins: ["*"]
-  allowed_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
-  allowed_headers: ["*"]
-```
+The application uses configuration files in the `configs/` directory. See the configuration module for details.
 
 ### Environment Variables
 
-All configuration values can be set using environment variables with the `APP_` prefix:
+The following environment variables can be used to configure the application:
 
-| Environment Variable | Description | Default |
-|---------------------|-------------|---------|
-| `APP_SERVER__HOST` | Server host address | `0.0.0.0` |
-| `APP_SERVER__PORT` | Server port number | `8080` |
-| `APP_LOGGING__LEVEL` or `RUST_LOG` | Logging level (debug, info, warn, error) | `info` |
-| `APP_CORS__ALLOWED_ORIGINS` | Comma-separated list of allowed origins | `*` |
-| `APP_CORS__ALLOWED_METHODS` | Comma-separated list of allowed HTTP methods | `GET,POST,PUT,DELETE,OPTIONS` |
-| `APP_CORS__ALLOWED_HEADERS` | Comma-separated list of allowed headers | `*` |
+| Variable | Description | Default | Example |
+|----------|-------------|---------|---------|
+| `CONFIG_FILE` | Configuration file name (without .yaml extension) | `player_1` | `CONFIG_FILE=player_2` |
+| `RUST_LOG` | Logging level (debug, info, warn, error) | `info` | `RUST_LOG=debug` |
+| `APP_SERVER__HOST` | Server host address | `0.0.0.0` | `APP_SERVER__HOST=127.0.0.1` |
+| `APP_SERVER__PORT` | Server port number | `8080` | `APP_SERVER__PORT=3000` |
+| `APP_CORS__ALLOWED_ORIGINS` | Comma-separated list of allowed origins | `*` | `APP_CORS__ALLOWED_ORIGINS=http://localhost:3000,https://example.com` |
 
-**Note**: Environment variables take precedence over the configuration file values.
+### Available Configuration Files
 
-## License
+The application comes with two pre-configured files in the `configs/` directory:
 
-MIT License - see LICENSE file for details.
+- `player_1.yaml` - Default configuration for player 1
+- `player_2.yaml` - Configuration for player 2
+
+### Running with Custom Configuration
+
+```bash
+# Use a different configuration file
+CONFIG_FILE=player_2 cargo run
+```

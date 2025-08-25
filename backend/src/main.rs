@@ -1,58 +1,93 @@
 use std::{thread::sleep, time::Duration};
 
-use bitvmx_tictactoe_backend::{app, config, bitvmx};
+use bitvmx_tictactoe_backend::{app, config};
 use tracing::{error, info, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use bitvmx_client::{
-    client::BitVMXClient,
-    types::L2_ID,
-};
+use tokio::sync::broadcast;
+// use bitvmx_client::{
+//     client::BitVMXClient,
+//     types::L2_ID,
+// };
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Load configuration
-    let config = config::Config::load("player_1").unwrap_or_default();
+    let config_file = std::env::var("CONFIG_FILE").unwrap_or_else(|_| "player_1".to_string());
+    println!("--- Loading configuration from {config_file} ---");
+    let config = config::Config::load(&config_file).unwrap_or_default();
     
-    // Initialize tracing
+    // Initialize tracing with request ID support
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
             std::env::var("RUST_LOG").unwrap_or_else(|_| config.logging.level.clone()),
         ))
-        .with(tracing_subscriber::fmt::layer())
+        .with(
+            tracing_subscriber::fmt::layer()
+                .with_target(false)
+        )
         .init();
+
+    // Create shutdown signal
+    let (shutdown_tx, _) = broadcast::channel::<()>(1);
+    let mut shutdown_rx = shutdown_tx.subscribe();
 
     // --- BITVMX RPC connection ---
     let bitvmx_rpc = tokio::task::spawn_blocking(move || {
-        // Create the client to connect to BitVMX as a L2
-        let client = BitVMXClient::new(config.bitvmx.broker_port, L2_ID);
-        // Send a ping bitvmx to check if it is alive
-        client.ping()?;
+        // Create a span for this task
+        let span = tracing::info_span!("bitvmx_rpc_task");
+        let _enter = span.enter();
+        
+        // // Create the client to connect to BitVMX as a L2
+        // let client = BitVMXClient::new(config.bitvmx.broker_port, L2_ID);
+        // // Send a ping bitvmx to check if it is alive
+        // client.ping()?;
         info!("Connected to BitVMX RPC at port {}", config.bitvmx.broker_port);
+        
+        // Check for shutdown signal every 100ms
         loop {
-            let result = client.get_message();
-            if result.is_err() {
-                return Err(result.err().unwrap());
+            // Check if shutdown signal was received
+            if shutdown_rx.try_recv().is_ok() {
+                info!("BitVMX RPC shutting down...");
+                break;
             }
-            if let Some((message, _from)) = result.unwrap() {
-                // Send the message to the handler
-                bitvmx::handler::outgoing_message(message)?;
-            }
+            
+            // let result = client.get_message();
+            // if result.is_err() {
+            //     return Err(result.err().unwrap());
+            // }
+            // if let Some((message, _from)) = result.unwrap() {
+            //     // Send the message to the handler
+            //     bitvmx::handler::outgoing_message(message)?;
+            // }
+            
             // Wait before checking for new messages
             sleep(Duration::from_millis(100));
         }
-        #[allow(unreachable_code)]
         Ok::<_, anyhow::Error>(()) // coercion to Result
     });
 
     // --- Axum server ---
-    let axum_server = tokio::spawn(async move {
+    let mut shutdown_rx_axum = shutdown_tx.subscribe();
+    let axum_server = tokio::task::spawn(async move {
+        // Create a span for this task
+        let span = tracing::info_span!("axum_server_task");
+        let _enter = span.enter();
+        
         // Create the application
         let app = app::app();
         // Run it
         let addr = config.server_addr()?;
         info!("API REST at http://{}", addr);
         let listener = tokio::net::TcpListener::bind(addr).await?;
-        axum::serve(listener, app).await?;
+        
+        // Use graceful shutdown
+        axum::serve(listener, app)
+            .with_graceful_shutdown(async move {
+                let _ = shutdown_rx_axum.recv().await;
+                info!("Axum server shutting down...");
+            })
+            .await?;
+            
         Ok::<_, anyhow::Error>(()) // coercion to Result
     });
 
@@ -68,7 +103,11 @@ async fn main() -> anyhow::Result<()> {
             Ok(Err(e)) => error!("❌ Error at API: {}", e),
             Err(e) => error!("💥 Panic at API: {}", e),
         },
-        _ = tokio::signal::ctrl_c() => info!("Ctrl-C received, shutting down..."),
+        _ = tokio::signal::ctrl_c() => {
+            info!("Ctrl-C received, shutting down...");
+            // Send shutdown signal to both tasks
+            let _ = shutdown_tx.send(());
+        },
     }
 
     Ok(())
