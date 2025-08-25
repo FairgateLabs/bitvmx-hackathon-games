@@ -1,5 +1,5 @@
 use bitvmx_client::types::OutgoingBitVMXApiMessages;
-use tracing::info;
+use tracing::{info, warn};
 
 pub fn outgoing_message(message: OutgoingBitVMXApiMessages) -> Result<(), anyhow::Error> {
     match message {
@@ -7,7 +7,7 @@ pub fn outgoing_message(message: OutgoingBitVMXApiMessages) -> Result<(), anyhow
             info!("Pong received from BitVMX");
         }
         _ => {
-            info!("Message received from BitVMX: {:?}", message);
+            warn!("Unhandled message received from BitVMX: {:?}", message);
         }
     }
     Ok(())
