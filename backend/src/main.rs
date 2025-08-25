@@ -1,13 +1,27 @@
 use std::{thread::sleep, time::Duration};
 
-use bitvmx_tictactoe_backend::{app, config};
-use tracing::{error, info, warn};
+use bitvmx_tictactoe_backend::{app, config, bitvmx};
+use tracing::{debug, error, info, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use tokio::sync::broadcast;
-// use bitvmx_client::{
-//     client::BitVMXClient,
-//     types::L2_ID,
-// };
+use bitvmx_client::{
+    client::BitVMXClient,
+    types::L2_ID,
+};
+
+/// Initialize logs with the given log level
+/// It disables the tarpc and broker layers to avoid logging too much information
+fn init_tracing(log_level: String) {
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::EnvFilter::new(
+            format!("{log_level},tarpc=off,broker=off"),
+        ))
+        .with(
+            tracing_subscriber::fmt::layer()
+                .with_target(false)
+        )
+        .init();
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -16,16 +30,8 @@ async fn main() -> anyhow::Result<()> {
     println!("--- Loading configuration from {config_file} ---");
     let config = config::Config::load(&config_file).unwrap_or_default();
     
-    // Initialize tracing with request ID support
-    tracing_subscriber::registry()
-        .with(tracing_subscriber::EnvFilter::new(
-            std::env::var("RUST_LOG").unwrap_or_else(|_| config.logging.level.clone()),
-        ))
-        .with(
-            tracing_subscriber::fmt::layer()
-                .with_target(false)
-        )
-        .init();
+    // Initialize logs
+    init_tracing(std::env::var("RUST_LOG").unwrap_or_else(|_| config.logging.level.clone()));
 
     // Create shutdown signal
     let (shutdown_tx, _) = broadcast::channel::<()>(1);
@@ -37,11 +43,12 @@ async fn main() -> anyhow::Result<()> {
         let span = tracing::info_span!("bitvmx_rpc_task");
         let _enter = span.enter();
         
-        // // Create the client to connect to BitVMX as a L2
-        // let client = BitVMXClient::new(config.bitvmx.broker_port, L2_ID);
-        // // Send a ping bitvmx to check if it is alive
-        // client.ping()?;
+        // Create the client to connect to BitVMX as a L2
+        let client = BitVMXClient::new(config.bitvmx.broker_port, L2_ID);
         info!("Connected to BitVMX RPC at port {}", config.bitvmx.broker_port);
+        // Send a ping bitvmx to check if it is alive
+        client.ping()?;
+        debug!("Send ping to test connection");
         
         // Check for shutdown signal every 100ms
         loop {
@@ -51,14 +58,14 @@ async fn main() -> anyhow::Result<()> {
                 break;
             }
             
-            // let result = client.get_message();
-            // if result.is_err() {
-            //     return Err(result.err().unwrap());
-            // }
-            // if let Some((message, _from)) = result.unwrap() {
-            //     // Send the message to the handler
-            //     bitvmx::handler::outgoing_message(message)?;
-            // }
+            let result = client.get_message();
+            if result.is_err() {
+                return Err(result.err().unwrap());
+            }
+            if let Some((message, _from)) = result.unwrap() {
+                // Send the message to the handler
+                bitvmx::handler::outgoing_message(message)?;
+            }
             
             // Wait before checking for new messages
             sleep(Duration::from_millis(100));
