@@ -30,15 +30,15 @@ export default function Home() {
           </CardHeader>
           <CardContent>
             <CardDescription>
-              Simple game where two players compete by adding numbers. <br />
-              Player 1 chooses two numbers, Player 2 must guess the sum.
+              A simple two-player game with numbers. <br />
+              Player 1 gives two numbers. <br />
+              Player 2 sums them. Player 1 confirms the answer — truthfully or
+              by lying.
             </CardDescription>
           </CardContent>
           <CardFooter className="flex justify-center">
             <Link href="/add-numbers/play-game" className="w-full">
-              <Button className="w-full cursor-pointer">
-                🎯 Play for 1 BTC in Regtest!{" "}
-              </Button>
+              <Button className="w-full cursor-pointer"> Play Now! </Button>
             </Link>
           </CardFooter>
         </Card>

@@ -16,6 +16,7 @@ import { Player1GameSetup } from "@/components/player1-game-setup";
 import { Player2GameSetup } from "@/components/player2-game-setup";
 import { GameActions } from "@/components/game-actions";
 import { NetworkInfo } from "@/components/network-info";
+import { PlayerConnectionInfo } from "@/components/player-connection-info";
 import { Button } from "@/components/ui/button";
 import { NetworkType } from "@/types/network";
 
@@ -90,6 +91,7 @@ export default function AddNumbersPage() {
               onClick={() => setNetworkSelected(NetworkType.Testnet)}
               className="flex text-center h-40 text-lg cursor-pointer"
               variant="outline"
+              disabled
             >
               <div className="flex flex-col w-full gap-2 h-[130px]">
                 🔗 Testnet
@@ -131,6 +133,8 @@ export default function AddNumbersPage() {
 
         <CardContent className="space-y-6">
           <NetworkInfo networkSelected={networkSelected} />
+
+          <PlayerConnectionInfo networkSelected={networkSelected} />
 
           {walletInfo && (
             <WalletSection
