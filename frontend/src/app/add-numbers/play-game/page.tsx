@@ -15,6 +15,7 @@ import { WalletSection } from "@/components/wallet-section";
 import { Player1GameSetup } from "@/components/player1-game-setup";
 import { Player2GameSetup } from "@/components/player2-game-setup";
 import { GameActions } from "@/components/game-actions";
+import { Button } from "@/components/ui/button";
 
 // Types
 interface WalletInfo {
@@ -47,8 +48,65 @@ export default function AddNumbersPage() {
     error,
   } = useAddNumbersGame();
 
+  const [networkSelected, setNetworkSelected] = useState(false);
+
+  if (!networkSelected) {
+    return (
+      <div className="container mx-auto p-6 max-w-[840px]">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl text-center">
+              🔽 Select Network
+            </CardTitle>
+            <CardDescription className="text-center">
+              Choose the Bitcoin network for your game session.
+              <br />
+              In Regtest, you have the flexibility to simulate transactions
+              without real funds, ideal for testing and development. <br />
+              In Testnet, transactions mimic real-world scenarios, requiring you
+              to fund your wallet with testnet Bitcoins.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-2 gap-4">
+            <Button
+              onClick={() => setNetworkSelected(true)}
+              className="flex text-center h-40 text-lg cursor-pointer"
+              variant="outline"
+            >
+              <div className="flex flex-col w-full gap-2 h-[130px]">
+                🔗 Regtest
+                <p className="text-sm font-normal max-w-xs whitespace-normal block">
+                  Easy to use and ideal for testing and development. Funds are
+                  given to you automatically without worrying about funding your
+                  wallet.
+                </p>
+              </div>
+            </Button>
+            <Button
+              onClick={() => setNetworkSelected(true)}
+              className="flex text-center h-40 text-lg cursor-pointer"
+              variant="outline"
+            >
+              <div className="flex flex-col w-full gap-2 h-[130px]">
+                🔗 Testnet
+                <p className="text-sm font-normal max-w-xs whitespace-normal block">
+                  More complex and realistic. You need to fund your wallet
+                  manually to play the game.
+                </p>
+              </div>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (!gameRole) {
-    return <GameRoleSelector onRoleSelect={setGameRole} />;
+    return (
+      <div className="space-y-6">
+        <GameRoleSelector onRoleSelect={setGameRole} />
+      </div>
+    );
   }
 
   return (
