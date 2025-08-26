@@ -48,7 +48,7 @@ export function PlayerConnectionInfo({
         className="font-semibold mb-3 text-blue-800 cursor-pointer"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        🔌 Your Connection Info {isExpanded ? "▲" : "▼"}
+        🔌 Your Connection Information {isExpanded ? "▲" : "▼"}
       </h3>
       {isExpanded && (
         <>
