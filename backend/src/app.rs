@@ -20,7 +20,9 @@ use crate::routes;
         routes::add_numbers::create_game,
         routes::add_numbers::get_game,
         routes::add_numbers::add_numbers,
-        routes::add_numbers::make_guess
+        routes::add_numbers::make_guess,
+        routes::bitvmx::comm_info,
+        routes::bitvmx::setup_aggregated_key
     ),
     components(
         schemas(
@@ -35,13 +37,17 @@ use crate::routes;
             crate::types::AddNumbersGameStatus,
             crate::types::CreateAddNumbersGameRequest,
             crate::types::AddNumbersRequest,
-            crate::types::MakeGuessRequest
+            crate::types::MakeGuessRequest,
+            crate::types::P2PAddress,
+            crate::types::SetupKey,
+
         )
     ),
     tags(
         (name = "Game", description = "Tic-tac-toe game management endpoints"),
         (name = "Health", description = "Health check endpoints"),
-        (name = "AddNumbers", description = "Add numbers game management endpoints")
+        (name = "AddNumbers", description = "Add numbers game management endpoints"),
+        (name = "BitVMX", description = "BitVMX communication endpoints")
     ),
     info(
         title = "Tic-Tac-Toe API",
@@ -77,10 +83,10 @@ pub fn app() -> Router {
         .make_span_with(|request: &Request<_>| {
             let request_id = Uuid::new_v4();
             tracing::info_span!(
-                "http_request",
-                request_id = %request_id,
+                "request",
                 method = %request.method(),
                 uri = %request.uri(),
+                id = %request_id,
             )
         });
 
@@ -89,6 +95,7 @@ pub fn app() -> Router {
         .nest("/health", routes::health::router())
         .nest("/game", routes::game::router())
         .nest("/add-numbers", routes::add_numbers::router())
+        .nest("/bitvmx", routes::bitvmx::router())
         .merge(SwaggerUi::new("/").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .layer(trace_layer)
         .layer(cors)

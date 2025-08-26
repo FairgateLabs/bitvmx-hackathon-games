@@ -14,6 +14,7 @@ use crate::{
         CreateGameRequest, CreateGameResponse, GameResponse, GameStatusResponse, MakeMoveRequest,
         MakeMoveResponse, ErrorResponse,
     },
+    http_errors,
 };
 
 /// Create a new tic-tac-toe game
@@ -39,13 +40,7 @@ pub async fn get_game(
 ) -> Result<GameResponse, (StatusCode, Json<ErrorResponse>)> {
     let store = store.lock().await;
     
-    let game = store.get_game(id).ok_or((
-        StatusCode::NOT_FOUND,
-        Json(ErrorResponse {
-            error: "NOT_FOUND".to_string(),
-            message: "Game not found".to_string(),
-        }),
-    ))?;
+    let game = store.get_game(id).ok_or(http_errors::not_found("Game not found"))?;
 
     Ok(GameResponse {
         game: game.clone(),
@@ -65,13 +60,7 @@ pub async fn make_move(
         .make_move(id, request.player, request.position)
         .map_err(|error| {
             tracing::warn!("Invalid move: {}", error);
-            (
-                StatusCode::BAD_REQUEST,
-                Json(ErrorResponse {
-                    error: "INVALID_MOVE".to_string(),
-                    message: error,
-                }),
-            )
+            http_errors::error_response(StatusCode::BAD_REQUEST, "INVALID_MOVE", &error)
         })?;
 
     Ok(MakeMoveResponse {
@@ -87,13 +76,7 @@ pub async fn get_game_status(
 ) -> Result<GameStatusResponse, (StatusCode, Json<ErrorResponse>)> {
     let store = store.lock().await;
     
-    let game = store.get_game(id).ok_or((
-        StatusCode::NOT_FOUND,
-        Json(ErrorResponse {
-            error: "NOT_FOUND".to_string(),
-            message: "Game not found".to_string(),
-        }),
-    ))?;
+    let game = store.get_game(id).ok_or(http_errors::not_found("Game not found"))?;
 
     let current_player = match game.status {
         crate::types::GameStatus::InProgress => Some(game.current_player.clone()),

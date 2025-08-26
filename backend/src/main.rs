@@ -1,13 +1,10 @@
 use std::{thread::sleep, time::Duration};
 
-use bitvmx_tictactoe_backend::{app, config, bitvmx};
-use tracing::{debug, error, info, warn};
+use bitvmx_tictactoe_backend::{app, config, bitvmx_rpc};
+use tracing::{error, info, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use tokio::sync::broadcast;
-use bitvmx_client::{
-    client::BitVMXClient,
-    types::L2_ID,
-};
+
 
 /// Initialize logs with the given log level
 /// It disables the tarpc and broker layers to avoid logging too much information
@@ -35,37 +32,28 @@ async fn main() -> anyhow::Result<()> {
 
     // Create shutdown signal
     let (shutdown_tx, _) = broadcast::channel::<()>(1);
-    let mut shutdown_rx = shutdown_tx.subscribe();
+    let mut shutdown_rx_bitvmx = shutdown_tx.subscribe();
 
     // --- BITVMX RPC connection ---
+    let config_clone = config.clone();
     let bitvmx_rpc = tokio::task::spawn_blocking(move || {
         // Create a span for this task
         let span = tracing::info_span!("bitvmx_rpc_task");
         let _enter = span.enter();
         
-        // Create the client to connect to BitVMX as a L2
-        let client = BitVMXClient::new(config.bitvmx.broker_port, L2_ID);
-        info!("Connected to BitVMX RPC at port {}", config.bitvmx.broker_port);
-        // Send a ping bitvmx to check if it is alive
-        client.ping()?;
-        debug!("Send ping to test connection");
+        // Initialize the singleton BitVMXClient
+        bitvmx_rpc::handler::init_client(&config_clone)?;
         
         // Check for shutdown signal every 100ms
         loop {
             // Check if shutdown signal was received
-            if shutdown_rx.try_recv().is_ok() {
+            if shutdown_rx_bitvmx.try_recv().is_ok() {
                 info!("BitVMX RPC shutting down...");
                 break;
             }
             
-            let result = client.get_message();
-            if result.is_err() {
-                return Err(result.err().unwrap());
-            }
-            if let Some((message, _from)) = result.unwrap() {
-                // Send the message to the handler
-                bitvmx::handler::outgoing_message(message)?;
-            }
+            // Receive and process messages from BitVMX
+            bitvmx_rpc::handler::receive_message()?;
             
             // Wait before checking for new messages
             sleep(Duration::from_millis(100));
@@ -118,20 +106,4 @@ async fn main() -> anyhow::Result<()> {
     }
 
     Ok(())
-}
-
-
-
-
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_app_creation_with_config() {
-        let _app = app::app();
-        // The app should be created successfully
-        assert!(true, "App created successfully with configuration");
-    }
 }
