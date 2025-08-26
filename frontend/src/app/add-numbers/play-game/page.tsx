@@ -15,13 +15,15 @@ import { WalletSection } from "@/components/wallet-section";
 import { Player1GameSetup } from "@/components/player1-game-setup";
 import { Player2GameSetup } from "@/components/player2-game-setup";
 import { GameActions } from "@/components/game-actions";
+import { NetworkInfo } from "@/components/network-info";
 import { Button } from "@/components/ui/button";
+import { NetworkType } from "@/types/network";
 
 // Types
 interface WalletInfo {
   address: string;
   balance: number;
-  network: "regtest" | "testnet";
+  network: NetworkType;
 }
 
 interface GameNumbersToAdd {
@@ -48,7 +50,9 @@ export default function AddNumbersPage() {
     error,
   } = useAddNumbersGame();
 
-  const [networkSelected, setNetworkSelected] = useState(false);
+  const [networkSelected, setNetworkSelected] = useState<NetworkType | null>(
+    null
+  );
 
   if (!networkSelected) {
     return (
@@ -69,7 +73,7 @@ export default function AddNumbersPage() {
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-4">
             <Button
-              onClick={() => setNetworkSelected(true)}
+              onClick={() => setNetworkSelected(NetworkType.Regtest)}
               className="flex text-center h-40 text-lg cursor-pointer"
               variant="outline"
             >
@@ -83,7 +87,7 @@ export default function AddNumbersPage() {
               </div>
             </Button>
             <Button
-              onClick={() => setNetworkSelected(true)}
+              onClick={() => setNetworkSelected(NetworkType.Testnet)}
               className="flex text-center h-40 text-lg cursor-pointer"
               variant="outline"
             >
@@ -126,8 +130,14 @@ export default function AddNumbersPage() {
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* Wallet Information */}
-          <WalletSection walletInfo={walletInfo} />
+          <NetworkInfo networkSelected={networkSelected} />
+
+          {walletInfo && (
+            <WalletSection
+              walletInfo={walletInfo}
+              networkSelected={networkSelected}
+            />
+          )}
 
           <Separator />
 
