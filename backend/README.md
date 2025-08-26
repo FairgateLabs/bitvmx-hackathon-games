@@ -1,82 +1,131 @@
 # BitVMX Tic-Tac-Toe Backend
 
-A Rust backend for the BitVMX Tic-Tac-Toe game using Axum framework.
+A Rust-based backend service for the BitVMX Tic-Tac-Toe game, built with Axum web framework and integrated with BitVMX RPC for peer-to-peer communication.
 
-## Features
+## Architecture Overview
 
-- RESTful API for Tic-Tac-Toe game management
-- Add Numbers game functionality
-- Health check endpoints
-- Request ID tracking for all logs
-- OpenAPI/Swagger documentation
-- CORS support
+The backend is structured as a modular Axum application with the following key components:
 
-### How it works
+- **Routes**: API endpoint definitions with OpenAPI documentation
+- **Handlers**: Business logic for processing requests
+- **Stores**: Thread-safe shared state management
+- **Types**: Data structures with TypeScript bindings
+- **BitVMX Integration**: RPC client for peer-to-peer communication
 
-1. **Automatic Span Generation**: Each request automatically gets a tracing span
-2. **Function Instrumentation**: Handlers are decorated with `#[instrument]` for automatic logging
-3. **Log Correlation**: All logs within a request span are automatically correlated
-4. **Structured Logging**: Logs include function names, parameters, and timing information
+## BitVMX Integration Flow
 
-### Using Tracing in Handlers
+The BitVMX integration enables peer-to-peer communication between game participants. Here's the detailed flow:
 
-Simply add the `#[instrument]` attribute to your handler functions:
+### 1. Application Startup
 
-```rust
-use tracing::instrument;
+```mermaid
+sequenceDiagram
+    participant Main as main.rs
+    participant Config as config.rs
+    participant BitVMXClient as BitVMXClient
+    participant Store as BitVMXStore
+    participant Server as Axum Server
 
-#[instrument]
-pub async fn my_handler() -> Json<Response> {
-    tracing::info!("Processing request");
+    Main->>Config: Load configuration
+    Config-->>Main: Config object
+    Main->>BitVMXClient: Initialize singleton client
+    BitVMXClient->>Store: Set connected status
+    Main->>Server: Start Axum server
+    Main->>BitVMXClient: Start message receiving loop
+    Note over BitVMXClient: Continuously listen for RPC messages
+```
+
+### 2. P2P Communication Setup
+
+```mermaid
+sequenceDiagram
+    participant Client as API Client
+    participant API as /bitvmx/comm-info
+    participant Handler as bitvmx handler
+    participant Store as BitVMXStore
+    participant BitVMX as BitVMX RPC
+
+    Client->>API: GET /bitvmx/comm-info
+    API->>Handler: get_comm_info()
+    Handler->>Store: get_p2p_address()
+    Store-->>Handler: P2PAddress {address, peer_id}
+    Handler-->>API: JSON response
+    API-->>Client: P2P communication info
+
+    Note over Client,BitVMX: Client uses P2P info to establish direct connection
+```
+
+### 3. Aggregated Key Submission
+
+```mermaid
+sequenceDiagram
+    participant Client as API Client
+    participant API as /bitvmx/setup-aggregated-key
+    participant Handler as bitvmx handler
+    participant BitVMXClient as BitVMXClient
+    participant BitVMX as BitVMX RPC
+
+    Client->>API: POST /bitvmx/setup-aggregated-key
+    Note over Client: Body: {id: "uuid", addresses: [{address, peer_id}]}
     
-    // Your handler logic here
+    API->>Handler: submit_aggregated_key(setup_key)
+    Handler->>Handler: Validate setup_key
+    Note over Handler: Check id not empty, addresses not empty
     
-    tracing::info!("Request completed successfully");
+    alt Validation passes
+        Handler->>BitVMXClient: send_message(SetupKey)
+        BitVMXClient->>BitVMX: Submit to RPC
+        BitVMX-->>BitVMXClient: Success response
+        BitVMXClient-->>Handler: Success
+        Handler-->>API: Ok(())
+        API-->>Client: 200 OK
+    else Validation fails
+        Handler-->>API: 400 Bad Request
+        API-->>Client: Error response
+    end
+```
+
+### 4. RPC Message Handling
+
+```mermaid
+sequenceDiagram
+    participant BitVMX as BitVMX RPC
+    participant BitVMXClient as BitVMXClient
+    participant Handler as bitvmx_rpc handler
+    participant Store as BitVMXStore
+    participant API as API Handlers
+
+    BitVMX->>BitVMXClient: Incoming RPC message
+    BitVMXClient->>Handler: receive_message()
+    Handler->>Handler: Parse message type
     
-    Json(response)
-}
+    alt Message type: P2PAddress
+        Handler->>Store: set_p2p_address(address)
+        Store-->>Handler: Success
+    else Message type: SetupKey
+        Handler->>Store: notify_handlers()
+        Store->>API: Call registered handlers
+        API-->>Store: Process message
+    else Other message types
+        Handler->>Handler: Handle according to type
+    end
+    
+    Handler-->>BitVMXClient: Processed
+    BitVMXClient-->>BitVMX: Acknowledge
 ```
 
-### Example Log Output
 
-With tracing enabled, your logs will look like:
-
-```
-2024-01-15T10:30:45.123Z INFO health_check{request_id=550e8400-e29b-41d4-a716-446655440000}: Health check requested
-2024-01-15T10:30:45.124Z INFO health_check{request_id=550e8400-e29b-41d4-a716-446655440000}: Health check completed with timestamp=1705315845125
-```
-
-### Advanced Usage
-
-You can customize the instrumentation by adding parameters to `#[instrument]`:
-
-```rust
-#[instrument(skip(store), fields(player_name = %request.player_name))]
-pub async fn create_game(
-    State(store): State<Arc<Mutex<GameStore>>>,
-    request: CreateGameRequest,
-) -> Result<CreateGameResponse, (StatusCode, Json<ErrorResponse>)> {
-    tracing::info!("Creating new game");
-    // ...
-}
-```
-
-## Running the Application
-
-```bash
-cargo run
-```
-
-The server will start on the configured address (default: `0.0.0.0:8080`).
-
-## API Documentation
-
-Once the server is running, you can access the Swagger UI documentation at:
-- http://localhost:8080/
 
 ## Configuration
 
-The application uses configuration files in the `configs/` directory. See the configuration module for details.
+Configuration is managed through YAML files in the `configs/` directory:
+
+```yaml
+# configs/player_1.yaml
+bitvmx:
+  broker_port: 8080
+  l2_id: "player_1"
+```
 
 ### Environment Variables
 
@@ -103,3 +152,57 @@ The application comes with two pre-configured files in the `configs/` directory:
 # Use a different configuration file
 CONFIG_FILE=player_2 cargo run
 ```
+
+## Testing
+
+The application includes comprehensive testing:
+
+- **Unit Tests**: Individual component testing
+- **Integration Tests**: End-to-end API testing
+- **TypeScript Bindings**: Generated from Rust types for frontend integration
+
+### Running Tests
+```bash
+cargo test                    # Run all tests
+cargo test --test bitvmx     # Run BitVMX integration tests
+```
+
+## Development
+
+### Prerequisites
+- Rust 1.70+
+- Cargo
+- BitVMX RPC server running
+
+### Building
+```bash
+cargo build
+cargo build --release
+```
+
+### Running
+```bash
+cargo run
+```
+
+### TypeScript Bindings Generation
+```bash
+cargo test --lib  # Generates bindings during test compilation
+```
+
+## API Documentation
+
+The application automatically generates OpenAPI/Swagger documentation using Utoipa. Access the documentation at:
+
+- **Swagger UI**: `http://localhost:3000/swagger-ui/`
+- **OpenAPI JSON**: `http://localhost:3000/api-docs/openapi.json`
+
+## Message Flow Summary
+
+1. **Startup**: Application initializes BitVMX client and starts message receiving loop
+2. **P2P Setup**: Clients retrieve P2P addresses via `/bitvmx/comm-info`
+3. **Key Submission**: Clients submit aggregated keys via `/bitvmx/setup-aggregated-key`
+4. **RPC Communication**: Continuous message exchange with BitVMX RPC
+5. **State Management**: Centralized store maintains connection state and P2P information
+
+This architecture provides a robust, scalable foundation for peer-to-peer game communication while maintaining clean separation of concerns and comprehensive error handling.
