@@ -1,15 +1,10 @@
 import { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Copy, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
+import { CopyButton } from "@/components/ui/copy-button";
 
-interface PlayerConnectionInfoProps {
-  networkSelected: string;
-}
-
-export function PlayerConnectionInfo({
-  networkSelected,
-}: PlayerConnectionInfoProps) {
+export function PeerConnectionInfo() {
   const [localIP, setLocalIP] = useState<string>("");
   const [localPort, setLocalPort] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
@@ -31,10 +26,6 @@ export function PlayerConnectionInfo({
     // For development, we'll use a default port
     // In production, this could come from environment variables or be dynamic
     setLocalPort("3000");
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
   };
 
   useEffect(() => {
@@ -66,24 +57,7 @@ export function PlayerConnectionInfo({
                 </p>
               </div>
               <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => copyToClipboard(localIP)}
-                  disabled={!localIP}
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={getLocalIP}
-                  disabled={isLoading}
-                >
-                  <RefreshCw
-                    className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
-                  />
-                </Button>
+                <CopyButton text={localIP} size="sm" variant="outline" />
               </div>
             </div>
 
@@ -94,22 +68,8 @@ export function PlayerConnectionInfo({
                   {localPort || "3000"}
                 </p>
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => copyToClipboard(localPort)}
-                disabled={!localPort}
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
+              <CopyButton text={localPort} size="sm" variant="outline" />
             </div>
-          </div>
-
-          <div className="mt-4 p-3 bg-blue-100 rounded">
-            <p className="text-xs text-blue-800">
-              💡 <strong>Tip:</strong> Other players need your IP address and
-              port to join your game.
-            </p>
           </div>
         </>
       )}

@@ -2,25 +2,19 @@ import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { NetworkType } from "@/types/network";
-
-interface WalletInfo {
-  address: string;
-  balance?: number;
-}
+import { useAddress } from "@/hooks/useAddress";
+import { CopyButton } from "@/components/ui/copy-button";
 
 interface WalletSectionProps {
-  walletInfo: WalletInfo;
   networkSelected: NetworkType;
 }
 
-export function WalletSection({
-  walletInfo,
-  networkSelected,
-}: WalletSectionProps) {
+export function WalletSection({ networkSelected }: WalletSectionProps) {
   const [transactionId, setTransactionId] = useState("");
   const [outputIndex, setOutputIndex] = useState("");
+  const { data: addressData, isLoading, error } = useAddress();
 
-  if (!walletInfo) return null;
+  if (!addressData) return null;
 
   return (
     <div className="p-4 bg-muted/50 rounded-lg">
@@ -28,17 +22,23 @@ export function WalletSection({
       <div className="grid grid-cols-2 gap-4 text-sm">
         <div>
           <Label>Address:</Label>
-          <p className="font-mono text-xs break-all">{walletInfo.address}</p>
+          <div className="flex items-center">
+            <p className="font-mono text-xs break-all">{addressData.address}</p>
+            <CopyButton
+              text={addressData.address}
+              size="sm"
+              variant="outline"
+            />
+          </div>
+          {isLoading && <p className="text-xs">Loading...</p>}
+          {error && <p className="text-xs">Error: {error.message}</p>}
         </div>
         <div>
           <Label>Balance:</Label>
-          {networkSelected === NetworkType.Testnet && !walletInfo.balance ? (
-            <p className="text-xs">
-              Please ensure your balance includes at least some amount of
-              Testnet Bitcoins.
-            </p>
+          {networkSelected === NetworkType.Testnet ? (
+            <p className="text-xs">0 BTC</p>
           ) : (
-            <p className="font-semibold">{walletInfo.balance} BTC</p>
+            <p className="font-semibold">{10} BTC</p>
           )}
         </div>
       </div>
@@ -48,6 +48,8 @@ export function WalletSection({
           <p className="text-sm mb-2">
             Please fund the address provided. Once the transaction is on-chain
             and mined, provide the transaction ID and U below.
+            <br />
+            Min required balance: 0.0001 BTC
           </p>
           <div className="mb-2">
             <Label>Transaction ID:</Label>

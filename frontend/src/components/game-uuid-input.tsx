@@ -3,19 +3,18 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Check, Copy } from "lucide-react";
+import { CopyButton } from "@/components/ui/copy-button";
+import { useProgramMutation } from "@/hooks/usePrograms";
 
 interface GameUUIDInputProps {
-  onUUIDEntered: (uuid: string) => void;
   isExpanded?: boolean;
 }
 
-export function GameUUIDInput({
-  onUUIDEntered,
-  isExpanded = true,
-}: GameUUIDInputProps) {
+export function GameUUIDInput({ isExpanded = true }: GameUUIDInputProps) {
   const [gameUUID, setGameUUID] = useState("");
   const [isExpandedLocal, setIsExpandedLocal] = useState(isExpanded);
   const [isValid, setIsValid] = useState(false);
+  const { mutate: saveProgram } = useProgramMutation();
 
   const handleUUIDChange = (value: string) => {
     setGameUUID(value);
@@ -27,36 +26,27 @@ export function GameUUIDInput({
 
   const handleSubmit = () => {
     if (isValid && gameUUID) {
-      onUUIDEntered(gameUUID);
-    }
-  };
-
-  const pasteFromClipboard = async () => {
-    try {
-      const text = await navigator.clipboard.readText();
-      handleUUIDChange(text);
-    } catch (error) {
-      console.error("Failed to read from clipboard:", error);
+      saveProgram(gameUUID);
     }
   };
 
   return (
-    <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+    <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
       <h3
-        className="font-semibold mb-3 text-orange-800 cursor-pointer"
+        className="font-semibold mb-3 text-gray-800 cursor-pointer"
         onClick={() => setIsExpandedLocal(!isExpandedLocal)}
       >
         🎯 Enter Game UUID {isExpandedLocal ? "▲" : "▼"}
       </h3>
       {isExpandedLocal && (
         <>
-          <p className="text-sm text-orange-700 mb-4">
+          <p className="text-sm text-gray-700 mb-4">
             Enter the game UUID provided by Player 1 to join their game session.
           </p>
 
           <div className="space-y-3">
             <div>
-              <Label htmlFor="gameUUID" className="text-orange-800">
+              <Label htmlFor="gameUUID" className="text-gray-800">
                 Game UUID:
               </Label>
               <div className="flex gap-2 mt-1">
@@ -66,29 +56,51 @@ export function GameUUIDInput({
                   onChange={(e) => handleUUIDChange(e.target.value)}
                   placeholder="e.g., 123e4567-e89b-12d3-a456-426614174000"
                   className={`flex-1 ${
-                    gameUUID && !isValid ? "border-red-300" : ""
+                    gameUUID && !isValid ? "border-gray-300" : ""
                   }`}
                 />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={pasteFromClipboard}
-                  className="border-orange-300 text-orange-700 hover:bg-orange-100"
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
+
+                <CopyButton text="" size="sm" variant="outline" />
               </div>
               {gameUUID && !isValid && (
-                <p className="text-xs text-red-600 mt-1">
+                <p className="text-xs text-gray-600 mt-1">
                   Please enter a valid UUID format
                 </p>
               )}
             </div>
 
+            <p className="text-sm text-gray-800 mb-3">
+              <strong>Enter the numbers chosen by Player 1:</strong>
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="number1" className="text-gray-800 text-xs">
+                  First Number:
+                </Label>
+                <Input
+                  id="number1"
+                  type="number"
+                  placeholder="e.g., 5"
+                  className="mt-1 text-sm"
+                />
+              </div>
+              <div>
+                <Label htmlFor="number2" className="text-gray-800 text-xs">
+                  Second Number:
+                </Label>
+                <Input
+                  id="number2"
+                  type="number"
+                  placeholder="e.g., 3"
+                  className="mt-1 text-sm"
+                />
+              </div>
+            </div>
+
             <Button
               onClick={handleSubmit}
               disabled={!isValid || !gameUUID}
-              className="w-full bg-orange-600 hover:bg-orange-700"
+              className="w-full bg-gray-600 hover:bg-gray-700"
             >
               <Check className="h-4 w-4 mr-2" />
               Join Game

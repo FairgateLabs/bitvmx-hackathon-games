@@ -3,28 +3,37 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Copy, RefreshCw } from "lucide-react";
+import { useSavePeerConnection } from "@/hooks/useSavePeerConnection";
 
 interface PeerConnectionInputProps {
   networkSelected: string;
-  onConnectionSet: (ip: string, port: string) => void;
 }
 
 export function PeerConnectionInput({
   networkSelected,
-  onConnectionSet,
 }: PeerConnectionInputProps) {
   const [peerIP, setPeerIP] = useState("");
   const [peerPort, setPeerPort] = useState("");
   const [isExpanded, setIsExpanded] = useState(true);
+  const [inputsDisabled, setInputsDisabled] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const { mutate: savePeerConnection } = useSavePeerConnection();
 
-  const handleSetConnection = () => {
-    if (peerIP && peerPort) {
-      onConnectionSet(peerIP, peerPort);
-    }
+  const isValidIP = (ip: string) => {
+    const ipRegex =
+      /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+    return ipRegex.test(ip);
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
+  const isValidPort = (port: string) => {
+    const portNumber = parseInt(port, 10);
+    return portNumber > 0 && portNumber <= 65535;
+  };
+
+  const handleSetConnection = () => {
+    savePeerConnection({ ip: peerIP, port: peerPort });
+    setInputsDisabled(true);
+    setSuccessMessage("Connection successfully established!");
   };
 
   return (
@@ -53,7 +62,13 @@ export function PeerConnectionInput({
                 onChange={(e) => setPeerIP(e.target.value)}
                 placeholder="e.g., 192.168.1.100"
                 className="mt-1"
+                disabled={inputsDisabled}
               />
+              {!isValidIP(peerIP) && peerIP && (
+                <p className="text-red-600 text-sm">
+                  Invalid IP address format.
+                </p>
+              )}
             </div>
 
             <div>
@@ -66,16 +81,26 @@ export function PeerConnectionInput({
                 onChange={(e) => setPeerPort(e.target.value)}
                 placeholder="e.g., 3000"
                 className="mt-1"
+                disabled={inputsDisabled}
               />
+              {!isValidPort(peerPort) && peerPort && (
+                <p className="text-red-600 text-sm">Invalid port number.</p>
+              )}
             </div>
 
             <Button
               onClick={handleSetConnection}
-              disabled={!peerIP || !peerPort}
+              disabled={
+                !isValidIP(peerIP) || !isValidPort(peerPort) || inputsDisabled
+              }
               className="w-full bg-green-600 hover:bg-green-700"
             >
               🔗 Set Connection
             </Button>
+
+            {successMessage && (
+              <p className="text-green-600 text-sm mt-2">{successMessage}</p>
+            )}
           </div>
         </>
       )}

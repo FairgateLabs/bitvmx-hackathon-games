@@ -1,14 +1,11 @@
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Copy, RefreshCw } from "lucide-react";
+import { CopyButton } from "@/components/ui/copy-button";
 
 interface GameUUIDGeneratorProps {
-  onUUIDGenerated: (uuid: string) => void;
   isExpanded?: boolean;
 }
 
 export function GameUUIDGenerator({
-  onUUIDGenerated,
   isExpanded = true,
 }: GameUUIDGeneratorProps) {
   const [gameUUID, setGameUUID] = useState<string>("");
@@ -17,16 +14,6 @@ export function GameUUIDGenerator({
   const generateUUID = () => {
     const uuid = crypto.randomUUID();
     setGameUUID(uuid);
-    onUUIDGenerated(uuid);
-  };
-
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      // You could add a toast notification here
-    } catch (error) {
-      console.error("Failed to copy to clipboard:", error);
-    }
   };
 
   useEffect(() => {
@@ -59,23 +46,7 @@ export function GameUUIDGenerator({
                 </p>
               </div>
               <div className="flex gap-2 ml-3 mt-5">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => copyToClipboard(gameUUID)}
-                  disabled={!gameUUID}
-                  className="border-purple-300 text-purple-700 hover:bg-purple-100"
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-                {/* <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={generateUUID}
-                  className="border-purple-300 text-purple-700 hover:bg-purple-100"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </Button> */}
+                <CopyButton text={gameUUID} size="sm" variant="outline" />
               </div>
             </div>
           </div>
