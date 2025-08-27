@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -9,7 +9,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { useAddNumbersGame } from "@/hooks/useAddNumbersGame";
 import { GameRoleSelector, GameRole } from "@/components/game-role-selector";
 import { WalletSection } from "@/components/wallet-section";
 import { Player1GameSetup } from "@/components/player1-game-setup";
@@ -22,29 +21,15 @@ import { GameUUIDGenerator } from "@/components/game-uuid-generator";
 import { GameUUIDInput } from "@/components/game-uuid-input";
 import { Button } from "@/components/ui/button";
 import { NetworkType } from "@/types/network";
-
-interface GameNumbersToAdd {
-  number1?: number;
-  number2?: number;
-}
+import { GameState } from "@/types/gameState";
+import { useGameState } from "@/hooks/useGameState";
 
 export default function AddNumbersPage() {
   const [gameRole, setGameRole] = useState<GameRole | null>(null);
   const [gameId, setGameId] = useState("");
   const [peerIP, setPeerIP] = useState("");
   const [peerPort, setPeerPort] = useState("");
-
-  const {
-    gameState,
-    numbers,
-    setNumbers,
-    generateProgram,
-    submitAnswer,
-    acceptAnswer,
-    challengeAnswer,
-    isLoading,
-    error,
-  } = useAddNumbersGame();
+  const { data: gameState } = useGameState();
 
   const [networkSelected, setNetworkSelected] = useState<NetworkType | null>(
     null
@@ -137,74 +122,56 @@ export default function AddNumbersPage() {
           ) : (
             <GameUUIDInput />
           )}
-          {/* Connection Validation */}
-          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <h3 className="font-semibold mb-2 text-yellow-800">
-              ⚠️ Connection Setup Required
-            </h3>
-            <p className="text-sm text-yellow-700">
-              Please complete the connection setup by entering the other
-              player's IP address and port above.
-            </p>
-          </div>
-          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <h3 className="font-semibold mb-2 text-yellow-800">
-              ⚠️ Game UUID Required
-            </h3>
-            <p className="text-sm text-yellow-700">
-              {gameRole === GameRole.Player1
-                ? "Please generate a game UUID above to share with Player 2."
-                : "Please enter the game UUID provided by Player 1 above."}
-            </p>
-          </div>
-          <Separator />
 
-          {gameRole === GameRole.Player1 ? (
-            <Player1GameSetup
-              numbers={numbers}
-              setNumbers={setNumbers}
-              generateProgram={generateProgram}
-              gameId={gameId}
-              gameState={gameState}
-              isLoading={isLoading}
-            />
-          ) : (
-            <Player2GameSetup
-              gameId={gameId}
-              setGameId={setGameId}
-              peerIP={peerIP}
-              setPeerIP={setPeerIP}
-              peerPort={peerPort}
-              setPeerPort={setPeerPort}
-              submitAnswer={submitAnswer}
-              isLoading={isLoading}
-            />
-          )}
-
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h3 className="font-semibold mb-2 text-blue-800">
-              ⏳ Setup Complete
-            </h3>
-            <p className="text-sm text-blue-700">
-              Once you've completed the connection setup and UUID exchange, the
-              game will be ready to start.
-            </p>
-          </div>
-          {/* Game Actions */}
-          {gameState === "waiting_response" &&
-            gameRole === GameRole.Player1 && (
-              <GameActions
-                onAccept={acceptAnswer}
-                onChallenge={challengeAnswer}
-                isLoading={isLoading}
-              />
-            )}
-          {/* Error Display */}
-          {error && (
-            <div className="p-4 bg-destructive/10 border border-destructive rounded-md">
-              <p className="text-destructive">{error}</p>
+          {gameRole === GameRole.Player2 && (
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <h3 className="font-semibold mb-2 text-yellow-800">
+                ⚠️ Game UUID Required
+              </h3>
+              <p className="text-sm text-yellow-700">
+                Please enter the game UUID provided by Player 1 above.
+              </p>
             </div>
           )}
+          <Separator />
+
+          {gameState === GameState.SetupCompleted ? (
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h3 className="font-semibold mb-2 text-blue-800">
+                ⏳ Setup Complete
+              </h3>
+              <p className="text-sm text-blue-700">
+                Once you've completed the connection setup and UUID exchange,
+                the game will be ready to start.
+              </p>
+            </div>
+          ) : (
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <h3 className="font-semibold mb-2 text-yellow-800">
+                🔄 Setup In Progress
+              </h3>
+              <p className="text-sm text-yellow-700">
+                The clients are currently exchanging information and creating
+                the pre-signed program. Please wait for the setup to be
+                completed.
+              </p>
+            </div>
+          )}
+
+          {gameRole === GameRole.Player1 ? (
+            <Player1GameSetup />
+          ) : (
+            <Player2GameSetup />
+          )}
+          {/* Game Actions */}
+          {gameState === GameState.WaitingResponse &&
+            gameRole === GameRole.Player1 && (
+              <GameActions
+                onAccept={() => {}}
+                onChallenge={() => {}}
+                isLoading={false}
+              />
+            )}
         </CardContent>
       </Card>
     </div>

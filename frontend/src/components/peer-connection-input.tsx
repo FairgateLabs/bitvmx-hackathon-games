@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Copy, RefreshCw } from "lucide-react";
 import { useSavePeerConnection } from "@/hooks/useSavePeerConnection";
 
 interface PeerConnectionInputProps {
@@ -37,23 +36,23 @@ export function PeerConnectionInput({
   };
 
   return (
-    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+    <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
       <h3
-        className="font-semibold mb-3 text-green-800 cursor-pointer"
+        className="font-semibold mb-3 text-gray-800 cursor-pointer"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         🔗 Other Player's Connection {isExpanded ? "▲" : "▼"}
       </h3>
       {isExpanded && (
         <>
-          <p className="text-sm text-green-700 mb-4">
+          <p className="text-sm text-gray-700 mb-4">
             Enter the IP address and port of the other player to connect to
             their game and allow bitvmx client to connect to it.
           </p>
 
           <div className="space-y-3">
             <div>
-              <Label htmlFor="peerIP" className="text-green-800">
+              <Label htmlFor="peerIP" className="text-gray-800">
                 Other Player's IP Address:
               </Label>
               <Input
@@ -72,7 +71,7 @@ export function PeerConnectionInput({
             </div>
 
             <div>
-              <Label htmlFor="peerPort" className="text-green-800">
+              <Label htmlFor="peerPort" className="text-gray-800">
                 Other Player's Port:
               </Label>
               <Input
@@ -93,13 +92,30 @@ export function PeerConnectionInput({
               disabled={
                 !isValidIP(peerIP) || !isValidPort(peerPort) || inputsDisabled
               }
-              className="w-full bg-green-600 hover:bg-green-700"
+              className="w-full bg-gray-600 hover:bg-gray-700"
             >
               🔗 Set Connection
             </Button>
 
             {successMessage && (
-              <p className="text-green-600 text-sm mt-2">{successMessage}</p>
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <h3 className="font-semibold mb-2 text-green-800">
+                  ✅ Connection Successful
+                </h3>
+                <p className="text-sm text-green-700">{successMessage}</p>
+              </div>
+            )}
+
+            {!successMessage && (
+              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <h3 className="font-semibold mb-2 text-yellow-800">
+                  ⚠️ Connection Setup Required
+                </h3>
+                <p className="text-sm text-yellow-700">
+                  Please complete the connection setup by entering the other
+                  player's IP address and port above.
+                </p>
+              </div>
             )}
           </div>
         </>

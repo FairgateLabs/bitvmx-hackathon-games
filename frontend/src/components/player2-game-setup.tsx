@@ -3,27 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-interface Player2GameSetupProps {
-  gameId: string;
-  setGameId: (id: string) => void;
-  peerIP: string;
-  setPeerIP: (ip: string) => void;
-  peerPort: string;
-  setPeerPort: (port: string) => void;
-  submitAnswer: (answer: string) => void;
-  isLoading: boolean;
-}
-
-export function Player2GameSetup({
-  gameId,
-  setGameId,
-  peerIP,
-  setPeerIP,
-  peerPort,
-  setPeerPort,
-  submitAnswer,
-  isLoading,
-}: Player2GameSetupProps) {
+export function Player2GameSetup() {
   const [answer, setAnswer] = useState("");
 
   return (
@@ -50,11 +30,11 @@ export function Player2GameSetup({
         </div>
 
         <Button
-          onClick={() => submitAnswer(answer)}
-          disabled={!answer || isLoading}
+          onClick={() => {}}
+          disabled={!answer}
           className="w-full cursor-pointer"
         >
-          {isLoading ? "Sending..." : "📤 Send Answer"}
+          Send Answer
         </Button>
       </div>
     </div>
