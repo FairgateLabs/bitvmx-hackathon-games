@@ -21,12 +21,14 @@ import { Button } from "@/components/ui/button";
 import { NetworkType } from "@/types/network";
 import { GameState } from "@/types/gameState";
 import { useGameState } from "@/hooks/useGameState";
+import { GameStartNotification } from "@/components/game-start-notification";
 
 export default function AddNumbersPage() {
   const [gameRole, setGameRole] = useState<GameRole | null>(null);
   const [gameId, setGameId] = useState("");
   const [peerIP, setPeerIP] = useState("");
   const [peerPort, setPeerPort] = useState("");
+  const [isGameStarted, setIsGameStarted] = useState(false);
   const { data: gameState } = useGameState();
 
   const [networkSelected, setNetworkSelected] = useState<NetworkType | null>(
@@ -117,19 +119,15 @@ export default function AddNumbersPage() {
           {/* Game UUID Section */}
           {gameRole === GameRole.Player2 && <GameUUIDInput />}
 
-          {gameRole === GameRole.Player2 && (
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <h3 className="font-semibold mb-2 text-yellow-800">
-                ⚠️ Game UUID Required
-              </h3>
-              <p className="text-sm text-yellow-700">
-                Please enter the game UUID provided by Player 1 above.
-              </p>
-            </div>
-          )}
-
           {gameRole === GameRole.Player1 ? (
-            <Player1GameSetup />
+            <>
+              <Player1GameSetup />
+              <GameStartNotification
+                onStartGame={() => setIsGameStarted(true)}
+                isPlayer1={true}
+                isGameStarted={isGameStarted}
+              />
+            </>
           ) : (
             <Player2GameSetup />
           )}

@@ -7,3 +7,8 @@ export enum GameState {
   Disputed = "disputed",
   Timeout = "timeout",
 }
+
+export interface GameNumbersToAdd {
+  number1?: number;
+  number2?: number;
+}

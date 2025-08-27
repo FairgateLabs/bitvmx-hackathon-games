@@ -10,6 +10,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { GameNumbersToAdd } from "@/types/gameState";
 
 interface GameUUIDInputProps {
   isExpanded?: boolean;
@@ -19,6 +20,7 @@ export function GameUUIDInput({ isExpanded = true }: GameUUIDInputProps) {
   const [gameUUID, setGameUUID] = useState("");
   const [isValid, setIsValid] = useState(false);
   const [isOpen, setIsOpen] = useState(isExpanded);
+  const [numbers, setNumbers] = useState<GameNumbersToAdd>({});
   const { mutate: saveProgram } = useProgramMutation();
 
   const handleUUIDChange = (value: string) => {
@@ -27,6 +29,15 @@ export function GameUUIDInput({ isExpanded = true }: GameUUIDInputProps) {
     const uuidRegex =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     setIsValid(uuidRegex.test(value));
+  };
+
+  const handleNumberChange = (key: string, value: string) => {
+    const parsedValue = parseInt(value);
+    if (parsedValue >= 0) {
+      setNumbers({ ...numbers, [key]: parsedValue });
+    } else {
+      setNumbers({ ...numbers, [key]: 0 });
+    }
   };
 
   const handleSubmit = () => {
@@ -40,7 +51,7 @@ export function GameUUIDInput({ isExpanded = true }: GameUUIDInputProps) {
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleTrigger asChild>
           <h3 className="font-semibold mb-3 text-gray-800 cursor-pointer hover:text-gray-900">
-            🎯 Enter Game UUID
+            🎯 Enter Game UUID and Numbers
           </h3>
         </CollapsibleTrigger>
         <CollapsibleContent>
@@ -86,6 +97,10 @@ export function GameUUIDInput({ isExpanded = true }: GameUUIDInputProps) {
                   type="number"
                   placeholder="e.g., 5"
                   className="mt-1 text-sm"
+                  min="0"
+                  onChange={(e) =>
+                    handleNumberChange("number1", e.target.value)
+                  }
                 />
               </div>
               <div>
@@ -97,6 +112,10 @@ export function GameUUIDInput({ isExpanded = true }: GameUUIDInputProps) {
                   type="number"
                   placeholder="e.g., 3"
                   className="mt-1 text-sm"
+                  min="0"
+                  onChange={(e) =>
+                    handleNumberChange("number2", e.target.value)
+                  }
                 />
               </div>
             </div>
