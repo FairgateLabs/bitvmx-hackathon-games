@@ -23,11 +23,11 @@ export function WalletSection({ networkSelected }: WalletSectionProps) {
   if (!addressData) return null;
 
   return (
-    <div className="p-4 bg-muted/50 rounded-lg border border-gray-200">
+    <div className="p-4 bg-muted/50 rounded-lg border-gray-200">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleTrigger asChild>
-          <h3 className="font-semibold mb-2 cursor-pointer">
-            💰 Wallet Information {isOpen ? "▲" : "▼"}
+          <h3 className="font-semibold mb-2 cursor-pointer hover:text-muted-foreground">
+            💰 Wallet Information
           </h3>
         </CollapsibleTrigger>
         <CollapsibleContent>

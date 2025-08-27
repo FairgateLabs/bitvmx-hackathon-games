@@ -3,6 +3,11 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useSavePeerConnection } from "@/hooks/useSavePeerConnection";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface PeerConnectionInputProps {
   networkSelected: string;
@@ -13,7 +18,7 @@ export function PeerConnectionInput({
 }: PeerConnectionInputProps) {
   const [networkAddress, setPeerIP] = useState("");
   const [peerId, setPeerId] = useState("");
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isOpen, setIsOpen] = useState(true);
   const [inputsDisabled, setInputsDisabled] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const { mutate: savePeerConnection } = useSavePeerConnection();
@@ -41,15 +46,14 @@ export function PeerConnectionInput({
   };
 
   return (
-    <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-      <h3
-        className="font-semibold mb-3 text-gray-800 cursor-pointer"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        🔗 Other Player's Connection {isExpanded ? "▲" : "▼"}
-      </h3>
-      {isExpanded && (
-        <>
+    <div className="p-4 bg-gray-50  rounded-lg">
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CollapsibleTrigger asChild>
+          <h3 className="font-semibold mb-3 text-gray-800 cursor-pointer hover:text-gray-900">
+            🔗 Other Player's Connection
+          </h3>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
           <p className="text-sm text-gray-700 mb-4">
             Enter the IP address and port of the other player to connect to
             their game and allow bitvmx client to connect to it.
@@ -123,8 +127,8 @@ export function PeerConnectionInput({
               </div>
             )}
           </div>
-        </>
-      )}
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 }

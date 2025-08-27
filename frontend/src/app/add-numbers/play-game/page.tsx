@@ -107,7 +107,7 @@ export default function AddNumbersPage() {
           <CardDescription>
             {gameRole === GameRole.Player1
               ? "Create the game and choose the numbers to add"
-              : "Join the game and guess the sum"}
+              : "Join the game and answer the sum"}
           </CardDescription>
         </CardHeader>
 
@@ -117,11 +117,7 @@ export default function AddNumbersPage() {
           <PeerConnectionInfo />
           <PeerConnectionInput networkSelected={networkSelected} />
           {/* Game UUID Section */}
-          {gameRole === GameRole.Player1 ? (
-            <GameUUIDGenerator />
-          ) : (
-            <GameUUIDInput />
-          )}
+          {gameRole === GameRole.Player2 && <GameUUIDInput />}
 
           {gameRole === GameRole.Player2 && (
             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { GameUUIDGenerator } from "./game-uuid-generator";
 
 interface GameNumbersToAdd {
   number1?: number;
@@ -22,8 +23,14 @@ export function Player1GameSetup() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4  p-4 rounded-lg">
+      <GameUUIDGenerator />
       <h3 className="text-lg font-semibold">🎲 Game Setup</h3>
+      <p className="text-sm text-gray-700 mb-4">
+        Enter the numbers you want to add for the game. These numbers will be
+        used to generate the program for the game session.
+      </p>
+
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="cursor-pointer">
