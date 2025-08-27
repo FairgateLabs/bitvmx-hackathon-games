@@ -23,7 +23,7 @@ export function Player1GameSetup() {
   };
 
   return (
-    <div className="space-y-4  p-4 rounded-lg">
+    <div className="space-y-4 p-4 rounded-lg bg-gray-100">
       <GameUUIDGenerator />
       <h3 className="text-lg font-semibold">🎲 Game Setup</h3>
       <p className="text-sm text-gray-700 mb-4">

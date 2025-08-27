@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -8,7 +8,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { GameRoleSelector, GameRole } from "@/components/game-role-selector";
 import { WalletSection } from "@/components/wallet-section";
 import { Player1GameSetup } from "@/components/player1-game-setup";
@@ -17,7 +16,6 @@ import { GameActions } from "@/components/game-actions";
 import { NetworkInfo } from "@/components/network-info";
 import { PeerConnectionInfo } from "@/components/peer-connection-info";
 import { PeerConnectionInput } from "@/components/peer-connection-input";
-import { GameUUIDGenerator } from "@/components/game-uuid-generator";
 import { GameUUIDInput } from "@/components/game-uuid-input";
 import { Button } from "@/components/ui/button";
 import { NetworkType } from "@/types/network";
@@ -129,37 +127,13 @@ export default function AddNumbersPage() {
               </p>
             </div>
           )}
-          <Separator />
-
-          {gameState === GameState.SetupCompleted ? (
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h3 className="font-semibold mb-2 text-blue-800">
-                ⏳ Setup Complete
-              </h3>
-              <p className="text-sm text-blue-700">
-                Once you've completed the connection setup and UUID exchange,
-                the game will be ready to start.
-              </p>
-            </div>
-          ) : (
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <h3 className="font-semibold mb-2 text-yellow-800">
-                🔄 Setup In Progress
-              </h3>
-              <p className="text-sm text-yellow-700">
-                The clients are currently exchanging information and creating
-                the pre-signed program. Please wait for the setup to be
-                completed.
-              </p>
-            </div>
-          )}
 
           {gameRole === GameRole.Player1 ? (
             <Player1GameSetup />
           ) : (
             <Player2GameSetup />
           )}
-          {/* Game Actions */}
+
           {gameState === GameState.WaitingResponse &&
             gameRole === GameRole.Player1 && (
               <GameActions

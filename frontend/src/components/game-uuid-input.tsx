@@ -36,7 +36,7 @@ export function GameUUIDInput({ isExpanded = true }: GameUUIDInputProps) {
   };
 
   return (
-    <div className="p-4 bg-gray-50  rounded-lg">
+    <div className="p-4 bg-white border border-gray-200 rounded-lg">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleTrigger asChild>
           <h3 className="font-semibold mb-3 text-gray-800 cursor-pointer hover:text-gray-900">
@@ -73,7 +73,7 @@ export function GameUUIDInput({ isExpanded = true }: GameUUIDInputProps) {
               )}
             </div>
 
-            <p className="text-sm text-gray-800 mb-3">
+            <p className="text-sm text-gray-700 mb-3">
               <strong>Enter the numbers chosen by Player 1:</strong>
             </p>
             <div className="grid grid-cols-2 gap-3">

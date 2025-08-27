@@ -36,7 +36,7 @@ export function GameUUIDGenerator({
   }, [gameUUID, onUUIDChange]);
 
   return (
-    <div>
+    <div className="p-4 bg-white border border-gray-200 rounded-lg">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleTrigger asChild>
           <h3 className="font-semibold mb-3 text-gray-800 cursor-pointer hover:text-gray-900">
@@ -52,7 +52,7 @@ export function GameUUIDGenerator({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <p className="text-sm text-gray-800 mb-1">Game UUID:</p>
+                <p className="text-sm text-gray-700 mb-1">Game UUID:</p>
                 <p className="font-mono text-sm bg-gray-100 p-3 rounded break-all">
                   {gameUUID || "Generating..."}
                 </p>

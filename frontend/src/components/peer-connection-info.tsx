@@ -13,7 +13,7 @@ export function PeerConnectionInfo() {
   const { data: peerConnectionInfo } = usePeerConnection();
 
   return (
-    <div className="p-4 bg-gray-50 rounded-lg">
+    <div className="p-4 bg-white border border-gray-200 rounded-lg">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleTrigger asChild>
           <h3 className="font-semibold mb-3 text-gray-800 cursor-pointer hover:text-gray-900">
