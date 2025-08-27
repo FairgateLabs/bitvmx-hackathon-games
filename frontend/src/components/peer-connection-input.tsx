@@ -11,17 +11,18 @@ interface PeerConnectionInputProps {
 export function PeerConnectionInput({
   networkSelected,
 }: PeerConnectionInputProps) {
-  const [peerIP, setPeerIP] = useState("");
-  const [peerPort, setPeerPort] = useState("");
+  const [networkAddress, setPeerIP] = useState("");
+  const [peerId, setPeerId] = useState("");
   const [isExpanded, setIsExpanded] = useState(true);
   const [inputsDisabled, setInputsDisabled] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const { mutate: savePeerConnection } = useSavePeerConnection();
 
-  const isValidIP = (ip: string) => {
+  const isValidNetworkAddress = (networkAddress: string) => {
+    const [ip, port] = networkAddress.split(":");
     const ipRegex =
       /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-    return ipRegex.test(ip);
+    return ipRegex.test(ip) && isValidPort(port);
   };
 
   const isValidPort = (port: string) => {
@@ -29,8 +30,12 @@ export function PeerConnectionInput({
     return portNumber > 0 && portNumber <= 65535;
   };
 
+  const isValidPeeId = (key: string): boolean => {
+    const hexRegex = /^[0-9a-fA-F]+$/; // only hex chars
+    return hexRegex.test(key) && key.length % 2 === 0;
+  };
   const handleSetConnection = () => {
-    savePeerConnection({ ip: peerIP, port: peerPort });
+    savePeerConnection({ networkAddress, peerId });
     setInputsDisabled(true);
     setSuccessMessage("Connection successfully established!");
   };
@@ -53,44 +58,44 @@ export function PeerConnectionInput({
           <div className="space-y-3">
             <div>
               <Label htmlFor="peerIP" className="text-gray-800">
-                Other Player's IP Address:
+                Network Address:
               </Label>
               <Input
                 id="peerIP"
-                value={peerIP}
+                value={networkAddress}
                 onChange={(e) => setPeerIP(e.target.value)}
                 placeholder="e.g., 192.168.1.100"
                 className="mt-1"
                 disabled={inputsDisabled}
               />
-              {!isValidIP(peerIP) && peerIP && (
+              {!isValidNetworkAddress(networkAddress) && networkAddress && (
                 <p className="text-red-600 text-sm">
-                  Invalid IP address format.
+                  Invalid Network Address format (e.g., 192.168.1.100:3000).
                 </p>
               )}
             </div>
 
             <div>
-              <Label htmlFor="peerPort" className="text-gray-800">
-                Other Player's Port:
+              <Label htmlFor="peerId" className="text-gray-800">
+                Peer ID:
               </Label>
               <Input
-                id="peerPort"
-                value={peerPort}
-                onChange={(e) => setPeerPort(e.target.value)}
-                placeholder="e.g., 3000"
+                id="peerId"
+                value={peerId}
+                onChange={(e) => setPeerId(e.target.value)}
+                placeholder="e.g., 30820122300d06092a864886f70d010101050003820b..."
                 className="mt-1"
                 disabled={inputsDisabled}
               />
-              {!isValidPort(peerPort) && peerPort && (
-                <p className="text-red-600 text-sm">Invalid port number.</p>
+              {!isValidPeeId(peerId) && peerId && (
+                <p className="text-red-600 text-sm">Invalid peer ID format.</p>
               )}
             </div>
 
             <Button
               onClick={handleSetConnection}
               disabled={
-                !isValidIP(peerIP) || !isValidPort(peerPort) || inputsDisabled
+                !isValidNetworkAddress(networkAddress) || inputsDisabled
               }
               className="w-full bg-gray-600 hover:bg-gray-700"
             >

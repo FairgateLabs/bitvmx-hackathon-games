@@ -113,9 +113,9 @@ export default function AddNumbersPage() {
 
         <CardContent className="space-y-6">
           <NetworkInfo networkSelected={networkSelected} />
+          <WalletSection networkSelected={networkSelected} />
           <PeerConnectionInfo />
           <PeerConnectionInput networkSelected={networkSelected} />
-          <WalletSection networkSelected={networkSelected} />
           {/* Game UUID Section */}
           {gameRole === GameRole.Player1 ? (
             <GameUUIDGenerator />
