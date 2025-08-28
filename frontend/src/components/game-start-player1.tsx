@@ -8,7 +8,7 @@ interface GameStartNotificationProps {
   isGameStarted?: boolean;
 }
 
-export function GameStartNotification({
+export function GameStartPlayer1({
   onStartGame,
   isPlayer1,
   isGameStarted = false,
@@ -127,7 +127,7 @@ export function GameStartNotification({
           </div>
           <Button
             onClick={handleStartGame}
-            className="w-full bg-blue-600 hover:bg-blue-700 cursor-pointer"
+            className="w-full bg-blue-600 hover:bg-blue-700"
           >
             <Play className="h-4 w-4 mr-2" />
             Start Game

@@ -124,7 +124,7 @@ export function Player1GameSetup() {
                   isLoading ||
                   inputsDisabled
                 }
-                className="w-full cursor-pointer"
+                className="w-full"
               >
                 {isLoading ? "Generating..." : "🚀 Generate Program"}
               </Button>

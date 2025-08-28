@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { NetworkType } from "@/types/network";
 import { GameState } from "@/types/gameState";
 import { useGameState } from "@/hooks/useGameState";
-import { GameStartNotification } from "@/components/game-start-notification";
+import { GameStartPlayer1 } from "@/components/game-start-player1";
 
 export default function AddNumbersPage() {
   const [gameRole, setGameRole] = useState<GameRole | null>(null);
@@ -55,7 +55,7 @@ export default function AddNumbersPage() {
           <CardContent className="grid grid-cols-2 gap-4">
             <Button
               onClick={() => setNetworkSelected(NetworkType.Regtest)}
-              className="flex text-center h-40 text-lg cursor-pointer"
+              className="flex text-center h-40 text-lg"
               variant="outline"
             >
               <div className="flex flex-col w-full gap-2 h-[130px]">
@@ -69,7 +69,7 @@ export default function AddNumbersPage() {
             </Button>
             <Button
               onClick={() => setNetworkSelected(NetworkType.Testnet)}
-              className="flex text-center h-40 text-lg cursor-pointer"
+              className="flex text-center h-40 text-lg"
               variant="outline"
               disabled
             >
@@ -122,7 +122,7 @@ export default function AddNumbersPage() {
           {gameRole === GameRole.Player1 ? (
             <>
               <Player1GameSetup />
-              <GameStartNotification
+              <GameStartPlayer1
                 onStartGame={() => setIsGameStarted(true)}
                 isPlayer1={true}
                 isGameStarted={isGameStarted}

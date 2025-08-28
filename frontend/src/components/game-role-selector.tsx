@@ -42,7 +42,7 @@ export function GameRoleSelector({
           <div className="grid grid-cols-2 gap-4">
             <Button
               onClick={() => onRoleSelect(GameRole.Player1)}
-              className="h-24 text-lg cursor-pointer"
+              className="h-24 text-lg"
               variant="outline"
             >
               ➕ Player 1<br />
@@ -51,7 +51,7 @@ export function GameRoleSelector({
 
             <Button
               onClick={() => onRoleSelect(GameRole.Player2)}
-              className="h-24 text-lg cursor-pointer"
+              className="h-24 text-lg"
               variant="outline"
             >
               🤝 Player 2<br />

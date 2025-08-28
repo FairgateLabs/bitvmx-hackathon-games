@@ -39,7 +39,7 @@ export function CopyButton({
       variant={variant}
       onClick={copyToClipboard}
       disabled={disabled || !text}
-      className={`${className} cursor-pointer`}
+      className={className}
     >
       <Copy className="h-4 w-4" />
     </Button>

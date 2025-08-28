@@ -22,7 +22,7 @@ export function GameActions({
         <Button
           onClick={onAccept}
           disabled={isLoading}
-          className="bg-green-600 hover:bg-green-700 cursor-pointer"
+          className="bg-green-600 hover:bg-green-700"
         >
           ✅ Correct - Transfer Funds
         </Button>

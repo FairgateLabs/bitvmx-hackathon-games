@@ -38,7 +38,7 @@ export default function Home() {
           </CardContent>
           <CardFooter className="flex justify-center">
             <Link href="/add-numbers/play-game" className="w-full">
-              <Button className="w-full cursor-pointer"> Play Now! </Button>
+              <Button className="w-full"> Play Now! </Button>
             </Link>
           </CardFooter>
         </Card>
