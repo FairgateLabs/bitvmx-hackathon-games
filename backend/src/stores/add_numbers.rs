@@ -3,6 +3,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 use crate::types::{AddNumbersGame, AddNumbersGameStatus};
 
+#[derive(Debug)]
 pub struct AddNumbersStore {
     games: HashMap<Uuid, AddNumbersGame>,
 }

@@ -1,43 +1,60 @@
-use axum::{Json, Router, routing::{get, post}};
+use axum::{Json, Router, routing::{get, post}, extract::State};
 use http::StatusCode;
-use crate::handlers::bitvmx;
 use crate::types::{ErrorResponse, P2PAddress, SetupKey};
+use crate::app_state::AppState;
+use crate::http_errors;
+use tracing::instrument;
 
-pub fn router() -> Router {
+pub fn router() -> Router<AppState> {
+    // Base path is /api/bitvmx/
     Router::new()
         .route("/comm-info", get(comm_info))
-        .route("/setup-aggregated-key", post(setup_aggregated_key))
+        .route("/aggregated-key", post(submit_aggregated_key))
 }
 
 /// Get BitVMX P2P address information
 #[utoipa::path(
     get,
-    path = "/bitvmx/comm-info",
+    path = "/api/bitvmx/comm-info",
     responses(
         (status = 200, description = "BitVMX P2P address information", body = P2PAddress),
         (status = 404, description = "P2P address not found", body = ErrorResponse)
     ),
     tag = "BitVMX"
 )]
-pub async fn comm_info() -> Result<Json<P2PAddress>, (StatusCode, Json<ErrorResponse>)> {
-    let response = bitvmx::get_comm_info().await?;
-    Ok(Json(response))
+#[instrument]
+pub async fn comm_info(State(app_state): State<AppState>) -> Result<Json<P2PAddress>, (StatusCode, Json<ErrorResponse>)> {
+    let p2p_address = app_state.bitvmx_store.get_p2p_address().await.ok_or(http_errors::not_found("P2P address not found"))?;
+    Ok(Json(p2p_address))
 }
 
-/// Submit BitVMX setup aggregated key
+/// Submit BitVMX aggregated key
 #[utoipa::path(
     post,
-    path = "/bitvmx/setup-aggregated-key",
+    path = "/api/bitvmx/aggregated-key",
     request_body = SetupKey,
     responses(
-        (status = 200, description = "Setup aggregated key submitted successfully"),
-        (status = 400, description = "Invalid setup aggregated key", body = ErrorResponse)
+        (status = 200, description = "Aggregated key submitted successfully"),
+        (status = 400, description = "Invalid aggregated key", body = ErrorResponse)
     ),
     tag = "BitVMX"
 )]
-pub async fn setup_aggregated_key(
+#[instrument]
+pub async fn submit_aggregated_key(
+    State(app_state): State<AppState>,
     Json(setup_key): Json<SetupKey>
 ) -> Result<Json<()>, (StatusCode, Json<ErrorResponse>)> {
-    bitvmx::submit_aggregated_key(setup_key).await?;
+    // Validate the setup key
+    if setup_key.id.is_empty() {
+        return Err(http_errors::bad_request("Setup key ID cannot be empty"));
+    }
+
+    if setup_key.addresses.is_empty() {
+        return Err(http_errors::bad_request("At least one P2P address is required"));
+    }
+
+    // For now, just log the submission
+    tracing::info!("Submitting setup aggregated key: {:?}", setup_key);
+    
     Ok(Json(()))
 }

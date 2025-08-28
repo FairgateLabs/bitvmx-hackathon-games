@@ -1,14 +1,16 @@
 use axum::body::{Body, to_bytes};
 use axum::http::{Request, StatusCode};
 use tower::ServiceExt;
-use bitvmx_tictactoe_backend::{app, types::HealthResponse};
+use bitvmx_tictactoe_backend::{api, app_state, types::HealthResponse};
 
 #[tokio::test]
 async fn test_health_check_integration() {
-    let app = app::app();
+    // Create a test app state
+    let app_state = app_state::AppState::new(bitvmx_tictactoe_backend::config::Config::default());
+    let app = api::app(app_state).await;
 
     let response = app
-        .oneshot(Request::builder().uri("/health").body(Body::empty()).unwrap())
+        .oneshot(Request::builder().uri("/api/health").body(Body::empty()).unwrap())
         .await
         .unwrap();
 

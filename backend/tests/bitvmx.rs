@@ -1,7 +1,7 @@
 use axum::body::{Body, to_bytes};
 use axum::http::{Request, StatusCode};
 use tower::ServiceExt;
-use bitvmx_tictactoe_backend::{app, stores::bitvmx::BITVMX_STORE, types::{P2PAddress, SetupKey}};
+use bitvmx_tictactoe_backend::{api, app_state, stores::bitvmx::BITVMX_STORE, types::{P2PAddress, SetupKey}};
 
 #[tokio::test]
 async fn test_bitvmx_comm_info_integration() {
@@ -10,12 +10,14 @@ async fn test_bitvmx_comm_info_integration() {
         address: "127.0.0.1:8080".to_string(),
         peer_id: "L2_ID".to_string(),
     };
-    BITVMX_STORE.set_p2p_address(test_address);
+    BITVMX_STORE.set_p2p_address(test_address).await;
     
-    let app = app::app();
+    // Create a test app state
+    let app_state = app_state::AppState::new(bitvmx_tictactoe_backend::config::Config::default());
+    let app = api::app(app_state).await;
 
     let response = app
-        .oneshot(Request::builder().uri("/bitvmx/comm-info").body(Body::empty()).unwrap())
+        .oneshot(Request::builder().uri("/api/bitvmx/comm-info").body(Body::empty()).unwrap())
         .await
         .unwrap();
 
@@ -36,8 +38,10 @@ async fn test_bitvmx_comm_info_integration() {
 }
 
 #[tokio::test]
-async fn test_bitvmx_setup_keys_integration() {
-    let app = app::app();
+async fn test_bitvmx_aggregated_key_integration() {
+    // Create a test app state
+    let app_state = app_state::AppState::new(bitvmx_tictactoe_backend::config::Config::default());
+    let app = api::app(app_state).await;
 
     let setup_key = SetupKey {
         id: "test-id-123".to_string(),
@@ -53,7 +57,7 @@ async fn test_bitvmx_setup_keys_integration() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/bitvmx/setup-aggregated-key")
+                .uri("/api/bitvmx/aggregated-key")
                 .header("content-type", "application/json")
                 .body(Body::from(serde_json::to_string(&setup_key).unwrap()))
                 .unwrap()

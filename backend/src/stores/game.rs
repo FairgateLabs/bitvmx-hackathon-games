@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
+#[derive(Debug)]
 pub struct GameStore {
     games: HashMap<Uuid, Game>,
 }

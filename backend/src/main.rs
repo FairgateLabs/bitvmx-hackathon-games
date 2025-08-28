@@ -1,6 +1,6 @@
-use std::{thread::sleep, time::Duration};
+use std::time::Duration;
 
-use bitvmx_tictactoe_backend::{app, config, bitvmx_rpc};
+use bitvmx_tictactoe_backend::{api, config, bitvmx_rpc, app_state};
 use tracing::{error, info, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use tokio::sync::broadcast;
@@ -33,16 +33,21 @@ async fn main() -> anyhow::Result<()> {
     // Create shutdown signal
     let (shutdown_tx, _) = broadcast::channel::<()>(1);
     let mut shutdown_rx_bitvmx = shutdown_tx.subscribe();
-
+    
+    // Initialize shared app state
+    app_state::init_app_state(config.clone()).await;
+    
     // --- BITVMX RPC connection ---
-    let config_clone = config.clone();
-    let bitvmx_rpc = tokio::task::spawn_blocking(move || {
+    let bitvmx_rpc = tokio::task::spawn(async move {
         // Create a span for this task
         let span = tracing::info_span!("bitvmx_rpc_task");
         let _enter = span.enter();
         
+        // Get the shared app state
+        let app_state = app_state::get_app_state_or_panic().await;
+        
         // Initialize the singleton BitVMXClient
-        bitvmx_rpc::handler::init_client(&config_clone)?;
+        bitvmx_rpc::handler::init_client(&app_state).await?;
         
         // Check for shutdown signal every 100ms
         loop {
@@ -53,10 +58,10 @@ async fn main() -> anyhow::Result<()> {
             }
             
             // Receive and process messages from BitVMX
-            bitvmx_rpc::handler::receive_message()?;
+            bitvmx_rpc::handler::receive_messages().await?;
             
             // Wait before checking for new messages
-            sleep(Duration::from_millis(100));
+            tokio::time::sleep(Duration::from_millis(100)).await;
         }
         Ok::<_, anyhow::Error>(()) // coercion to Result
     });
@@ -68,8 +73,12 @@ async fn main() -> anyhow::Result<()> {
         let span = tracing::info_span!("axum_server_task");
         let _enter = span.enter();
         
+        // Get the shared app state
+        let app_state = app_state::get_app_state_or_panic().await;
+        
         // Create the application
-        let app = app::app();
+        let app = api::app(app_state).await;
+        
         // Run it
         let addr = config.server_addr()?;
         info!("API REST at http://{}", addr);

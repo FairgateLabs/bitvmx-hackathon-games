@@ -8,6 +8,7 @@ use uuid::Uuid;
 
 use crate::config;
 use crate::routes;
+use crate::app_state::AppState;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -22,7 +23,7 @@ use crate::routes;
         routes::add_numbers::add_numbers,
         routes::add_numbers::make_guess,
         routes::bitvmx::comm_info,
-        routes::bitvmx::setup_aggregated_key
+        routes::bitvmx::submit_aggregated_key
     ),
     components(
         schemas(
@@ -71,11 +72,9 @@ struct ApiDoc;
 /// - Proper HTTP status codes for different error scenarios
 /// - Structured error responses with meaningful messages
 /// - Game logic validation (invalid moves, game not found, etc.)
-pub fn app() -> Router {
-    // Load configuration
-    let config = config::Config::load("player_1").unwrap_or_default();
-
+pub async fn app(app_state: AppState) -> Router {
     // Configure CORS
+    let config = app_state.get_config().await;
     let cors = create_cors_layer(&config);
 
     // Configure trace layer with custom span names
@@ -92,13 +91,14 @@ pub fn app() -> Router {
 
     // Build our application with routes and middleware
     Router::new()
-        .nest("/health", routes::health::router())
-        .nest("/game", routes::game::router())
-        .nest("/add-numbers", routes::add_numbers::router())
-        .nest("/bitvmx", routes::bitvmx::router())
+        .nest("/api/health", routes::health::router())
+        .nest("/api/game", routes::game::router())
+        .nest("/api/add-numbers", routes::add_numbers::router())
+        .nest("/api/bitvmx", routes::bitvmx::router())
         .merge(SwaggerUi::new("/").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .layer(trace_layer)
         .layer(cors)
+        .with_state(app_state)
 }
 
 

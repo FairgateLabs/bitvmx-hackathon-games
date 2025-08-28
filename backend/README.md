@@ -12,6 +12,13 @@ The backend is structured as a modular Axum application with the following key c
 - **Types**: Data structures with TypeScript bindings
 - **BitVMX Integration**: RPC client for peer-to-peer communication
 
+## API Documentation
+
+The application automatically generates OpenAPI/Swagger documentation using Utoipa. Access the documentation at:
+
+- **Swagger UI**: `http://localhost:3000/`
+- **OpenAPI JSON**: `http://localhost:3000/api-docs/openapi.json`
+
 ## BitVMX Integration Flow
 
 The BitVMX integration enables peer-to-peer communication between game participants. Here's the detailed flow:
@@ -40,12 +47,12 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant Client as API Client
-    participant API as /bitvmx/comm-info
+    participant API as /api/bitvmx/comm-info
     participant Handler as bitvmx handler
     participant Store as BitVMXStore
     participant BitVMX as BitVMX RPC
 
-    Client->>API: GET /bitvmx/comm-info
+    Client->>API: GET /api/bitvmx/comm-info
     API->>Handler: get_comm_info()
     Handler->>Store: get_p2p_address()
     Store-->>Handler: P2PAddress {address, peer_id}
@@ -60,12 +67,12 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant Client as API Client
-    participant API as /bitvmx/setup-aggregated-key
+    participant API as /api/bitvmx/aggregated-key
     participant Handler as bitvmx handler
     participant BitVMXClient as BitVMXClient
     participant BitVMX as BitVMX RPC
 
-    Client->>API: POST /bitvmx/setup-aggregated-key
+    Client->>API: POST /api/bitvmx/aggregated-key
     Note over Client: Body: {id: "uuid", addresses: [{address, peer_id}]}
     
     API->>Handler: submit_aggregated_key(setup_key)
@@ -115,7 +122,6 @@ sequenceDiagram
 ```
 
 
-
 ## Configuration
 
 Configuration is managed through YAML files in the `configs/` directory:
@@ -162,6 +168,7 @@ The application includes comprehensive testing:
 - **TypeScript Bindings**: Generated from Rust types for frontend integration
 
 ### Running Tests
+
 ```bash
 cargo test                    # Run all tests
 cargo test --test bitvmx     # Run BitVMX integration tests
@@ -170,38 +177,46 @@ cargo test --test bitvmx     # Run BitVMX integration tests
 ## Development
 
 ### Prerequisites
+
 - Rust 1.70+
 - Cargo
+- Docker
+- Bitcoind running
 - BitVMX RPC server running
 
 ### Building
+
 ```bash
 cargo build
 cargo build --release
 ```
 
 ### Running
+
+Start bitcoin and bitvmx with:
+
+```bash
+bash start.sh
+```
+
+Run the backend api server with:
+
 ```bash
 cargo run
 ```
 
 ### TypeScript Bindings Generation
+
 ```bash
 cargo test --lib  # Generates bindings during test compilation
 ```
 
-## API Documentation
-
-The application automatically generates OpenAPI/Swagger documentation using Utoipa. Access the documentation at:
-
-- **Swagger UI**: `http://localhost:3000/swagger-ui/`
-- **OpenAPI JSON**: `http://localhost:3000/api-docs/openapi.json`
 
 ## Message Flow Summary
 
 1. **Startup**: Application initializes BitVMX client and starts message receiving loop
-2. **P2P Setup**: Clients retrieve P2P addresses via `/bitvmx/comm-info`
-3. **Key Submission**: Clients submit aggregated keys via `/bitvmx/setup-aggregated-key`
+2. **P2P Setup**: Clients retrieve P2P addresses via `/api/bitvmx/comm-info`
+3. **Key Submission**: Clients submit aggregated keys via `/api/bitvmx/aggregated-key`
 4. **RPC Communication**: Continuous message exchange with BitVMX RPC
 5. **State Management**: Centralized store maintains connection state and P2P information
 

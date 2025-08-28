@@ -1,30 +1,25 @@
 use axum::{Router, routing::{get, post}, extract::{Path, State}, http::StatusCode, Json};
-use crate::handlers::add_numbers;
 use crate::types::{
     CreateAddNumbersGameRequest, CreateAddNumbersGameResponse, AddNumbersGameResponse,
     AddNumbersRequest, AddNumbersResponse, MakeGuessRequest, MakeGuessResponse, ErrorResponse
 };
-use std::sync::Arc;
-use tokio::sync::Mutex;
-use crate::stores::AddNumbersStore;
+use crate::app_state::AppState;
+use crate::http_errors;
 use uuid::Uuid;
 
-pub fn router() -> Router {
-    // Initialize shared state
-    let add_numbers_store = Arc::new(Mutex::new(AddNumbersStore::new()));
-
+pub fn router() -> Router<AppState> {
+    // Base path is /api/add-numbers/
     Router::new()
         .route("/", post(create_game))
         .route("/{id}", get(get_game))
         .route("/{id}/add", post(add_numbers))
         .route("/{id}/guess", post(make_guess))
-        .with_state(add_numbers_store)
 }
 
 /// Create a new add numbers game
 #[utoipa::path(
     post,
-    path = "/add-numbers/",
+    path = "/api/add-numbers/",
     request_body = CreateAddNumbersGameRequest,
     responses(
         (status = 201, description = "Game created successfully"),
@@ -33,17 +28,22 @@ pub fn router() -> Router {
     tag = "AddNumbers"
 )]
 pub async fn create_game(
-    State(store): State<Arc<Mutex<AddNumbersStore>>>,
+    State(app_state): State<AppState>,
     Json(request): Json<CreateAddNumbersGameRequest>,
 ) -> Result<Json<CreateAddNumbersGameResponse>, (StatusCode, Json<ErrorResponse>)> {
-    let response = add_numbers::create_game(State(store), request).await?;
-    Ok(Json(response))
+    let mut store = app_state.add_numbers_store.lock().await;
+    let game = store.create_game(request.player1, request.player2);
+
+    Ok(Json(CreateAddNumbersGameResponse {
+        game,
+        message: "Add numbers game created successfully".to_string(),
+    }))
 }
 
 /// Get a specific add numbers game by ID
 #[utoipa::path(
     get,
-    path = "/add-numbers/{id}",
+    path = "/api/add-numbers/{id}",
     params(
         ("id" = String, Path, description = "Game ID")
     ),
@@ -54,17 +54,22 @@ pub async fn create_game(
     tag = "AddNumbers"
 )]
 pub async fn get_game(
-    State(store): State<Arc<Mutex<AddNumbersStore>>>,
+    State(app_state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<AddNumbersGameResponse>, (StatusCode, Json<ErrorResponse>)> {
-    let response = add_numbers::get_game(State(store), id).await?;
-    Ok(Json(response))
+    let store = app_state.add_numbers_store.lock().await;
+    
+    let game = store.get_game(id).ok_or(http_errors::not_found("Game not found"))?;
+
+    Ok(Json(AddNumbersGameResponse {
+        game: game.clone(),
+    }))
 }
 
 /// Add two numbers to the game
 #[utoipa::path(
     post,
-    path = "/add-numbers/{id}/add",
+    path = "/api/add-numbers/{id}/add",
     params(
         ("id" = String, Path, description = "Game ID")
     ),
@@ -77,18 +82,28 @@ pub async fn get_game(
     tag = "AddNumbers"
 )]
 pub async fn add_numbers(
-    State(store): State<Arc<Mutex<AddNumbersStore>>>,
+    State(app_state): State<AppState>,
     Path(id): Path<Uuid>,
     Json(request): Json<AddNumbersRequest>,
 ) -> Result<Json<AddNumbersResponse>, (StatusCode, Json<ErrorResponse>)> {
-    let response = add_numbers::add_numbers(State(store), id, request).await?;
-    Ok(Json(response))
+    let mut store = app_state.add_numbers_store.lock().await;
+    
+    let game = store
+        .add_numbers(id, request.player, request.number1, request.number2)
+        .map_err(|error| {
+            http_errors::error_response(StatusCode::BAD_REQUEST, "INVALID_OPERATION", &error)
+        })?;
+
+    Ok(Json(AddNumbersResponse {
+        game,
+        message: "Numbers added successfully".to_string(),
+    }))
 }
 
 /// Make a guess for the sum
 #[utoipa::path(
     post,
-    path = "/add-numbers/{id}/guess",
+    path = "/api/add-numbers/{id}/guess",
     params(
         ("id" = String, Path, description = "Game ID")
     ),
@@ -101,10 +116,20 @@ pub async fn add_numbers(
     tag = "AddNumbers"
 )]
 pub async fn make_guess(
-    State(store): State<Arc<Mutex<AddNumbersStore>>>,
+    State(app_state): State<AppState>,
     Path(id): Path<Uuid>,
     Json(request): Json<MakeGuessRequest>,
 ) -> Result<Json<MakeGuessResponse>, (StatusCode, Json<ErrorResponse>)> {
-    let response = add_numbers::make_guess(State(store), id, request).await?;
-    Ok(Json(response))
+    let mut store = app_state.add_numbers_store.lock().await;
+    
+    let game = store
+        .make_guess(id, request.player, request.guess)
+        .map_err(|error| {
+            http_errors::error_response(StatusCode::BAD_REQUEST, "INVALID_OPERATION", &error)
+        })?;
+
+    Ok(Json(MakeGuessResponse {
+        game,
+        message: "Guess made successfully".to_string(),
+    }))
 }
