@@ -18,7 +18,7 @@ pub fn router() -> Router<AppState> {
     ),
     tag = "Health"
 )]
-#[instrument]
+#[instrument(skip(_app_state))]
 pub async fn health_check(State(_app_state): State<AppState>) -> Json<HealthResponse> {
     let timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)

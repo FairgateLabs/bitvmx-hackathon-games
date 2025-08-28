@@ -39,15 +39,12 @@ async fn main() -> anyhow::Result<()> {
     
     // --- BITVMX RPC connection ---
     let bitvmx_rpc = tokio::task::spawn(async move {
-        // Create a span for this task
-        let span = tracing::info_span!("bitvmx_rpc_task");
-        let _enter = span.enter();
-        
         // Get the shared app state
         let app_state = app_state::get_app_state_or_panic().await;
         
         // Initialize the singleton BitVMXClient
         bitvmx_rpc::handler::init_client(&app_state).await?;
+        info!("BitVMX RPC client initialized successfully");
         
         // Check for shutdown signal every 100ms
         loop {
@@ -58,7 +55,7 @@ async fn main() -> anyhow::Result<()> {
             }
             
             // Receive and process messages from BitVMX
-            bitvmx_rpc::handler::receive_messages().await?;
+            bitvmx_rpc::handler::receive_message().await?;
             
             // Wait before checking for new messages
             tokio::time::sleep(Duration::from_millis(100)).await;
@@ -69,10 +66,6 @@ async fn main() -> anyhow::Result<()> {
     // --- Axum server ---
     let mut shutdown_rx_axum = shutdown_tx.subscribe();
     let axum_server = tokio::task::spawn(async move {
-        // Create a span for this task
-        let span = tracing::info_span!("axum_server_task");
-        let _enter = span.enter();
-        
         // Get the shared app state
         let app_state = app_state::get_app_state_or_panic().await;
         

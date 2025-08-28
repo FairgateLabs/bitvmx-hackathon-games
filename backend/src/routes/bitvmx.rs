@@ -22,7 +22,7 @@ pub fn router() -> Router<AppState> {
     ),
     tag = "BitVMX"
 )]
-#[instrument]
+#[instrument(skip(app_state))]
 pub async fn comm_info(State(app_state): State<AppState>) -> Result<Json<P2PAddress>, (StatusCode, Json<ErrorResponse>)> {
     let p2p_address = app_state.bitvmx_store.get_p2p_address().await.ok_or(http_errors::not_found("P2P address not found"))?;
     Ok(Json(p2p_address))
@@ -39,9 +39,9 @@ pub async fn comm_info(State(app_state): State<AppState>) -> Result<Json<P2PAddr
     ),
     tag = "BitVMX"
 )]
-#[instrument]
+#[instrument(skip(_app_state))]
 pub async fn submit_aggregated_key(
-    State(app_state): State<AppState>,
+    State(_app_state): State<AppState>,
     Json(setup_key): Json<SetupKey>
 ) -> Result<Json<()>, (StatusCode, Json<ErrorResponse>)> {
     // Validate the setup key

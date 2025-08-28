@@ -22,11 +22,7 @@ pub async fn init_client(app_state: &AppState) -> Result<(), anyhow::Error> {
     let client = BitVMXClient::new(config.bitvmx.broker_port, L2_ID);
     info!("Connected to BitVMX RPC at port {}", config.bitvmx.broker_port);
 
-    // Send CommInfo request
-    send(IncomingBitVMXApiMessages::GetCommInfo()).await?;
-    debug!("Get comm info from BitVMX");
-
-    // Store the client in the singleton
+    // Store the client in the singleton first
     {
         let mut client_guard = BITVMX_CLIENT.lock().await;
         *client_guard = Some(client);
@@ -34,6 +30,10 @@ pub async fn init_client(app_state: &AppState) -> Result<(), anyhow::Error> {
 
     // Update the BitVMX store to indicate we're connected
     BITVMX_STORE.set_connected(true).await;
+
+    // Send CommInfo request after client is stored
+    send(IncomingBitVMXApiMessages::GetCommInfo()).await?;
+    debug!("Get comm info from BitVMX");
 
     Ok(())
 }
@@ -75,10 +75,21 @@ pub async fn send(message: IncomingBitVMXApiMessages) -> Result<(), anyhow::Erro
         None => return Err(anyhow::anyhow!("BitVMXClient not initialized")),
     };
     
-    // Here you would use the client to send messages
-    // For now, just log that we have access to the client
+    // Use tokio::task::spawn_blocking to handle potentially blocking operations
+    let client_clone = client.clone();
+    let message_clone = message.clone();
+    match tokio::time::timeout(
+        std::time::Duration::from_secs(5),
+        tokio::task::spawn_blocking(move || {
+            client_clone.send_message(message_clone)
+        })
+    ).await {
+        Ok(Ok(result)) => result?,
+        Ok(Err(e)) => return Err(anyhow::anyhow!("Task join error: {}", e)),
+        Err(_) => return Err(anyhow::anyhow!("Timeout sending message to BitVMX")),
+    }
+    
     trace!("Sending message to BitVMX: {:?}", message);
-    client.send_message(message)?;
     Ok(())
 }
 
@@ -104,18 +115,10 @@ pub async fn send_and_wait(
     }
 }
 
-/// Receive and process messages from BitVMX
-pub async fn receive_messages() -> Result<(), anyhow::Error> {
-    loop {
-        if !receive_message().await? {
-            break;
-        }
-    }
-    Ok(())
-}
-
 /// Receive and process a single message from BitVMX
 /// Returns true if a message was received, false if no message was received
+/// Message is sent to the handler, which will process it and send a response if needed
+/// This function is called in a loop from main, so we don't need an internal loop
 pub async fn receive_message() -> Result<bool, anyhow::Error> {
     let result = {
         let client_guard = BITVMX_CLIENT.lock().await;
@@ -124,7 +127,18 @@ pub async fn receive_message() -> Result<bool, anyhow::Error> {
             None => return Err(anyhow::anyhow!("BitVMXClient not initialized")),
         };
         
-        client.get_message()
+        // Use tokio::task::spawn_blocking to handle potentially blocking operations
+        let client_clone = client.clone();
+        match tokio::time::timeout(
+            std::time::Duration::from_secs(5),
+            tokio::task::spawn_blocking(move || {
+                client_clone.get_message()
+            })
+        ).await {
+            Ok(Ok(result)) => result,
+            Ok(Err(e)) => return Err(anyhow::anyhow!("Task join error: {}", e)),
+            Err(_) => return Err(anyhow::anyhow!("Timeout getting message from BitVMX")),
+        }
     }; // Lock is released here
     
     if result.is_err() {
