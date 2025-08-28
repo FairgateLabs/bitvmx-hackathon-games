@@ -11,6 +11,7 @@ interface GameNumbersToAdd {
 export function Player2GameSetup() {
   const [answer, setAnswer] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const isAnswerValid = () => {
     const parsedAnswer = parseInt(answer, 10);
@@ -20,6 +21,7 @@ export function Player2GameSetup() {
   const handleSubmit = () => {
     if (isAnswerValid()) {
       setSuccessMessage("Answer submitted successfully.");
+      setIsSubmitted(true);
     } else {
       setSuccessMessage("");
     }
@@ -41,12 +43,13 @@ export function Player2GameSetup() {
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
             placeholder="Enter the sum"
+            disabled={isSubmitted}
           />
         </div>
 
         <Button
           onClick={handleSubmit}
-          disabled={!isAnswerValid()}
+          disabled={!isAnswerValid() || isSubmitted}
           className="w-full cursor-pointer"
         >
           Send Answer

@@ -21,6 +21,7 @@ export function GameUUIDInput({ isExpanded = true }: GameUUIDInputProps) {
   const [isValid, setIsValid] = useState(false);
   const [isOpen, setIsOpen] = useState(isExpanded);
   const [numbers, setNumbers] = useState<GameNumbersToAdd>({});
+  const [isSuccess, setIsSuccess] = useState(false);
   const { mutate: saveProgram } = useProgramMutation();
 
   const handleUUIDChange = (value: string) => {
@@ -41,8 +42,14 @@ export function GameUUIDInput({ isExpanded = true }: GameUUIDInputProps) {
   };
 
   const handleSubmit = () => {
-    if (isValid && gameUUID) {
+    if (
+      isValid &&
+      gameUUID &&
+      numbers.number1 !== undefined &&
+      numbers.number2 !== undefined
+    ) {
       saveProgram(gameUUID);
+      setIsSuccess(true);
     }
   };
 
@@ -78,7 +85,7 @@ export function GameUUIDInput({ isExpanded = true }: GameUUIDInputProps) {
                 <CopyButton text="" size="sm" variant="outline" />
               </div>
               {gameUUID && !isValid && (
-                <p className="text-xs text-gray-600 mt-1">
+                <p className="text-xs text-red-600 mt-1">
                   Please enter a valid UUID format
                 </p>
               )}
@@ -95,8 +102,10 @@ export function GameUUIDInput({ isExpanded = true }: GameUUIDInputProps) {
                 <Input
                   id="number1"
                   type="number"
+                  value={numbers.number1 || ""}
                   placeholder="e.g., 5"
                   className="mt-1 text-sm"
+                  required
                   min="0"
                   onChange={(e) =>
                     handleNumberChange("number1", e.target.value)
@@ -110,6 +119,7 @@ export function GameUUIDInput({ isExpanded = true }: GameUUIDInputProps) {
                 <Input
                   id="number2"
                   type="number"
+                  value={numbers.number2 || ""}
                   placeholder="e.g., 3"
                   className="mt-1 text-sm"
                   min="0"
@@ -122,12 +132,39 @@ export function GameUUIDInput({ isExpanded = true }: GameUUIDInputProps) {
 
             <Button
               onClick={handleSubmit}
-              disabled={!isValid || !gameUUID}
+              disabled={
+                !isValid ||
+                !gameUUID ||
+                numbers.number1 === undefined ||
+                numbers.number2 === undefined
+              }
               className="w-full bg-gray-600 hover:bg-gray-700"
             >
               <Check className="h-4 w-4 mr-2" />
               Join Game
             </Button>
+
+            {!isSuccess && (
+              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <h3 className="font-semibold mb-2 text-yellow-800">
+                  ⚠️ Complete all inputs to start the game
+                </h3>
+                <p className="text-sm text-yellow-700">
+                  Please enter the game UUID and both numbers to proceed.
+                </p>
+              </div>
+            )}
+
+            {isSuccess && (
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <h3 className="font-semibold mb-2 text-green-800">
+                  ✅ Success
+                </h3>
+                <p className="text-sm text-green-700">
+                  Game joined successfully with the provided UUID and numbers.
+                </p>
+              </div>
+            )}
           </div>
         </CollapsibleContent>
       </Collapsible>
