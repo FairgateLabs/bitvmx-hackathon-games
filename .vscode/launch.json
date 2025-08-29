@@ -1,0 +1,26 @@
+{
+    // MAKE SURE YOU HAVE CODE LLDB INSTALLED
+    // https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb
+    "version": "0.2.0",
+    "configurations": [
+        // Backend
+        {
+            "name": "Debug Backend",
+            "type": "lldb",
+            "request": "launch",
+            "env": {
+                "CONFIG_FILE": "player_1",
+                "RUST_BACKTRACE": "1"
+            },
+            "cargo": {
+                "cwd": "${workspaceFolder}/backend",
+                "args": [
+                    "build",
+                    "--manifest-path=${workspaceFolder}/backend/Cargo.toml"
+                ],
+            },
+            "program": "${cargo:program}",
+            "sourceLanguages": ["rust"]
+        },
+    ]
+}

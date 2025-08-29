@@ -13,6 +13,7 @@ use crate::{
         CreateAddNumbersGameRequest, CreateAddNumbersGameResponse, AddNumbersGameResponse,
         AddNumbersRequest, AddNumbersResponse, MakeGuessRequest, MakeGuessResponse, ErrorResponse,
     },
+    http_errors,
 };
 
 /// Create a new add numbers game
@@ -36,13 +37,7 @@ pub async fn get_game(
 ) -> Result<AddNumbersGameResponse, (StatusCode, Json<ErrorResponse>)> {
     let store = store.lock().await;
     
-    let game = store.get_game(id).ok_or((
-        StatusCode::NOT_FOUND,
-        Json(ErrorResponse {
-            error: "NOT_FOUND".to_string(),
-            message: "Game not found".to_string(),
-        }),
-    ))?;
+    let game = store.get_game(id).ok_or(http_errors::not_found("Game not found"))?;
 
     Ok(AddNumbersGameResponse {
         game: game.clone(),
@@ -60,13 +55,7 @@ pub async fn add_numbers(
     let game = store
         .add_numbers(id, request.player, request.number1, request.number2)
         .map_err(|error| {
-            (
-                StatusCode::BAD_REQUEST,
-                Json(ErrorResponse {
-                    error: "INVALID_OPERATION".to_string(),
-                    message: error,
-                }),
-            )
+            http_errors::error_response(StatusCode::BAD_REQUEST, "INVALID_OPERATION", &error)
         })?;
 
     Ok(AddNumbersResponse {
@@ -86,13 +75,7 @@ pub async fn make_guess(
     let game = store
         .make_guess(id, request.player, request.guess)
         .map_err(|error| {
-            (
-                StatusCode::BAD_REQUEST,
-                Json(ErrorResponse {
-                    error: "INVALID_OPERATION".to_string(),
-                    message: error,
-                }),
-            )
+            http_errors::error_response(StatusCode::BAD_REQUEST, "INVALID_OPERATION", &error)
         })?;
 
     Ok(MakeGuessResponse {

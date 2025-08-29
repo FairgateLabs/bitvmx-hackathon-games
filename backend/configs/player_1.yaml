@@ -1,0 +1,13 @@
+server:
+  host: "0.0.0.0"
+  port: 8080
+
+logging:
+  level: "debug"
+
+cors:
+  allowed_origins: ["*"]
+  allowed_headers: ["*"]
+
+bitvmx:
+  broker_port: 22222

@@ -1,154 +1,208 @@
-# Tic-Tac-Toe Backend
+# BitVMX Tic-Tac-Toe Backend
 
-A Rust backend for the BitVMX Hackathon tic-tac-toe game, built with Axum web framework.
+A Rust-based backend service for the BitVMX Tic-Tac-Toe game, built with Axum web framework and integrated with BitVMX RPC for peer-to-peer communication.
 
-## Key Features
+## Architecture Overview
 
-- **REST API**: Built with Axum web framework, includes Swagger with using utoipa framwork
-- **TypeScript Types**: Auto generated TypeScript type definitions
+The backend is structured as a modular Axum application with the following key components:
 
-## Prerequisites
+- **Routes**: API endpoint definitions with OpenAPI documentation
+- **Handlers**: Business logic for processing requests
+- **Stores**: Thread-safe shared state management
+- **Types**: Data structures with TypeScript bindings
+- **BitVMX Integration**: RPC client for peer-to-peer communication
 
-- Rust 1.70+ (install via [rustup](https://rustup.rs/))
-- Cargo (comes with Rust)
+## BitVMX Integration Flow
 
-## Setup
+The BitVMX integration enables peer-to-peer communication between game participants. Here's the detailed flow:
 
-1. **Build the project:**
+### 1. Application Startup
 
-   ```bash
-   cargo build
-   ```
+```mermaid
+sequenceDiagram
+    participant Main as main.rs
+    participant Config as config.rs
+    participant BitVMXClient as BitVMXClient
+    participant Store as BitVMXStore
+    participant Server as Axum Server
 
-2. **Run the server:**
-
-   ```bash
-   cargo run
-   ```
-
-The server will start on `http://localhost:8080`
-
-## API Documentation
-
-The API is documented using **OpenAPI/Swagger**, you can access the interactive documentation at:
-
-- **Swagger UI**: http://localhost:8080/swagger-ui
-- **OpenAPI JSON**: http://localhost:8080/api-docs/openapi.json
-
-
-## TypeScript Types
-
-TypeScript types are **automatically generated** using `ts-rs` from the Rust types in the bindings folder.
-
-## API Examples
-
-### Create a Game
-
-```bash
-curl -X POST http://localhost:8080/api/game \
-  -H "Content-Type: application/json" \
-  -d '{"player_name": "Alice"}'
+    Main->>Config: Load configuration
+    Config-->>Main: Config object
+    Main->>BitVMXClient: Initialize singleton client
+    BitVMXClient->>Store: Set connected status
+    Main->>Server: Start Axum server
+    Main->>BitVMXClient: Start message receiving loop
+    Note over BitVMXClient: Continuously listen for RPC messages
 ```
 
-### Make a Move
+### 2. P2P Communication Setup
 
-```bash
-curl -X POST http://localhost:8080/api/game/{game-id}/move \
-  -H "Content-Type: application/json" \
-  -d '{
-    "player": "X",
-    "position": {
-      "row": 0,
-      "col": 0
-    }
-  }'
+```mermaid
+sequenceDiagram
+    participant Client as API Client
+    participant API as /bitvmx/comm-info
+    participant Handler as bitvmx handler
+    participant Store as BitVMXStore
+    participant BitVMX as BitVMX RPC
+
+    Client->>API: GET /bitvmx/comm-info
+    API->>Handler: get_comm_info()
+    Handler->>Store: get_p2p_address()
+    Store-->>Handler: P2PAddress {address, peer_id}
+    Handler-->>API: JSON response
+    API-->>Client: P2P communication info
+
+    Note over Client,BitVMX: Client uses P2P info to establish direct connection
 ```
 
-### Get Game Status
+### 3. Aggregated Key Submission
 
-```bash
-curl http://localhost:8080/api/game/{game-id}/status
+```mermaid
+sequenceDiagram
+    participant Client as API Client
+    participant API as /bitvmx/setup-aggregated-key
+    participant Handler as bitvmx handler
+    participant BitVMXClient as BitVMXClient
+    participant BitVMX as BitVMX RPC
+
+    Client->>API: POST /bitvmx/setup-aggregated-key
+    Note over Client: Body: {id: "uuid", addresses: [{address, peer_id}]}
+    
+    API->>Handler: submit_aggregated_key(setup_key)
+    Handler->>Handler: Validate setup_key
+    Note over Handler: Check id not empty, addresses not empty
+    
+    alt Validation passes
+        Handler->>BitVMXClient: send_message(SetupKey)
+        BitVMXClient->>BitVMX: Submit to RPC
+        BitVMX-->>BitVMXClient: Success response
+        BitVMXClient-->>Handler: Success
+        Handler-->>API: Ok(())
+        API-->>Client: 200 OK
+    else Validation fails
+        Handler-->>API: 400 Bad Request
+        API-->>Client: Error response
+    end
 ```
 
-## Game Rules
+### 4. RPC Message Handling
 
-- Players take turns placing X and O on a 3x3 grid
-- First player to get 3 in a row (horizontally, vertically, or diagonally) wins
-- If all cells are filled without a winner, the game is a draw
-- Game states: Waiting, InProgress, Won, Draw
+```mermaid
+sequenceDiagram
+    participant BitVMX as BitVMX RPC
+    participant BitVMXClient as BitVMXClient
+    participant Handler as bitvmx_rpc handler
+    participant Store as BitVMXStore
+    participant API as API Handlers
 
-## Development
-
-## Testing
-
-Run tests with:
-
-```bash
-cargo test
+    BitVMX->>BitVMXClient: Incoming RPC message
+    BitVMXClient->>Handler: receive_message()
+    Handler->>Handler: Parse message type
+    
+    alt Message type: P2PAddress
+        Handler->>Store: set_p2p_address(address)
+        Store-->>Handler: Success
+    else Message type: SetupKey
+        Handler->>Store: notify_handlers()
+        Store->>API: Call registered handlers
+        API-->>Store: Process message
+    else Other message types
+        Handler->>Handler: Handle according to type
+    end
+    
+    Handler-->>BitVMXClient: Processed
+    BitVMXClient-->>BitVMX: Acknowledge
 ```
 
-## Error Handling
 
-The application implements comprehensive error handling at the endpoint level:
-
-### Error Response Format
-All errors return a structured `ErrorResponse`:
-```json
-{
-  "error": "Error message",
-  "code": "ERROR_CODE"
-}
-```
-
-### HTTP Status Codes
-- `200 OK` - Successful operations
-- `201 Created` - Game created successfully
-- `400 Bad Request` - Invalid request data or game logic errors
-- `404 Not Found` - Game not found
-- `409 Conflict` - Invalid move (cell already occupied, wrong player turn, etc.)
-- `422 Unprocessable Entity` - Game already finished
-
-### Error Scenarios
-- **Invalid moves**: Cell already occupied, wrong player turn, game finished
-- **Game not found**: Invalid game ID
-- **Invalid request data**: Missing required fields, invalid JSON
-- **Game logic errors**: Attempting to play on finished game
 
 ## Configuration
 
-The application uses a `config.yaml` file for configuration, but all settings can also be overridden using environment variables with the `APP_` prefix.
-
-### Configuration File
+Configuration is managed through YAML files in the `configs/` directory:
 
 ```yaml
-server:
-  host: "0.0.0.0"
-  port: 8080
-
-logging:
-  level: "info"
-
-cors:
-  allowed_origins: ["*"]
-  allowed_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
-  allowed_headers: ["*"]
+# configs/player_1.yaml
+bitvmx:
+  broker_port: 8080
+  l2_id: "player_1"
 ```
 
 ### Environment Variables
 
-All configuration values can be set using environment variables with the `APP_` prefix:
+The following environment variables can be used to configure the application:
 
-| Environment Variable | Description | Default |
-|---------------------|-------------|---------|
-| `APP_SERVER__HOST` | Server host address | `0.0.0.0` |
-| `APP_SERVER__PORT` | Server port number | `8080` |
-| `APP_LOGGING__LEVEL` or `RUST_LOG` | Logging level (debug, info, warn, error) | `info` |
-| `APP_CORS__ALLOWED_ORIGINS` | Comma-separated list of allowed origins | `*` |
-| `APP_CORS__ALLOWED_METHODS` | Comma-separated list of allowed HTTP methods | `GET,POST,PUT,DELETE,OPTIONS` |
-| `APP_CORS__ALLOWED_HEADERS` | Comma-separated list of allowed headers | `*` |
+| Variable | Description | Default | Example |
+|----------|-------------|---------|---------|
+| `CONFIG_FILE` | Configuration file name (without .yaml extension) | `player_1` | `CONFIG_FILE=player_2` |
+| `RUST_LOG` | Logging level (debug, info, warn, error) | `info` | `RUST_LOG=debug` |
+| `APP_SERVER__HOST` | Server host address | `0.0.0.0` | `APP_SERVER__HOST=127.0.0.1` |
+| `APP_SERVER__PORT` | Server port number | `8080` | `APP_SERVER__PORT=3000` |
+| `APP_CORS__ALLOWED_ORIGINS` | Comma-separated list of allowed origins | `*` | `APP_CORS__ALLOWED_ORIGINS=http://localhost:3000,https://example.com` |
 
-**Note**: Environment variables take precedence over the configuration file values.
+### Available Configuration Files
 
-## License
+The application comes with two pre-configured files in the `configs/` directory:
 
-MIT License - see LICENSE file for details.
+- `player_1.yaml` - Default configuration for player 1
+- `player_2.yaml` - Configuration for player 2
+
+### Running with Custom Configuration
+
+```bash
+# Use a different configuration file
+CONFIG_FILE=player_2 cargo run
+```
+
+## Testing
+
+The application includes comprehensive testing:
+
+- **Unit Tests**: Individual component testing
+- **Integration Tests**: End-to-end API testing
+- **TypeScript Bindings**: Generated from Rust types for frontend integration
+
+### Running Tests
+```bash
+cargo test                    # Run all tests
+cargo test --test bitvmx     # Run BitVMX integration tests
+```
+
+## Development
+
+### Prerequisites
+- Rust 1.70+
+- Cargo
+- BitVMX RPC server running
+
+### Building
+```bash
+cargo build
+cargo build --release
+```
+
+### Running
+```bash
+cargo run
+```
+
+### TypeScript Bindings Generation
+```bash
+cargo test --lib  # Generates bindings during test compilation
+```
+
+## API Documentation
+
+The application automatically generates OpenAPI/Swagger documentation using Utoipa. Access the documentation at:
+
+- **Swagger UI**: `http://localhost:3000/swagger-ui/`
+- **OpenAPI JSON**: `http://localhost:3000/api-docs/openapi.json`
+
+## Message Flow Summary
+
+1. **Startup**: Application initializes BitVMX client and starts message receiving loop
+2. **P2P Setup**: Clients retrieve P2P addresses via `/bitvmx/comm-info`
+3. **Key Submission**: Clients submit aggregated keys via `/bitvmx/setup-aggregated-key`
+4. **RPC Communication**: Continuous message exchange with BitVMX RPC
+5. **State Management**: Centralized store maintains connection state and P2P information
+
+This architecture provides a robust, scalable foundation for peer-to-peer game communication while maintaining clean separation of concerns and comprehensive error handling.

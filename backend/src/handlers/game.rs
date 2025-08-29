@@ -6,6 +6,7 @@ use axum::{
 use uuid::Uuid;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use tracing::instrument;
 
 use crate::{
     stores::GameStore,
@@ -13,12 +14,14 @@ use crate::{
         CreateGameRequest, CreateGameResponse, GameResponse, GameStatusResponse, MakeMoveRequest,
         MakeMoveResponse, ErrorResponse,
     },
+    http_errors,
 };
 
 /// Create a new tic-tac-toe game
+#[instrument(skip(store))]
 pub async fn create_game(
     State(store): State<Arc<Mutex<GameStore>>>,
-    _request: CreateGameRequest,
+    request: CreateGameRequest,
 ) -> Result<CreateGameResponse, (StatusCode, Json<ErrorResponse>)> {
     let mut store = store.lock().await;
     let game = store.create_game();
@@ -30,19 +33,14 @@ pub async fn create_game(
 }
 
 /// Get a specific game by ID
+#[instrument(skip(store), fields(game_id = %id))]
 pub async fn get_game(
     State(store): State<Arc<Mutex<GameStore>>>,
     id: Uuid,
 ) -> Result<GameResponse, (StatusCode, Json<ErrorResponse>)> {
     let store = store.lock().await;
     
-    let game = store.get_game(id).ok_or((
-        StatusCode::NOT_FOUND,
-        Json(ErrorResponse {
-            error: "NOT_FOUND".to_string(),
-            message: "Game not found".to_string(),
-        }),
-    ))?;
+    let game = store.get_game(id).ok_or(http_errors::not_found("Game not found"))?;
 
     Ok(GameResponse {
         game: game.clone(),
@@ -50,6 +48,7 @@ pub async fn get_game(
 }
 
 /// Make a move in the game
+#[instrument(skip(store), fields(game_id = %id))]
 pub async fn make_move(
     State(store): State<Arc<Mutex<GameStore>>>,
     id: Uuid,
@@ -60,13 +59,8 @@ pub async fn make_move(
     let game = store
         .make_move(id, request.player, request.position)
         .map_err(|error| {
-            (
-                StatusCode::BAD_REQUEST,
-                Json(ErrorResponse {
-                    error: "INVALID_MOVE".to_string(),
-                    message: error,
-                }),
-            )
+            tracing::warn!("Invalid move: {}", error);
+            http_errors::error_response(StatusCode::BAD_REQUEST, "INVALID_MOVE", &error)
         })?;
 
     Ok(MakeMoveResponse {
@@ -82,13 +76,7 @@ pub async fn get_game_status(
 ) -> Result<GameStatusResponse, (StatusCode, Json<ErrorResponse>)> {
     let store = store.lock().await;
     
-    let game = store.get_game(id).ok_or((
-        StatusCode::NOT_FOUND,
-        Json(ErrorResponse {
-            error: "NOT_FOUND".to_string(),
-            message: "Game not found".to_string(),
-        }),
-    ))?;
+    let game = store.get_game(id).ok_or(http_errors::not_found("Game not found"))?;
 
     let current_player = match game.status {
         crate::types::GameStatus::InProgress => Some(game.current_player.clone()),

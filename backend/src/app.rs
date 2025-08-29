@@ -1,9 +1,10 @@
 use axum::Router;
 use tower_http::cors::{CorsLayer, Any};
 use tower_http::trace::TraceLayer;
-use http::{HeaderValue, HeaderName};
+use http::{HeaderValue, HeaderName, Request};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
+use uuid::Uuid;
 
 use crate::config;
 use crate::routes;
@@ -19,7 +20,9 @@ use crate::routes;
         routes::add_numbers::create_game,
         routes::add_numbers::get_game,
         routes::add_numbers::add_numbers,
-        routes::add_numbers::make_guess
+        routes::add_numbers::make_guess,
+        routes::bitvmx::comm_info,
+        routes::bitvmx::setup_aggregated_key
     ),
     components(
         schemas(
@@ -34,13 +37,17 @@ use crate::routes;
             crate::types::AddNumbersGameStatus,
             crate::types::CreateAddNumbersGameRequest,
             crate::types::AddNumbersRequest,
-            crate::types::MakeGuessRequest
+            crate::types::MakeGuessRequest,
+            crate::types::P2PAddress,
+            crate::types::SetupKey,
+
         )
     ),
     tags(
         (name = "Game", description = "Tic-tac-toe game management endpoints"),
         (name = "Health", description = "Health check endpoints"),
-        (name = "AddNumbers", description = "Add numbers game management endpoints")
+        (name = "AddNumbers", description = "Add numbers game management endpoints"),
+        (name = "BitVMX", description = "BitVMX communication endpoints")
     ),
     info(
         title = "Tic-Tac-Toe API",
@@ -66,19 +73,29 @@ struct ApiDoc;
 /// - Game logic validation (invalid moves, game not found, etc.)
 pub fn app() -> Router {
     // Load configuration
-    let config = config::Config::load().unwrap_or_default();
+    let config = config::Config::load("player_1").unwrap_or_default();
 
     // Configure CORS
     let cors = create_cors_layer(&config);
 
-    // Configure trace layer
-    let trace_layer = TraceLayer::new_for_http();
+    // Configure trace layer with custom span names
+    let trace_layer = TraceLayer::new_for_http()
+        .make_span_with(|request: &Request<_>| {
+            let request_id = Uuid::new_v4();
+            tracing::info_span!(
+                "request",
+                method = %request.method(),
+                uri = %request.uri(),
+                id = %request_id,
+            )
+        });
 
     // Build our application with routes and middleware
     Router::new()
         .nest("/health", routes::health::router())
         .nest("/game", routes::game::router())
         .nest("/add-numbers", routes::add_numbers::router())
+        .nest("/bitvmx", routes::bitvmx::router())
         .merge(SwaggerUi::new("/").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .layer(trace_layer)
         .layer(cors)
