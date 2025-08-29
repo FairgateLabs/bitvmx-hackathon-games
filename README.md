@@ -1,6 +1,12 @@
-# BitVMX Hackathon - Tic-Tac-Toe
+# BitVMX Hackathon Games
 
-A decentralized tic-tac-toe game built on BitVMX, featuring a Rust backend with Axum framework and TypeScript frontend.
+A decentralized game built on BitVMX, featuring a robust architecture with both backend and frontend components.
+
+The backend, located in the `/backend` directory, is developed using Rust with the Axum framework. 
+The frontend, found in the `/frontend` directory, is built with TypeScript.
+
+## Frontend
+For more information about the frontend, please refer to the [BitVMX Hackathon frontend README](./frontend/README.md).
 
 ## Prerequisites
 
