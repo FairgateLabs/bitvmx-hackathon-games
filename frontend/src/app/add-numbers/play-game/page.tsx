@@ -10,8 +10,8 @@ import {
 } from "@/components/ui/card";
 import { GameRoleSelector, GameRole } from "@/components/game-role-selector";
 import { WalletSection } from "@/components/wallet-section";
-import { Player1GameSetup } from "@/components/player1-game-setup";
-import { Player2GameSetup } from "@/components/player2-game-setup";
+import { SetupGame as SetupGamePlayer1 } from "@/components/player1/setup-game";
+import { SetupGame as SetupGamePlayer2 } from "@/components/player2/setup-game";
 import { GameActions } from "@/components/game-actions";
 import { NetworkInfo } from "@/components/network-info";
 import { PeerConnectionInfo } from "@/components/peer-connection-info";
@@ -21,14 +21,13 @@ import { Button } from "@/components/ui/button";
 import { NetworkType } from "@/types/network";
 import { GameState } from "@/types/gameState";
 import { useGameState } from "@/hooks/useGameState";
-import { GameStartPlayer1 } from "@/components/game-start-player1";
+import { useGame } from "@/hooks/useGame";
+import { StartGame } from "@/components/player1/start-game";
 
 export default function AddNumbersPage() {
   const [gameRole, setGameRole] = useState<GameRole | null>(null);
-  const [gameId, setGameId] = useState("");
-  const [peerIP, setPeerIP] = useState("");
-  const [peerPort, setPeerPort] = useState("");
   const [isGameStarted, setIsGameStarted] = useState(false);
+  const { gameId } = useGame();
   const { data: gameState } = useGameState();
 
   const [networkSelected, setNetworkSelected] = useState<NetworkType | null>(
@@ -121,15 +120,16 @@ export default function AddNumbersPage() {
 
           {gameRole === GameRole.Player1 ? (
             <>
-              <Player1GameSetup />
-              <GameStartPlayer1
+              <SetupGamePlayer1 />
+              <StartGame
                 onStartGame={() => setIsGameStarted(true)}
                 isPlayer1={true}
                 isGameStarted={isGameStarted}
+                gameId={gameId}
               />
             </>
           ) : (
-            <Player2GameSetup />
+            <SetupGamePlayer2 />
           )}
 
           {gameState === GameState.WaitingResponse &&

@@ -7,10 +7,10 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { CopyButton } from "./ui/copy-button";
+import { CopyButton } from "../ui/copy-button";
 import { GameNumbersToAdd } from "@/types/gameState";
 
-export function Player1GameSetup() {
+export function SetupGame() {
   const [numbers, setNumbers] = useState<GameNumbersToAdd>({});
   const [isLoading, setIsLoading] = useState(false);
   const [inputsDisabled, setInputsDisabled] = useState(false);

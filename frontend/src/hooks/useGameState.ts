@@ -11,6 +11,6 @@ export function useGameState() {
   return useQuery<GameState>({
     queryKey: ["gameState"],
     queryFn: fetchGameState,
-    initialData: GameState.Setup,
+    initialData: GameState.SetupProgram,
   });
 }

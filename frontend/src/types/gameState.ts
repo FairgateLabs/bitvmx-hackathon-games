@@ -1,11 +1,12 @@
 export enum GameState {
-  Setup = "setup",
-  WaitingPeer = "waitingPeer",
-  WaitingResponse = "waitingResponse",
-  ResponseReceived = "responseReceived",
-  SetupCompleted = "setupComplete",
-  Disputed = "disputed",
-  Timeout = "timeout",
+  SetupNetwork = "SetupNetwork",
+  SetupFunding = "SetupFunding",
+  SetupConnection = "SetupConnection",
+  SetupProgram = "SetupProgram",
+  StartGame = "StartGame",
+  AnswerStep = "AnswerStep",
+  ChallengeStep = "ChallengeStep",
+  GameCompleted = "GameCompleted",
 }
 
 export interface GameNumbersToAdd {

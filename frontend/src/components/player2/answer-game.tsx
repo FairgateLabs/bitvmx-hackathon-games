@@ -8,7 +8,7 @@ interface GameNumbersToAdd {
   number2?: number;
 }
 
-export function Player2GameSetup() {
+export function AnswerGame() {
   const [answer, setAnswer] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
