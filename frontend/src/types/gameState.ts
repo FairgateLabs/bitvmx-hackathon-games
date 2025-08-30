@@ -1,12 +1,16 @@
 export enum GameState {
+  ChooseGame = "ChooseGame",
   SetupNetwork = "SetupNetwork",
-  SetupFunding = "SetupFunding",
+  ChooseRole = "ChooseRole",
+  // SetupFunding = "SetupFunding", This is only in testnet
   SetupConnection = "SetupConnection",
   SetupProgram = "SetupProgram",
   StartGame = "StartGame",
-  AnswerStep = "AnswerStep",
-  ChallengeStep = "ChallengeStep",
-  GameCompleted = "GameCompleted",
+  ChooseAction = "ChooseAction",
+  ChallengeAnswer = "ChallengeAnswer",
+  GameCompleteYouLose = "GameCompleteYouLose",
+  GameCompleteYouWin = "GameCompleteYouWin",
+  TransferFunds = "TransferFunds",
 }
 
 export interface GameNumbersToAdd {

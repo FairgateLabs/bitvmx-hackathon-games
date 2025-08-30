@@ -14,6 +14,7 @@ interface CopyButtonProps {
     | "link";
   className?: string;
   onCopy?: () => void;
+  children?: React.ReactNode;
 }
 
 export function CopyButton({
@@ -23,6 +24,7 @@ export function CopyButton({
   variant = "outline",
   className = "",
   onCopy,
+  children,
 }: CopyButtonProps) {
   const copyToClipboard = async () => {
     try {
@@ -42,6 +44,7 @@ export function CopyButton({
       className={className}
     >
       <Copy className="h-4 w-4" />
+      {children}
     </Button>
   );
 }

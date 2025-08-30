@@ -9,18 +9,15 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { useNetwork } from "@/hooks/useNetwork";
+import { useGameState } from "@/hooks/useGameState";
 
-interface WalletSectionProps {
-  networkSelected: NetworkType;
-}
-
-export function WalletSection({ networkSelected }: WalletSectionProps) {
+export function WalletSection() {
   const [transactionId, setTransactionId] = useState("");
   const [outputIndex, setOutputIndex] = useState("");
   const [isOpen, setIsOpen] = useState(true);
   const { data: addressData, isLoading, error } = useAddress();
-
-  if (!addressData) return null;
+  const { data: network } = useNetwork();
 
   return (
     <div className="p-4 bg-white border border-gray-200 rounded-lg">
@@ -40,10 +37,10 @@ export function WalletSection({ networkSelected }: WalletSectionProps) {
               <Label>Address:</Label>
               <div className="flex items-center gap-2">
                 <p className="font-mono text-xs break-all bg-gray-100 p-2 rounded">
-                  {addressData.address}
+                  {addressData?.address ?? "Loading..."}
                 </p>
                 <CopyButton
-                  text={addressData.address}
+                  text={addressData?.address ?? ""}
                   size="sm"
                   variant="outline"
                 />
@@ -53,7 +50,7 @@ export function WalletSection({ networkSelected }: WalletSectionProps) {
             </div>
             <div>
               <Label>Balance:</Label>
-              {networkSelected === NetworkType.Testnet ? (
+              {network === NetworkType.Testnet ? (
                 <p className="text-xs">0 BTC</p>
               ) : (
                 <p className="font-semibold">{50} BTC</p>
@@ -61,7 +58,7 @@ export function WalletSection({ networkSelected }: WalletSectionProps) {
             </div>
           </div>
 
-          {networkSelected === NetworkType.Testnet && (
+          {network === NetworkType.Testnet && (
             <div className="mt-4">
               <p className="text-sm text-gray-700 mb-2">
                 Please fund the address provided. Once the transaction is

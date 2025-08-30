@@ -10,17 +10,17 @@ export const useSavePeerConnection = () => {
       networkAddress: string;
       peerId: string;
     }) => {
-      const response = await fetch("/api/peer-connection", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ networkAddress, peerId }),
-      });
-      if (!response.ok) {
-        throw new Error("Failed to save peer connection info");
-      }
-      return response.json();
+      // const response = await fetch("/api/peer-connection", {
+      //   method: "POST",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //   },
+      //   body: JSON.stringify({ networkAddress, peerId }),
+      // });
+      // if (!response.ok) {
+      //   throw new Error("Failed to save peer connection info");
+      // }
+      // return response.json();
     },
   });
 };

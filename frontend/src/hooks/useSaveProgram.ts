@@ -20,7 +20,7 @@ interface SaveProgramResponse {
 
 // API function to save program
 const saveProgramToBackend = async (
-  params: SaveProgramParams
+  params: SaveProgramParams,
 ): Promise<SaveProgramResponse> => {
   const response = await fetch("/api/programs", {
     method: "POST",
@@ -33,7 +33,7 @@ const saveProgramToBackend = async (
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(
-      errorData.message || `Failed to save program: ${response.status}`
+      errorData.message || `Failed to save program: ${response.status}`,
     );
   }
 

@@ -8,20 +8,16 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { useNextGameState } from "@/hooks/useGameState";
 
-interface PeerConnectionInputProps {
-  networkSelected: string;
-}
-
-export function PeerConnectionInput({
-  networkSelected,
-}: PeerConnectionInputProps) {
+export function PeerConnectionInput() {
   const [networkAddress, setPeerIP] = useState("");
   const [peerId, setPeerId] = useState("");
   const [isOpen, setIsOpen] = useState(true);
   const [inputsDisabled, setInputsDisabled] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const { mutate: savePeerConnection } = useSavePeerConnection();
+  const { mutate: nextState } = useNextGameState();
 
   const isValidNetworkAddress = (networkAddress: string) => {
     const [ip, port] = networkAddress.split(":");
@@ -43,6 +39,7 @@ export function PeerConnectionInput({
     savePeerConnection({ networkAddress, peerId });
     setInputsDisabled(true);
     setSuccessMessage("Connection successfully established!");
+    nextState(null);
   };
 
   return (
