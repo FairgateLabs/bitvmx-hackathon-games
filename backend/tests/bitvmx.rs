@@ -1,19 +1,23 @@
 use axum::body::{Body, to_bytes};
 use axum::http::{Request, StatusCode};
 use tower::ServiceExt;
-use bitvmx_tictactoe_backend::{api, app_state, stores::bitvmx::BITVMX_STORE, types::{P2PAddress, SetupKey}};
+use bitvmx_tictactoe_backend::{api, app_state, types::{P2PAddress, SetupKey}};
 
 #[tokio::test]
 async fn test_bitvmx_comm_info_integration() {
+    // Create a test app state
+    let app_state = app_state::AppState::new(bitvmx_tictactoe_backend::config::Config::default());
+    
     // Set up the store with a P2P address
     let test_address = P2PAddress {
         address: "127.0.0.1:8080".to_string(),
         peer_id: "L2_ID".to_string(),
     };
-    BITVMX_STORE.set_p2p_address(test_address).await;
+    {
+        let mut store_guard = app_state.bitvmx_store.write().await;
+        store_guard.set_p2p_address(test_address);
+    }
     
-    // Create a test app state
-    let app_state = app_state::AppState::new(bitvmx_tictactoe_backend::config::Config::default());
     let app = api::app(app_state).await;
 
     let response = app

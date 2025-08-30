@@ -1,4 +1,4 @@
-use std::time::Duration;
+
 
 use bitvmx_tictactoe_backend::{api, config, bitvmx_rpc, app_state};
 use tracing::{error, info, warn};
@@ -20,52 +20,48 @@ fn init_tracing(log_level: String) {
         .init();
 }
 
+
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // Load configuration
+    // 1. Load configuration
     let config_file = std::env::var("CONFIG_FILE").unwrap_or_else(|_| "player_1".to_string());
     println!("--- Loading configuration from {config_file} ---");
     let config = config::Config::load(&config_file).unwrap_or_default();
     
-    // Initialize logs
+    // 2. Initialize logging
     init_tracing(std::env::var("RUST_LOG").unwrap_or_else(|_| config.logging.level.clone()));
 
-    // Create shutdown signal
+    // 3. Create shutdown signals
     let (shutdown_tx, _) = broadcast::channel::<()>(1);
-    let mut shutdown_rx_bitvmx = shutdown_tx.subscribe();
+    let shutdown_rx_bitvmx = shutdown_tx.subscribe();
     
-    // Initialize shared app state
+    // 4. Initialize app state
     app_state::init_app_state(config.clone()).await;
     
-    // --- BITVMX RPC connection ---
-    let bitvmx_rpc = tokio::task::spawn(async move {
+        // 5. Spawn RPC task
+    let rpc_task = tokio::task::spawn(async move {
         // Get the shared app state
         let app_state = app_state::get_app_state_or_panic().await;
         
-        // Initialize the singleton BitVMXClient
-        bitvmx_rpc::handler::init_client(&app_state).await?;
+        // Initialize the BitVMXClient
+        bitvmx_rpc::init_client(&app_state).await?;
         info!("BitVMX RPC client initialized successfully");
+
+        // Setup BitVMX using the RPC client from app state
+        let mut store_guard = app_state.bitvmx_store.write().await;
+        store_guard.setup(&app_state.bitvmx_rpc).await?;
+        info!("BitVMX RPC keys setup successfully");
+
+        // Serve the RPC client with message processing
+        bitvmx_rpc::serve(shutdown_rx_bitvmx).await?;
         
-        // Check for shutdown signal every 100ms
-        loop {
-            // Check if shutdown signal was received
-            if shutdown_rx_bitvmx.try_recv().is_ok() {
-                info!("BitVMX RPC shutting down...");
-                break;
-            }
-            
-            // Receive and process messages from BitVMX
-            bitvmx_rpc::handler::receive_message().await?;
-            
-            // Wait before checking for new messages
-            tokio::time::sleep(Duration::from_millis(100)).await;
-        }
         Ok::<_, anyhow::Error>(()) // coercion to Result
     });
 
-    // --- Axum server ---
+    // 6. Spawn Axum server task
     let mut shutdown_rx_axum = shutdown_tx.subscribe();
-    let axum_server = tokio::task::spawn(async move {
+    let axum_task = tokio::task::spawn(async move {
         // Get the shared app state
         let app_state = app_state::get_app_state_or_panic().await;
         
@@ -88,14 +84,15 @@ async fn main() -> anyhow::Result<()> {
         Ok::<_, anyhow::Error>(()) // coercion to Result
     });
 
-    // Run both in parallel
+
+    // 7. Run tasks in parallel with tokio::select!
     tokio::select! {
-        res = bitvmx_rpc => match res {
+        res = rpc_task => match res {
             Ok(Ok(())) => warn!("BitVMX RPC finished without errors"),
             Ok(Err(e)) => error!("❌ Error at BitVMX RPC: {}", e),
             Err(e) => error!("💥 Panic at BitVMX RPC: {}", e),
         },
-        res = axum_server => match res {
+        res = axum_task => match res {
             Ok(Ok(())) => warn!("API finished without errors"),
             Ok(Err(e)) => error!("❌ Error at API: {}", e),
             Err(e) => error!("💥 Panic at API: {}", e),

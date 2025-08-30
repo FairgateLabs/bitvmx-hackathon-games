@@ -24,7 +24,8 @@ pub fn router() -> Router<AppState> {
 )]
 #[instrument(skip(app_state))]
 pub async fn comm_info(State(app_state): State<AppState>) -> Result<Json<P2PAddress>, (StatusCode, Json<ErrorResponse>)> {
-    let p2p_address = app_state.bitvmx_store.get_p2p_address().await.ok_or(http_errors::not_found("P2P address not found"))?;
+    let store_guard = app_state.bitvmx_store.read().await;
+    let p2p_address = store_guard.get_p2p_address().ok_or(http_errors::not_found("P2P address not found"))?;
     Ok(Json(p2p_address))
 }
 

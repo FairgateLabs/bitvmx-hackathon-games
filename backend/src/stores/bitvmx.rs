@@ -1,26 +1,20 @@
 use std::sync::Arc;
-use std::collections::HashMap;
-use once_cell::sync::Lazy;
-use uuid::Uuid;
+use tokio::sync::RwLock;
 use crate::types::P2PAddress;
-use bitvmx_client::types::OutgoingBitVMXApiMessages;
-use tracing::{debug, error, trace};
-use tokio::sync::{oneshot, Mutex};
-
-// Global singleton instance of BitVMXStore
-pub static BITVMX_STORE: Lazy<Arc<BitVMXStore>> = Lazy::new(|| {
-    Arc::new(BitVMXStore::new())
-});
+use tracing::{trace, debug};
+use uuid::Uuid;
+use bitvmx_client::types::{IncomingBitVMXApiMessages, OutgoingBitVMXApiMessages};
+use crate::bitvmx_rpc::BitVMXRpcClient;
 
 #[derive(Debug, Clone)]
-pub struct BitVMXState {
+pub struct BitVMXStore {
     pub is_connected: bool,
     pub p2p_address: Option<P2PAddress>,
     pub pub_key: Option<String>,
     pub funding_key: Option<String>,
 }
 
-impl Default for BitVMXState {
+impl Default for BitVMXStore {
     fn default() -> Self {
         Self {
             is_connected: false,
@@ -31,136 +25,96 @@ impl Default for BitVMXState {
     }
 }
 
-#[derive(Debug)]
-pub struct BitVMXStore {
-    state: Arc<Mutex<BitVMXState>>,
-    pending_responses: Arc<Mutex<HashMap<String, oneshot::Sender<OutgoingBitVMXApiMessages>>>>,
-}
-
 impl BitVMXStore {
     pub fn new() -> Self {
-        Self {
-            state: Arc::new(Mutex::new(BitVMXState::default())),
-            pending_responses: Arc::new(Mutex::new(HashMap::new())),
-        }
-    }
-
-    /// Get a clone of the current state
-    pub async fn get_state(&self) -> BitVMXState {
-        let state_guard = self.state.lock().await;
-        state_guard.clone()
+        Self::default()
     }
 
     /// Update connection status
-    pub async fn set_connected(&self, connected: bool) {
-        let mut state_guard = self.state.lock().await;
-        state_guard.is_connected = connected;
+    pub fn set_connected(&mut self, connected: bool) {
+        self.is_connected = connected;
         trace!("BitVMX connection status: {}", connected);
     }
 
     /// Update P2P address
-    pub async fn set_p2p_address(&self, address: P2PAddress) {
-        let mut state_guard = self.state.lock().await;
-        state_guard.p2p_address = Some(address);
+    pub fn set_p2p_address(&mut self, address: P2PAddress) {
+        self.p2p_address = Some(address);
         trace!("Updated P2P address in store");
     }
 
     /// Update pub key
-    pub async fn set_pub_key(&self, pub_key: String) {
-        let mut state_guard = self.state.lock().await;
-        state_guard.pub_key = Some(pub_key);
+    pub fn set_pub_key(&mut self, pub_key: String) {
+        self.pub_key = Some(pub_key);
         trace!("Updated pub key in store");
     }
 
     /// Update funding key
-    pub async fn set_funding_key(&self, funding_key: String) {
-        let mut state_guard = self.state.lock().await;
-        state_guard.funding_key = Some(funding_key);
+    pub fn set_funding_key(&mut self, funding_key: String) {
+        self.funding_key = Some(funding_key);
         trace!("Updated funding key in store");
     }
 
-    /// Wait for a response of a specific message type with correlation ID
-    pub async fn wait_for_response(&self, correlation_id: &Uuid) -> Result<OutgoingBitVMXApiMessages, anyhow::Error> {
-        let (tx, rx) = oneshot::channel();
-        let key = correlation_id.to_string();
-        
-        {
-            let mut pending_guard = self.pending_responses.lock().await;
-            pending_guard.insert(key.clone(), tx);
-            trace!("Waiting for response: {}", key);
-        }
-        
-        // Wait for the response with a timeout
-        match tokio::time::timeout(std::time::Duration::from_secs(30), rx).await {
-            Ok(Ok(response)) => {
-                trace!("Received response for: {}", key);
-                Ok(response)
-            }
-            Ok(Err(e)) => {
-                error!("Received response error for: {}, error: {:?}", key, e);
-                Err(e.into())
-            }
-            Err(e) => {
-                error!("Timeout waiting for response: {}", key);
-                // Clean up the pending response
-                let mut pending_guard = self.pending_responses.lock().await;
-                pending_guard.remove(&key);
-                Err(e.into())
-            }
-        }
+    /// Get pub key
+    pub fn get_pub_key(&self) -> Option<String> {
+        self.pub_key.clone()
     }
 
-    /// Send a response to a waiting request
-    pub async fn send_response(&self, correlation_id: &Uuid, response: OutgoingBitVMXApiMessages) -> Result<(), anyhow::Error> {
-        let key = correlation_id.to_string();
-        let mut pending_guard = self.pending_responses.lock().await;
-        
-        let tx = match pending_guard.remove(&key) {
-            Some(tx) => tx,
-            None => {
-                return Err(anyhow::anyhow!("No pending request found for: {}", key));
-            }
-        };
-        
-        debug!("Sending response for: {}", key);
-        if let Err(message) = tx.send(response) {
-            return Err(anyhow::anyhow!("Failed to send response key: {}, message: {:?}", key, message));
+    /// Get funding key
+    pub fn get_funding_key(&self) -> Option<String> {
+        self.funding_key.clone()
+    }
+
+    /// Check if connected
+    pub fn is_connected(&self) -> bool {
+        self.is_connected
+    }
+
+    /// Get P2P address
+    pub fn get_p2p_address(&self) -> Option<P2PAddress> {
+        self.p2p_address.clone()
+    }
+
+    /// Setup BitVMX
+    pub async fn setup(&mut self, rpc_client: &Arc<RwLock<BitVMXRpcClient>>) -> Result<(), anyhow::Error> {
+        debug!("Get comm info from BitVMX");
+        let client_guard = rpc_client.read().await;
+        client_guard.send(IncomingBitVMXApiMessages::GetCommInfo()).await?;
+        // If keys do not exist, setup keys
+        if self.get_pub_key().is_none() {
+            trace!("No keys found, creating them");
+            self.setup_keys(rpc_client).await?;
         }
         Ok(())
     }
 
-    /// Get pub key
-    pub async fn get_pub_key(&self) -> Option<String> {
-        let state_guard = self.state.lock().await;
-        state_guard.pub_key.clone()
-    }
+    /// Setup operator and funding keys
+    async fn setup_keys(&mut self, rpc_client: &Arc<RwLock<BitVMXRpcClient>>) -> Result<(), anyhow::Error> {
+        debug!("Create operator key from BitVMX");
+        let client_guard = rpc_client.read().await;
+        let pub_key_id = Uuid::new_v4();
+        let pub_key_response = client_guard.request(IncomingBitVMXApiMessages::GetPubKey(pub_key_id, true)).await?;
+        
+        if let OutgoingBitVMXApiMessages::PubKey(_, pub_key) = pub_key_response {
+            self.set_pub_key(pub_key.to_string());
+        } else {
+            return Err(anyhow::anyhow!("Expected Operator PubKey response, got: {:?}", pub_key_response));
+        }
 
-    /// Get funding key
+        debug!("Create funding key for speedups from BitVMX");
+        let speedup_key_id = Uuid::new_v4();
+        let funding_key_response = client_guard.request(IncomingBitVMXApiMessages::GetPubKey(speedup_key_id, true)).await?;
+        
+        if let OutgoingBitVMXApiMessages::PubKey(_, funding_key) = funding_key_response {
+            self.set_funding_key(funding_key.to_string());
+        } else {
+            return Err(anyhow::anyhow!("Expected Funding PubKey response, got: {:?}", funding_key_response));
+        }
 
-    /// Get funding key
-    pub async fn get_funding_key(&self) -> Option<String> {
-        let state_guard = self.state.lock().await;
-        state_guard.funding_key.clone()
-    }
-
-    /// Check if connected
-    pub async fn is_connected(&self) -> bool {
-        let state_guard = self.state.lock().await;
-        state_guard.is_connected
-    }
-
-    /// Get P2P address
-    pub async fn get_p2p_address(&self) -> Option<P2PAddress> {
-        let state_guard = self.state.lock().await;
-        state_guard.p2p_address.clone()
+        Ok(())
     }
 
 
 }
 
-impl Default for BitVMXStore {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+
 

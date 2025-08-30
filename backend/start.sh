@@ -32,4 +32,4 @@ rm -rf /tmp/op_*
 BITVMX_PATH="$CURRENT_PATH/../../rust-bitvmx-workspace/rust-bitvmx-client"
 cd "$BITVMX_PATH"
 # run the bitvmx client
-cargo run op_1
+RUST_LOG=debug cargo run op_1

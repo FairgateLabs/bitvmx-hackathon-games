@@ -1,8 +1,8 @@
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
 use crate::config::Config;
-use crate::stores::{GameStore, AddNumbersStore};
-use crate::stores::bitvmx::BITVMX_STORE;
+use crate::stores::{GameStore, AddNumbersStore, bitvmx::BitVMXStore};
+use crate::bitvmx_rpc::BitVMXRpcClient;
 
 /// Shared application state that can be accessed by both Axum routes and BitVMX RPC
 #[derive(Clone, Debug)]
@@ -14,8 +14,11 @@ pub struct AppState {
     pub game_store: Arc<Mutex<GameStore>>,
     pub add_numbers_store: Arc<Mutex<AddNumbersStore>>,
     
-    /// BitVMX store (already a global singleton, but included for completeness)
-    pub bitvmx_store: Arc<crate::stores::bitvmx::BitVMXStore>,
+    /// BitVMX store
+    pub bitvmx_store: Arc<RwLock<BitVMXStore>>,
+    
+    /// BitVMX RPC client
+    pub bitvmx_rpc: Arc<RwLock<BitVMXRpcClient>>,
 }
 
 impl AppState {
@@ -25,13 +28,28 @@ impl AppState {
             config: Arc::new(RwLock::new(config)),
             game_store: Arc::new(Mutex::new(GameStore::new())),
             add_numbers_store: Arc::new(Mutex::new(AddNumbersStore::new())),
-            bitvmx_store: BITVMX_STORE.clone(),
+            bitvmx_store: Arc::new(RwLock::new(BitVMXStore::new())),
+            bitvmx_rpc: Arc::new(RwLock::new(BitVMXRpcClient::new())),
         }
     }
+
+
     
     /// Get a reference to the configuration
     pub async fn get_config(&self) -> Config {
         self.config.read().await.clone()
+    }
+    
+    /// Set the BitVMX RPC client
+    pub async fn set_bitvmx_rpc(&self, client: BitVMXRpcClient) {
+        let mut rpc_guard = self.bitvmx_rpc.write().await;
+        *rpc_guard = client;
+    }
+    
+    /// Get the BitVMX RPC client
+    pub async fn get_bitvmx_rpc(&self) -> BitVMXRpcClient {
+        let rpc_guard = self.bitvmx_rpc.read().await;
+        rpc_guard.clone()
     }
     
 }
