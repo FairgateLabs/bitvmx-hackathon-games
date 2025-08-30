@@ -5,5 +5,5 @@ pub mod types;
 pub mod routes;
 pub mod config;
 pub mod stores;
-pub mod bitvmx_rpc;
+pub mod rpc;
 pub mod http_errors;

@@ -30,7 +30,7 @@ pub async fn create_game(
     State(app_state): State<AppState>,
     Json(request): Json<CreateGameRequest>,
 ) -> Result<Json<CreateGameResponse>, (StatusCode, Json<ErrorResponse>)> {
-    let mut store = app_state.game_store.lock().await;
+    let mut store = app_state.game_store.write().await;
     let game = store.create_game();
 
     Ok(Json(CreateGameResponse {
@@ -57,7 +57,7 @@ pub async fn get_game(
     State(app_state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<GameResponse>, (StatusCode, Json<ErrorResponse>)> {
-    let store = app_state.game_store.lock().await;
+    let store = app_state.game_store.read().await;
     
     let game = store.get_game(id).ok_or(http_errors::not_found("Game not found"))?;
 
@@ -87,7 +87,7 @@ pub async fn make_move(
     Path(id): Path<Uuid>,
     Json(request): Json<MakeMoveRequest>,
 ) -> Result<Json<MakeMoveResponse>, (StatusCode, Json<ErrorResponse>)> {
-    let mut store = app_state.game_store.lock().await;
+    let mut store = app_state.game_store.write().await;
     
     let game = store
         .make_move(id, request.player, request.position)
@@ -119,7 +119,7 @@ pub async fn get_game_status(
     State(app_state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<GameStatusResponse>, (StatusCode, Json<ErrorResponse>)> {
-    let store = app_state.game_store.lock().await;
+    let store = app_state.game_store.read().await;
     
     let game = store.get_game(id).ok_or(http_errors::not_found("Game not found"))?;
 

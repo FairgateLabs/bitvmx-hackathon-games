@@ -1,6 +1,6 @@
 
 
-use bitvmx_tictactoe_backend::{api, config, bitvmx_rpc, app_state};
+use bitvmx_tictactoe_backend::{api, config, rpc::bitvmx_rpc, app_state};
 use tracing::{error, info, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use tokio::sync::broadcast;
@@ -45,15 +45,9 @@ async fn main() -> anyhow::Result<()> {
         let app_state = app_state::get_app_state_or_panic().await;
         
         // Initialize the BitVMXClient
-        bitvmx_rpc::init_client(&app_state).await?;
-        info!("BitVMX RPC client initialized successfully");
+        app_state.init_bitvmx_rpc().await?;
 
-        // Setup BitVMX using the RPC client from app state
-        let mut store_guard = app_state.bitvmx_store.write().await;
-        store_guard.setup(&app_state.bitvmx_rpc).await?;
-        info!("BitVMX RPC keys setup successfully");
-
-        // Serve the RPC client with message processing
+        // Serve the RPC client with message processing (includes setup)
         bitvmx_rpc::serve(shutdown_rx_bitvmx).await?;
         
         Ok::<_, anyhow::Error>(()) // coercion to Result

@@ -7,6 +7,8 @@ edition = "2021"
 [dependencies]
 # BitVMX client
 bitvmx-client = { path = "../../rust-bitvmx-workspace/rust-bitvmx-client" }
+# BitVMX Broker
+bitvmx-broker = { path = "../../rust-bitvmx-workspace/rust-bitvmx-broker" }
 
 # Web framework
 axum = "0.8"

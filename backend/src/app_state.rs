@@ -1,8 +1,10 @@
 use std::sync::Arc;
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::RwLock;
 use crate::config::Config;
 use crate::stores::{GameStore, AddNumbersStore, bitvmx::BitVMXStore};
-use crate::bitvmx_rpc::BitVMXRpcClient;
+use crate::rpc::bitvmx_rpc::BitVMXRpcClient;
+use tracing::info;
+
 
 /// Shared application state that can be accessed by both Axum routes and BitVMX RPC
 #[derive(Clone, Debug)]
@@ -11,8 +13,8 @@ pub struct AppState {
     pub config: Arc<RwLock<Config>>,
     
     /// Game stores
-    pub game_store: Arc<Mutex<GameStore>>,
-    pub add_numbers_store: Arc<Mutex<AddNumbersStore>>,
+    pub game_store: Arc<RwLock<GameStore>>,
+    pub add_numbers_store: Arc<RwLock<AddNumbersStore>>,
     
     /// BitVMX store
     pub bitvmx_store: Arc<RwLock<BitVMXStore>>,
@@ -26,8 +28,8 @@ impl AppState {
     pub fn new(config: Config) -> Self {
         Self {
             config: Arc::new(RwLock::new(config)),
-            game_store: Arc::new(Mutex::new(GameStore::new())),
-            add_numbers_store: Arc::new(Mutex::new(AddNumbersStore::new())),
+            game_store: Arc::new(RwLock::new(GameStore::new())),
+            add_numbers_store: Arc::new(RwLock::new(AddNumbersStore::new())),
             bitvmx_store: Arc::new(RwLock::new(BitVMXStore::new())),
             bitvmx_rpc: Arc::new(RwLock::new(BitVMXRpcClient::new())),
         }
@@ -50,6 +52,19 @@ impl AppState {
     pub async fn get_bitvmx_rpc(&self) -> BitVMXRpcClient {
         let rpc_guard = self.bitvmx_rpc.read().await;
         rpc_guard.clone()
+    }
+    
+    /// Initialize the BitVMX RPC client
+    pub async fn init_bitvmx_rpc(&self) -> Result<(), anyhow::Error> {
+        let config = self.get_config().await;
+        
+        // Get the current RPC client and initialize the BitVMX client
+        let mut rpc_guard = self.bitvmx_rpc.write().await;
+        rpc_guard.init_client(config.bitvmx.broker_port);
+        
+        info!("Connected to BitVMX RPC at port {}", config.bitvmx.broker_port);
+
+        Ok(())
     }
     
 }

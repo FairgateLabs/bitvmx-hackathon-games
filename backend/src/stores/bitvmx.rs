@@ -4,11 +4,10 @@ use crate::types::P2PAddress;
 use tracing::{trace, debug};
 use uuid::Uuid;
 use bitvmx_client::types::{IncomingBitVMXApiMessages, OutgoingBitVMXApiMessages};
-use crate::bitvmx_rpc::BitVMXRpcClient;
+use crate::rpc::bitvmx_rpc::BitVMXRpcClient;
 
 #[derive(Debug, Clone)]
 pub struct BitVMXStore {
-    pub is_connected: bool,
     pub p2p_address: Option<P2PAddress>,
     pub pub_key: Option<String>,
     pub funding_key: Option<String>,
@@ -17,7 +16,6 @@ pub struct BitVMXStore {
 impl Default for BitVMXStore {
     fn default() -> Self {
         Self {
-            is_connected: false,
             p2p_address: None,
             pub_key: None,
             funding_key: None,
@@ -28,12 +26,6 @@ impl Default for BitVMXStore {
 impl BitVMXStore {
     pub fn new() -> Self {
         Self::default()
-    }
-
-    /// Update connection status
-    pub fn set_connected(&mut self, connected: bool) {
-        self.is_connected = connected;
-        trace!("BitVMX connection status: {}", connected);
     }
 
     /// Update P2P address
@@ -64,11 +56,6 @@ impl BitVMXStore {
         self.funding_key.clone()
     }
 
-    /// Check if connected
-    pub fn is_connected(&self) -> bool {
-        self.is_connected
-    }
-
     /// Get P2P address
     pub fn get_p2p_address(&self) -> Option<P2PAddress> {
         self.p2p_address.clone()
@@ -77,7 +64,7 @@ impl BitVMXStore {
     /// Setup BitVMX
     pub async fn setup(&mut self, rpc_client: &Arc<RwLock<BitVMXRpcClient>>) -> Result<(), anyhow::Error> {
         debug!("Get comm info from BitVMX");
-        let client_guard = rpc_client.read().await;
+        let client_guard = rpc_client.write().await;
         client_guard.send(IncomingBitVMXApiMessages::GetCommInfo()).await?;
         // If keys do not exist, setup keys
         if self.get_pub_key().is_none() {
@@ -90,7 +77,7 @@ impl BitVMXStore {
     /// Setup operator and funding keys
     async fn setup_keys(&mut self, rpc_client: &Arc<RwLock<BitVMXRpcClient>>) -> Result<(), anyhow::Error> {
         debug!("Create operator key from BitVMX");
-        let client_guard = rpc_client.read().await;
+        let client_guard = rpc_client.write().await;
         let pub_key_id = Uuid::new_v4();
         let pub_key_response = client_guard.request(IncomingBitVMXApiMessages::GetPubKey(pub_key_id, true)).await?;
         
