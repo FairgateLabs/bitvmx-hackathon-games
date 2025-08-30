@@ -2,16 +2,12 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-interface GameNumbersToAdd {
-  number1?: number;
-  number2?: number;
-}
+import { useNextGameState } from "@/hooks/useGameState";
 
 export function AnswerGame() {
   const [answer, setAnswer] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const { mutate: nextGameState } = useNextGameState();
 
   const isAnswerValid = () => {
     const parsedAnswer = parseInt(answer, 10);
@@ -20,19 +16,19 @@ export function AnswerGame() {
 
   const handleSubmit = () => {
     if (isAnswerValid()) {
-      setSuccessMessage("Answer submitted successfully.");
+      nextGameState(null);
       setIsSubmitted(true);
     } else {
-      setSuccessMessage("");
+      setIsSubmitted(false);
     }
   };
 
   return (
     <div className="space-y-4">
       <div className="space-y-4 bg-blue-50 border border-blue-200 rounded-md p-4">
-        <h3 className="text-lg font-semibold">🧮 Answer Sum</h3>
+        <h3 className="text-lg font-semibold">🧮 Start Game!</h3>
         <p className="text-sm text-blue-700">
-          Player 1 has chosen two numbers. What is the sum?
+          Now that you've set up the game, what is the sum?
         </p>
 
         <div>
@@ -41,7 +37,12 @@ export function AnswerGame() {
             id="answer"
             type="number"
             value={answer}
-            onChange={(e) => setAnswer(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (parseInt(value, 10) >= 0 || value === "") {
+                setAnswer(value);
+              }
+            }}
             placeholder="Enter the sum"
             disabled={isSubmitted}
           />
@@ -55,7 +56,7 @@ export function AnswerGame() {
           Send Answer
         </Button>
 
-        {!successMessage && (
+        {!isSubmitted && (
           <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
             <h3 className="font-semibold mb-2 text-yellow-800">
               ⚠️ Provide your answer to proceed
@@ -66,12 +67,14 @@ export function AnswerGame() {
           </div>
         )}
 
-        {successMessage && (
+        {isSubmitted && (
           <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
             <h3 className="font-semibold mb-2 text-green-800">
               ✅ Answer Submitted Successfully
             </h3>
-            <p className="text-sm text-green-700">{successMessage}</p>
+            <p className="text-sm text-green-700">
+              Answer submitted successfully.
+            </p>
           </div>
         )}
       </div>

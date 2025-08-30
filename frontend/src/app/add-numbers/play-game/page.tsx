@@ -25,6 +25,7 @@ import { useGameRole } from "@/hooks/useGameRole";
 import { YouLost } from "@/components/player1/you-lost";
 import { YouWin } from "@/components/player1/you-win";
 import { ChallengeAnswer } from "@/components/player1/challenge-answer";
+import { AnswerGame } from "@/components/player2/answer-game";
 
 export default function AddNumbersPage() {
   const { data: gameState } = useGameState();
@@ -64,18 +65,19 @@ export default function AddNumbersPage() {
               {gameState === GameState.SetupProgram && <SetupGamePlayer1 />}
               {gameState === GameState.StartGame && <StartGame />}
               {gameState === GameState.ChooseAction && <ChooseAction />}
-              {gameState === GameState.ChallengeAnswer && <ChallengeAnswer />}
-              {gameState === GameState.GameCompleteYouLose && <YouLost />}
-              {gameState === GameState.GameCompleteYouWin && <YouWin />}
             </>
           )}
 
           {role === GameRole.Player2 && (
             <>
               {gameState === GameState.SetupProgram && <SetupGamePlayer2 />}
-              {gameState === GameState.StartGame && <StartGame />}
+              {gameState === GameState.StartGame && <AnswerGame />}
             </>
           )}
+
+          {gameState === GameState.ChallengeAnswer && <ChallengeAnswer />}
+          {gameState === GameState.GameCompleteYouLose && <YouLost />}
+          {gameState === GameState.GameCompleteYouWin && <YouWin />}
         </CardContent>
       </Card>
     </div>
