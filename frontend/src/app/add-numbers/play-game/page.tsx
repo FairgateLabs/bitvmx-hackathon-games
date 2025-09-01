@@ -16,16 +16,16 @@ import { ChooseAction } from "@/components/player1/choose-actions";
 import { NetworkInfo } from "@/components/common/network-info";
 import { PeerConnectionInfo } from "@/components/common/peer-connection-info";
 import { PeerConnectionInput } from "@/components/common/peer-connection-input";
-import { GameUUIDInput } from "@/components/player2/game-uuid-input";
 import { ChooseNetwork } from "@/components/common/choose-network";
 import { GameState } from "@/types/gameState";
 import { StartGame } from "@/components/player1/start-game";
 import { useGameState } from "@/hooks/useGameState";
 import { useGameRole } from "@/hooks/useGameRole";
-import { YouLost } from "@/components/player1/you-lost";
-import { YouWin } from "@/components/player1/you-win";
+import { AcceptLoseGame } from "@/components/player1/accept-lose-game";
+import { YouWin } from "@/components/player1/challege-win-game";
 import { ChallengeAnswer } from "@/components/player1/challenge-answer";
 import { AnswerGame } from "@/components/player2/answer-game";
+import { WaitingForAnswer } from "@/components/player2/waiting-for-answer";
 
 export default function AddNumbersPage() {
   const { data: gameState } = useGameState();
@@ -72,11 +72,12 @@ export default function AddNumbersPage() {
             <>
               {gameState === GameState.SetupProgram && <SetupGamePlayer2 />}
               {gameState === GameState.StartGame && <AnswerGame />}
+              {gameState === GameState.ChooseAction && <WaitingForAnswer />}
             </>
           )}
 
           {gameState === GameState.ChallengeAnswer && <ChallengeAnswer />}
-          {gameState === GameState.GameCompleteYouLose && <YouLost />}
+          {gameState === GameState.GameCompleteYouLose && <AcceptLoseGame />}
           {gameState === GameState.GameCompleteYouWin && <YouWin />}
         </CardContent>
       </Card>

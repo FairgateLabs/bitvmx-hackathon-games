@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useGameState, useNextGameState } from "@/hooks/useGameState";
 import { GameState } from "@/types/gameState";
+import { TimeRemaining } from "@/components/ui/time-remaining";
 
 export function ChooseAction() {
   const { mutate: nextGameState } = useNextGameState();
@@ -17,32 +17,26 @@ export function ChooseAction() {
   };
 
   let answer = "8";
-  const [timeLeft, setTimeLeft] = useState(30);
 
-  useEffect(() => {
-    if (timeLeft > 0) {
-      const timer = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-      }, 1000);
-      return () => clearInterval(timer);
-    } else {
-      nextGameState(GameState.GameCompleteYouLose);
-    }
-  }, [timeLeft]);
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  const handleTimeout = () => {
+    console.log("handleTimeout");
+    nextGameState(GameState.GameCompleteYouLose);
   };
 
   return (
     <div className="space-y-4 border border-gray-200 rounded-lg p-4">
       <h3 className="text-lg font-semibold">🎯 Game Actions</h3>
       <p className="text-sm text-muted-foreground">
-        Player 2 has sent their answer. Answer is {answer}. <p />
-        What do you want to do?
+        Player 2 has sent their answer. Answer is {answer}. What do you want to
+        do?
       </p>
+
+      <div className="text-center mt-3">
+        <p className="text-xs text-muted-foreground text-center">
+          ⏰ If you do nothing, Player 2 will automatically win by timeout
+        </p>
+        <TimeRemaining numberBlocks={2} onTimeout={handleTimeout} size="lg" />
+      </div>
 
       <div className="p-3 ">
         <h4 className="font-semibold text-blue-800 mb-2">
@@ -91,14 +85,6 @@ export function ChooseAction() {
           ⚖️ I Disagree - Start Dispute
         </Button>
       </div>
-
-      <p className="text-xs text-muted-foreground text-center">
-        ⏰ If you do nothing, Player 2 will automatically win by timeout
-      </p>
-      <p className="text-xs text-blue-600 mt-3 text-center">
-        Time remaining:{" "}
-        <span className="font-mono font-bold">{formatTime(timeLeft)}</span>
-      </p>
     </div>
   );
 }

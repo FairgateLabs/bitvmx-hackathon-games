@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Play, Clock, Trophy, Check, X } from "lucide-react";
 import { usePlayer2Answer } from "@/hooks/usePlayer2Response";
-import { YouLost } from "./you-lost";
-import { YouWin } from "./you-win";
+import { AcceptLoseGame } from "./accept-lose-game";
+import { YouWin } from "./challege-win-game";
 import { useNextGameState } from "@/hooks/useGameState";
 import { useGameState } from "@/hooks/useGameState";
 import { GameState } from "@/types/gameState";
@@ -60,7 +60,7 @@ export function StartGame() {
     if (player1Won) {
       return <YouWin />;
     } else {
-      return <YouLost />;
+      return <AcceptLoseGame />;
     }
   }
 
