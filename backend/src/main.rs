@@ -1,6 +1,6 @@
 
 
-use bitvmx_tictactoe_backend::{api, config, rpc::bitvmx_rpc, app_state};
+use bitvmx_tictactoe_backend::{api, app_state::AppState, config, rpc::bitvmx_rpc::{RpcService}};
 use tracing::{error, info, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use tokio::sync::broadcast;
@@ -21,12 +21,11 @@ fn init_tracing(log_level: String) {
 }
 
 
-
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // 1. Load configuration
     let config_file = std::env::var("CONFIG_FILE").unwrap_or_else(|_| "player_1".to_string());
-    println!("--- Loading configuration from {config_file} ---");
+    println!("🔄 Loading configuration from: {config_file}");
     let config = config::Config::load(&config_file).unwrap_or_default();
     
     // 2. Initialize logging
@@ -34,33 +33,35 @@ async fn main() -> anyhow::Result<()> {
 
     // 3. Create shutdown signals
     let (shutdown_tx, _) = broadcast::channel::<()>(1);
-    let shutdown_rx_bitvmx = shutdown_tx.subscribe();
     
-    // 4. Initialize app state
-    app_state::init_app_state(config.clone()).await;
-    
-        // 5. Spawn RPC task
-    let rpc_task = tokio::task::spawn(async move {
-        // Get the shared app state
-        let app_state = app_state::get_app_state_or_panic().await;
-        
-        // Initialize the BitVMXClient
-        app_state.init_bitvmx_rpc().await?;
+    // 4. Connect to BitVMX RPC, spawn sender and listener tasks
+    let (rpc_service, rpc_sender_task, rpc_listener_task) = RpcService::connect(config.bitvmx.broker_port, None, &shutdown_tx);
 
-        // Serve the RPC client with message processing (includes setup)
-        bitvmx_rpc::serve(shutdown_rx_bitvmx).await?;
+    // 5. Initialize app state
+    let app_state = AppState::new(config.clone(), rpc_service.clone());
+
+    // 6. Spawn setup task that waits for RPC to be ready
+    let app_state_setup = app_state.clone();
+    let setup_task = tokio::task::spawn(async move {
+        // Wait for the RPC client to be ready
+        app_state_setup.bitvmx_rpc.wait_for_ready().await;
+        
+        // Now perform the setup
+        {
+            let mut store_guard = app_state_setup.bitvmx_store.write().await;
+            store_guard.setup(&app_state_setup.bitvmx_rpc).await?;
+        }
+        info!("BitVMX RPC setup successful");
         
         Ok::<_, anyhow::Error>(()) // coercion to Result
     });
 
-    // 6. Spawn Axum server task
+    // 7. Spawn Axum server task
+    let app_state_axum = app_state.clone();
     let mut shutdown_rx_axum = shutdown_tx.subscribe();
     let axum_task = tokio::task::spawn(async move {
-        // Get the shared app state
-        let app_state = app_state::get_app_state_or_panic().await;
-        
         // Create the application
-        let app = api::app(app_state).await;
+        let app = api::app(app_state_axum).await;
         
         // Run it
         let addr = config.server_addr()?;
@@ -79,12 +80,17 @@ async fn main() -> anyhow::Result<()> {
     });
 
 
-    // 7. Run tasks in parallel with tokio::select!
+    // 8. Run tasks in parallel with tokio::select!
     tokio::select! {
-        res = rpc_task => match res {
-            Ok(Ok(())) => warn!("BitVMX RPC finished without errors"),
-            Ok(Err(e)) => error!("❌ Error at BitVMX RPC: {}", e),
-            Err(e) => error!("💥 Panic at BitVMX RPC: {}", e),
+        res = rpc_sender_task => match res {
+            Ok(Ok(())) => warn!("[rpc_sender] finished without errors"),
+            Ok(Err(e)) => error!("❌ [rpc_sender] Error at BitVMX RPC: {}", e),
+            Err(e) => error!("💥 [rpc_sender] Panic at BitVMX RPC: {}", e),
+        },
+        res = rpc_listener_task => match res {
+            Ok(Ok(())) => warn!("[rpc_listener] finished without errors"),
+            Ok(Err(e)) => error!("❌ [rpc_listener] Error at BitVMX RPC: {}", e),
+            Err(e) => error!("💥 [rpc_listener] Panic at BitVMX RPC: {}", e),
         },
         res = axum_task => match res {
             Ok(Ok(())) => warn!("API finished without errors"),
@@ -93,9 +99,16 @@ async fn main() -> anyhow::Result<()> {
         },
         _ = tokio::signal::ctrl_c() => {
             info!("Ctrl-C received, shutting down...");
-            // Send shutdown signal to both tasks
+            // Send shutdown signal to all tasks
             let _ = shutdown_tx.send(());
         },
+    }
+
+    // 9. Check if setup task finished correctly
+    if let Err(e) = setup_task.await? {
+        error!("❌ Error at setup: {e}");
+        // Send shutdown signal to all tasks and exit
+        let _ = shutdown_tx.send(());
     }
 
     Ok(())

@@ -74,8 +74,7 @@ struct ApiDoc;
 /// - Game logic validation (invalid moves, game not found, etc.)
 pub async fn app(app_state: AppState) -> Router {
     // Configure CORS
-    let config = app_state.get_config().await;
-    let cors = create_cors_layer(&config);
+    let cors = create_cors_layer(&app_state.config);
 
     // Configure trace layer with custom span names
     let trace_layer = TraceLayer::new_for_http()

@@ -1,2 +1,2 @@
 pub mod bitvmx_rpc;
-pub mod message_queue;
+pub mod ordered_bag;
