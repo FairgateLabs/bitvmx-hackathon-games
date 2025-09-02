@@ -8,7 +8,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { CopyButton } from "../ui/copy-button";
-import { GameNumbersToAdd } from "@/types/gameState";
+import { GameNumbersToAdd, GameState } from "@/types/gameState";
 import { useNextGameState } from "@/hooks/useGameState";
 import { useNetwork } from "@/hooks/useNetwork";
 import { NetworkType } from "@/types/network";
@@ -33,7 +33,7 @@ export function SetupGame() {
       );
       console.log("Program generated with numbers:", numbers);
     }, 2000);
-    nextGameState(null);
+    nextGameState(GameState.StartGame);
   };
 
   const handleNumberChange = (key: string, value: string) => {

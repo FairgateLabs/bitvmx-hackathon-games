@@ -6,7 +6,7 @@ export function WaitingForAnswer() {
   const { mutate: nextGameState } = useNextGameState();
   const handleTimeout = () => {
     console.log("handleTimeout");
-    nextGameState(GameState.GameCompleteYouWin);
+    nextGameState(GameState.GameCompleteYouWinByChallenge);
   };
   return (
     <div className="space-y-4 border border-gray-200 rounded-lg p-4 bg-blue-50">

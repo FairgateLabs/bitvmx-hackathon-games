@@ -8,7 +8,7 @@ export function ChooseAction() {
 
   const handleAccept = () => {
     // Logic for accepting the answer and transferring funds
-    nextGameState(GameState.GameCompleteYouLose);
+    nextGameState(GameState.GameCompleteYouLoseByAccept);
   };
 
   const handleChallenge = () => {
@@ -19,8 +19,7 @@ export function ChooseAction() {
   let answer = "8";
 
   const handleTimeout = () => {
-    console.log("handleTimeout");
-    nextGameState(GameState.GameCompleteYouLose);
+    nextGameState(GameState.GameCompleteYouLoseByTimeout);
   };
 
   return (

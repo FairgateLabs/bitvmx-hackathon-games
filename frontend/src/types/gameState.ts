@@ -1,15 +1,36 @@
-export enum GameState {
+export enum GameStatePlayer1 {
   ChooseGame = "ChooseGame",
-  SetupNetwork = "SetupNetwork",
+  ChooseNetwork = "SetupNetwork",
   ChooseRole = "ChooseRole",
   // SetupFunding = "SetupFunding", This is only in testnet
   SetupConnection = "SetupConnection",
   SetupProgram = "SetupProgram",
   StartGame = "StartGame",
+  WaitingAnswer = "WaitingAnswer",
   ChooseAction = "ChooseAction",
-  ChallengeAnswer = "ChallengeAnswer",
-  GameCompleteYouLose = "GameCompleteYouLose",
-  GameCompleteYouWin = "GameCompleteYouWin",
+  GameCompleteYouLoseByChallenge = "GameCompleteYouLoseByChallenge",
+  GameCompleteYouLoseByTimeout = "GameCompleteYouLoseByTimeout",
+  GameCompleteYouLoseByAccept = "GameCompleteYouLoseByAccept",
+  GameCompleteYouWinByChallenge = "GameCompleteYouWinByChallenge",
+  GameCompleteYouWinByTimeout = "GameCompleteYouWinByTimeout",
+  TransferFunds = "TransferFunds",
+}
+
+export enum GameStatePlayer2 {
+  ChooseGame = "ChooseGame",
+  ChooseNetwork = "SetupNetwork",
+  ChooseRole = "ChooseRole",
+  // SetupFunding = "SetupFunding", This is only in testnet
+  SetupConnection = "SetupConnection",
+  SetupProgram = "SetupProgram",
+  WaitingStartGame = "WaitingStartGame",
+  AnswerGame = "AnswerGame",
+  WaitingAnswer = "WaitingAnswer",
+  GameCompleteYouLoseByChallenge = "GameCompleteYouLoseByChallenge",
+  GameCompleteYouLoseByTimeout = "GameCompleteYouLoseByTimeout",
+  GameCompleteYouLoseByAccept = "GameCompleteYouLoseByAccept",
+  GameCompleteYouWinByChallenge = "GameCompleteYouWinByChallenge",
+  GameCompleteYouWinByTimeout = "GameCompleteYouWinByTimeout",
   TransferFunds = "TransferFunds",
 }
 

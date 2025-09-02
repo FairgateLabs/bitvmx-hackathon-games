@@ -12,7 +12,7 @@ export function TimeRemaining({
   onTimeout,
   size = "sm",
 }: TimeRemainingProps) {
-  const timePerBlock = 3; // Each block is estimated to be 30 seconds in regtest
+  const timePerBlock = 10; // Each block is estimated to be 30 seconds in regtest
   const initialTime = numberBlocks * timePerBlock;
   const [timeLeft, setTimeLeft] = useState(initialTime);
   const [blocksLeft, setBlocksLeft] = useState(numberBlocks);

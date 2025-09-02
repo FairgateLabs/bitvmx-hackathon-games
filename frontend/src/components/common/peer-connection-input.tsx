@@ -9,6 +9,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { useNextGameState } from "@/hooks/useGameState";
+import { GameState } from "@/types/gameState";
 
 export function PeerConnectionInput() {
   const [networkAddress, setPeerIP] = useState("");
@@ -39,7 +40,7 @@ export function PeerConnectionInput() {
     savePeerConnection({ networkAddress, peerId });
     setInputsDisabled(true);
     setSuccessMessage("Connection successfully established!");
-    nextState(null);
+    nextState(GameState.SetupProgram);
   };
 
   return (

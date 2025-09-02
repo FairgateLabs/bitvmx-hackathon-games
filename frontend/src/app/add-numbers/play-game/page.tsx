@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -19,19 +19,32 @@ import { PeerConnectionInput } from "@/components/common/peer-connection-input";
 import { ChooseNetwork } from "@/components/common/choose-network";
 import { GameState } from "@/types/gameState";
 import { StartGame } from "@/components/player1/start-game";
-import { useGameState } from "@/hooks/useGameState";
+import { useGameState, useNextGameState } from "@/hooks/useGameState";
 import { useGameRole } from "@/hooks/useGameRole";
 import { AcceptLoseGame } from "@/components/player1/accept-lose-game";
-import { YouWin } from "@/components/player1/challege-win-game";
+import { ChallengeWinGame } from "@/components/player1/challege-win-game";
+import { ChallengeWinGame as ChallengeWinGamePlayer2 } from "@/components/player2/challege-win-game";
 import { ChallengeAnswer } from "@/components/player1/challenge-answer";
 import { AnswerGame } from "@/components/player2/answer-game";
 import { WaitingForAnswer } from "@/components/player2/waiting-for-answer";
+import { TimeoutWinGame } from "@/components/player1/timeout-win-game";
+import { WaitingAnswer } from "@/components/player1/waiting-answer";
+import { ChallengeLoseGame } from "@/components/player1/challenge-lose-game";
+import { TimeoutLoseGame } from "@/components/player2/timeout-lose-game";
+import { AcceptWinGame } from "@/components/player2/accept-win-game";
 
 export default function AddNumbersPage() {
   const { data: gameState } = useGameState();
   const { data: role } = useGameRole();
+  const { mutate: nextGameState } = useNextGameState();
 
-  if (gameState === GameState.SetupNetwork) {
+  useEffect(() => {
+    if (gameState === GameState.ChooseGame) {
+      nextGameState(GameState.ChooseRole);
+    }
+  });
+
+  if (gameState === GameState.ChooseNetwork) {
     return <ChooseNetwork />;
   }
 
@@ -64,7 +77,25 @@ export default function AddNumbersPage() {
             <>
               {gameState === GameState.SetupProgram && <SetupGamePlayer1 />}
               {gameState === GameState.StartGame && <StartGame />}
+              {gameState === GameState.WaitingAnswer && <WaitingAnswer />}
               {gameState === GameState.ChooseAction && <ChooseAction />}
+              {gameState === GameState.ChallengeAnswer && <ChallengeAnswer />}
+              {gameState === GameState.GameCompleteYouLoseByAccept && (
+                <AcceptLoseGame />
+              )}
+              {gameState === GameState.GameCompleteYouLoseByChallenge && (
+                <ChallengeLoseGame />
+              )}
+              {gameState === GameState.GameCompleteYouLoseByTimeout && (
+                <TimeoutLoseGame />
+              )}
+
+              {gameState === GameState.GameCompleteYouWinByChallenge && (
+                <ChallengeWinGame />
+              )}
+              {gameState === GameState.GameCompleteYouWinByTimeout && (
+                <TimeoutWinGame />
+              )}
             </>
           )}
 
@@ -73,12 +104,27 @@ export default function AddNumbersPage() {
               {gameState === GameState.SetupProgram && <SetupGamePlayer2 />}
               {gameState === GameState.StartGame && <AnswerGame />}
               {gameState === GameState.ChooseAction && <WaitingForAnswer />}
+              {gameState === GameState.ChallengeAnswer && <ChallengeAnswer />}
+
+              {gameState === GameState.GameCompleteYouLoseByChallenge && (
+                <ChallengeLoseGame />
+              )}
+              {gameState === GameState.GameCompleteYouLoseByTimeout && (
+                <TimeoutLoseGame />
+              )}
+
+              {gameState === GameState.GameCompleteYouWinByChallenge && (
+                <ChallengeWinGamePlayer2 />
+              )}
+
+              {gameState === GameState.GameCompleteYouLoseByAccept && (
+                <AcceptWinGame />
+              )}
+              {gameState === GameState.GameCompleteYouWinByTimeout && (
+                <TimeoutWinGame />
+              )}
             </>
           )}
-
-          {gameState === GameState.ChallengeAnswer && <ChallengeAnswer />}
-          {gameState === GameState.GameCompleteYouLose && <AcceptLoseGame />}
-          {gameState === GameState.GameCompleteYouWin && <YouWin />}
         </CardContent>
       </Card>
     </div>

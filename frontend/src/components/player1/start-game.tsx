@@ -1,68 +1,10 @@
-import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Play, Clock, Trophy, Check, X } from "lucide-react";
-import { usePlayer2Answer } from "@/hooks/usePlayer2Response";
-import { AcceptLoseGame } from "./accept-lose-game";
-import { YouWin } from "./challege-win-game";
+import { Play } from "lucide-react";
 import { useNextGameState } from "@/hooks/useGameState";
-import { useGameState } from "@/hooks/useGameState";
 import { GameState } from "@/types/gameState";
 
 export function StartGame() {
-  const [timeLeft, setTimeLeft] = useState(60); // 60 seconds timeout
-  const [isTimeoutRunning, setIsTimeoutRunning] = useState(false);
-  const [player1Won, setPlayer1Won] = useState<boolean | null>(null);
-  const [hasResponded, setHasResponded] = useState(false);
   const { mutate: nextGameState } = useNextGameState();
-  const { data: gameState } = useGameState();
-
-  let gameId = "123";
-  // Fetch Player 2's response
-  const { data: player2Response, isLoading: isLoadingResponse } =
-    usePlayer2Answer(gameId);
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-
-    if (isTimeoutRunning && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            // Timeout reached
-            if (gameState === GameState.ChooseAction) {
-              // Player 1 accepted the answer, so they lose
-              setPlayer1Won(false);
-            } else {
-              // Player 1 wins by default (no response or challenged)
-              setPlayer1Won(true);
-            }
-            setIsTimeoutRunning(false);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-
-    return () => {
-      if (interval) {
-        clearInterval(interval);
-      }
-    };
-  }, [isTimeoutRunning, timeLeft]);
-
-  const handleStartGame = () => {
-    setIsTimeoutRunning(true);
-    nextGameState(null);
-  };
-
-  if (player1Won !== null) {
-    if (player1Won) {
-      return <YouWin />;
-    } else {
-      return <AcceptLoseGame />;
-    }
-  }
 
   return (
     <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -96,7 +38,7 @@ export function StartGame() {
         </ul>
       </div>
       <Button
-        onClick={handleStartGame}
+        onClick={() => nextGameState(GameState.WaitingAnswer)}
         className="w-full bg-blue-600 hover:bg-blue-700"
       >
         <Play className="h-4 w-4 mr-2" />

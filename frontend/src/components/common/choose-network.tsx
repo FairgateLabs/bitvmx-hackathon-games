@@ -9,12 +9,13 @@ import {
 import { useNetwork } from "@/hooks/useNetwork";
 import { useNextGameState } from "@/hooks/useGameState";
 import { NetworkType } from "@/types/network";
+import { GameState } from "@/types/gameState";
 
 export function ChooseNetwork() {
   const { mutate: nextState } = useNextGameState();
 
   const handleNetworkSelect = async (network: NetworkType) => {
-    nextState(null);
+    nextState(GameState.SetupConnection);
   };
 
   return (

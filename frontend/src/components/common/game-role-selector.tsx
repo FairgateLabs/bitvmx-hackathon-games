@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useNextGameState } from "@/hooks/useGameState";
 import { useSaveGameRole } from "@/hooks/useGameRole";
+import { GameState } from "@/types/gameState";
 
 export enum GameRole {
   Player1 = "Player 1",
@@ -32,7 +33,7 @@ export function ChooseRole({
 
   const handleRoleSelect = (role: GameRole) => {
     saveRole(role);
-    nextState(null);
+    nextState(GameState.ChooseNetwork);
   };
 
   return (

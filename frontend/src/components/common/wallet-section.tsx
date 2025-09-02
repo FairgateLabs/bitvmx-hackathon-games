@@ -10,7 +10,6 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { useNetwork } from "@/hooks/useNetwork";
-import { useGameState } from "@/hooks/useGameState";
 
 export function WalletSection() {
   const [transactionId, setTransactionId] = useState("");

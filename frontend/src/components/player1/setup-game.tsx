@@ -8,7 +8,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { CopyButton } from "../ui/copy-button";
-import { GameNumbersToAdd } from "@/types/gameState";
+import { GameNumbersToAdd, GameState } from "@/types/gameState";
 import { useNextGameState } from "@/hooks/useGameState";
 import { useNetwork } from "@/hooks/useNetwork";
 import { NetworkType } from "@/types/network";
@@ -17,7 +17,7 @@ export function SetupGame() {
   const [numbers, setNumbers] = useState<GameNumbersToAdd>({});
   const [isLoading, setIsLoading] = useState(false);
   const [inputsDisabled, setInputsDisabled] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
+  const [isSuccess, setIsSuccess] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
   const { mutate: nextGameState } = useNextGameState();
   const { data: network } = useNetwork();
@@ -28,12 +28,9 @@ export function SetupGame() {
     setTimeout(() => {
       setIsLoading(false);
       setInputsDisabled(true);
-      setSuccessMessage(
-        "Program generated successfully with the provided numbers."
-      );
-      console.log("Program generated with numbers:", numbers);
+      setIsSuccess(true);
     }, 2000);
-    nextGameState(null);
+    nextGameState(GameState.StartGame);
   };
 
   const handleNumberChange = (key: string, value: string) => {
@@ -143,7 +140,7 @@ export function SetupGame() {
                 {isLoading ? "Generating..." : "🚀 Generate Program"}
               </Button>
 
-              {!successMessage && (
+              {!isSuccess && (
                 <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <h3 className="font-semibold mb-2 text-yellow-800">
                     ⚠️ Choose the numbers to start the program
@@ -155,12 +152,14 @@ export function SetupGame() {
                 </div>
               )}
 
-              {successMessage && (
+              {isSuccess && (
                 <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                   <h3 className="font-semibold mb-2 text-green-800">
                     ✅ UUID Generation Successful
                   </h3>
-                  <p className="text-sm text-green-700">{successMessage}</p>
+                  <p className="text-sm text-green-700">
+                    Program generated successfully with the provided numbers.
+                  </p>
                 </div>
               )}
             </div>

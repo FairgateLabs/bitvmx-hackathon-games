@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useNextGameState } from "@/hooks/useGameState";
+import { GameState } from "@/types/gameState";
 
 export function ChooseGame() {
   const { mutate: nextState } = useNextGameState();
@@ -43,7 +44,10 @@ export function ChooseGame() {
           </CardContent>
           <CardFooter className="flex justify-center">
             <Link href="/add-numbers/play-game" className="w-full">
-              <Button className="w-full" onClick={() => nextState(null)}>
+              <Button
+                className="w-full"
+                onClick={() => nextState(GameState.ChooseRole)}
+              >
                 Play Now!
               </Button>
             </Link>
@@ -63,7 +67,11 @@ export function ChooseGame() {
           </CardContent>
           <CardFooter className="flex justify-center">
             <Link href="/tic-tac-toe/play-game" className="w-full">
-              <Button className="w-full" disabled>
+              <Button
+                className="w-full"
+                disabled
+                onClick={() => nextState(GameState.ChooseRole)}
+              >
                 🚧 Coming Soon...
               </Button>
             </Link>
