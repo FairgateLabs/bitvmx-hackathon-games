@@ -23,7 +23,7 @@ import { useGameState, useNextGameState } from "@/hooks/useGameState";
 import { useGameRole } from "@/hooks/useGameRole";
 import { AcceptLoseGame } from "@/components/player1/accept-lose-game";
 import { ChallengeWinGame } from "@/components/player1/challege-win-game";
-import { ChallengeWinGame as ChallengeWinGamePlayer2 } from "@/components/player2/challege-win-game";
+import { ChallengeWinGame as ChallengeWinGamePlayer2 } from "@/components/player2/challenge-win-game";
 import { ChallengeAnswer } from "@/components/player1/challenge-answer";
 import { AnswerGame } from "@/components/player2/answer-game";
 import { WaitingForAnswer } from "@/components/player2/waiting-for-answer";
@@ -32,6 +32,7 @@ import { WaitingAnswer } from "@/components/player1/waiting-answer";
 import { ChallengeLoseGame } from "@/components/player1/challenge-lose-game";
 import { TimeoutLoseGame } from "@/components/player2/timeout-lose-game";
 import { AcceptWinGame } from "@/components/player2/accept-win-game";
+import { WaitingStartGame } from "@/components/player2/waiting-start-game";
 
 export default function AddNumbersPage() {
   const { data: gameState } = useGameState();
@@ -79,10 +80,17 @@ export default function AddNumbersPage() {
               {gameState === GameState.StartGame && <StartGame />}
               {gameState === GameState.WaitingAnswer && <WaitingAnswer />}
               {gameState === GameState.ChooseAction && <ChooseAction />}
+
               {gameState === GameState.ChallengeAnswer && <ChallengeAnswer />}
+
               {gameState === GameState.GameCompleteYouLoseByAccept && (
                 <AcceptLoseGame />
               )}
+
+              {gameState === GameState.GameCompleteYouWinByTimeout && (
+                <TimeoutWinGame />
+              )}
+
               {gameState === GameState.GameCompleteYouLoseByChallenge && (
                 <ChallengeLoseGame />
               )}
@@ -93,15 +101,13 @@ export default function AddNumbersPage() {
               {gameState === GameState.GameCompleteYouWinByChallenge && (
                 <ChallengeWinGame />
               )}
-              {gameState === GameState.GameCompleteYouWinByTimeout && (
-                <TimeoutWinGame />
-              )}
             </>
           )}
 
           {role === GameRole.Player2 && (
             <>
               {gameState === GameState.SetupProgram && <SetupGamePlayer2 />}
+              {gameState === GameState.WaitingStartGame && <WaitingStartGame />}
               {gameState === GameState.StartGame && <AnswerGame />}
               {gameState === GameState.ChooseAction && <WaitingForAnswer />}
               {gameState === GameState.ChallengeAnswer && <ChallengeAnswer />}
@@ -117,7 +123,7 @@ export default function AddNumbersPage() {
                 <ChallengeWinGamePlayer2 />
               )}
 
-              {gameState === GameState.GameCompleteYouLoseByAccept && (
+              {gameState === GameState.GameCompleteYouWinByAccept && (
                 <AcceptWinGame />
               )}
               {gameState === GameState.GameCompleteYouWinByTimeout && (

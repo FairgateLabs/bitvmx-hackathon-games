@@ -9,7 +9,7 @@ export function ChallengeLoseGame() {
       </div>
       <p className="text-sm text-red-700 mb-3">
         Player 1 challenged your answer and the BitVMX protocol has validated
-        on-chain that they were incorrect!
+        on-chain that you were incorrect!
       </p>
     </div>
   );

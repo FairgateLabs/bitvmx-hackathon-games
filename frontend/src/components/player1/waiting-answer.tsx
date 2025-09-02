@@ -10,16 +10,15 @@ export function WaitingAnswer() {
   };
 
   return (
-    <div className="p-4 bg-green-50 border rounded-lg">
+    <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
       <div className="flex items-center gap-3 mb-3">
-        <Trophy className="h-6 w-6 " />
-        <h3 className="text-lg font-semibold">
+        <Trophy className="h-6 w-6 text-gray-600" />
+        <h3 className="text-lg font-semibold text-gray-800">
           Waiting for Player 2 to answer
         </h3>
       </div>
-      <p className="text-sm  mb-3">
-        Player 2 has not yet answered the protocol. Please wait for them to
-        answer.
+      <p className="text-sm text-gray-700 mb-3">
+        Player 2 is answering, please wait.
       </p>
       <TimeRemaining numberBlocks={2} size="lg" onTimeout={handleTimeout} />
     </div>

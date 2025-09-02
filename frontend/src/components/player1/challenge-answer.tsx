@@ -13,7 +13,7 @@ export function ChallengeAnswer() {
   const { mutate: nextGameState } = useNextGameState();
 
   const handleTimeout = () => {
-    nextGameState(GameState.GameCompleteYouLose);
+    nextGameState(GameState.GameCompleteYouLoseByTimeout);
   };
 
   return (

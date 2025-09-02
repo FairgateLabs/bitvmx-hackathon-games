@@ -1,4 +1,4 @@
-export enum GameStatePlayer1 {
+export enum GameState {
   ChooseGame = "ChooseGame",
   ChooseNetwork = "SetupNetwork",
   ChooseRole = "ChooseRole",
@@ -8,29 +8,15 @@ export enum GameStatePlayer1 {
   StartGame = "StartGame",
   WaitingAnswer = "WaitingAnswer",
   ChooseAction = "ChooseAction",
-  GameCompleteYouLoseByChallenge = "GameCompleteYouLoseByChallenge",
-  GameCompleteYouLoseByTimeout = "GameCompleteYouLoseByTimeout",
-  GameCompleteYouLoseByAccept = "GameCompleteYouLoseByAccept",
-  GameCompleteYouWinByChallenge = "GameCompleteYouWinByChallenge",
-  GameCompleteYouWinByTimeout = "GameCompleteYouWinByTimeout",
-  TransferFunds = "TransferFunds",
-}
-
-export enum GameStatePlayer2 {
-  ChooseGame = "ChooseGame",
-  ChooseNetwork = "SetupNetwork",
-  ChooseRole = "ChooseRole",
-  // SetupFunding = "SetupFunding", This is only in testnet
-  SetupConnection = "SetupConnection",
-  SetupProgram = "SetupProgram",
+  ChallengeAnswer = "ChallengeAnswer",
   WaitingStartGame = "WaitingStartGame",
   AnswerGame = "AnswerGame",
-  WaitingAnswer = "WaitingAnswer",
   GameCompleteYouLoseByChallenge = "GameCompleteYouLoseByChallenge",
   GameCompleteYouLoseByTimeout = "GameCompleteYouLoseByTimeout",
   GameCompleteYouLoseByAccept = "GameCompleteYouLoseByAccept",
   GameCompleteYouWinByChallenge = "GameCompleteYouWinByChallenge",
   GameCompleteYouWinByTimeout = "GameCompleteYouWinByTimeout",
+  GameCompleteYouWinByAccept = "GameCompleteYouWinByAccept",
   TransferFunds = "TransferFunds",
 }
 
