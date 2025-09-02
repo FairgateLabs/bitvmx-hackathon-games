@@ -1,8 +1,8 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use crate::config::Config;
-use crate::stores::{GameStore, AddNumbersStore, bitvmx::BitVMXStore};
-use crate::rpc::bitvmx_rpc::RpcService;
+use crate::services::{GameService, AddNumbersService, bitvmx::BitVMXService};
+use crate::rpc::rpc_client::RpcClient;
 
 
 /// Shared application state that can be accessed by both Axum routes and BitVMX RPC
@@ -11,26 +11,26 @@ pub struct AppState {
     /// Configuration
     pub config: Arc<Config>,
     
-    /// Game stores
-    pub game_store: Arc<RwLock<GameStore>>,
-    pub add_numbers_store: Arc<RwLock<AddNumbersStore>>,
+    /// Game services
+    pub game_service: Arc<RwLock<GameService>>,
+    pub add_numbers_service: Arc<RwLock<AddNumbersService>>,
     
-    /// BitVMX store
-    pub bitvmx_store: Arc<RwLock<BitVMXStore>>,
+    /// BitVMX service
+    pub bitvmx_service: Arc<RwLock<BitVMXService>>,
     
     /// BitVMX RPC client
-    pub bitvmx_rpc: Arc<RpcService>,
+    pub rpc_client: Arc<RpcClient>,
 }
 
 impl AppState {
     /// Create a new application state
-    pub fn new(config: Config, bitvmx_rpc: Arc<RpcService>) -> Self {
+    pub fn new(config: Config, rpc_client: Arc<RpcClient>) -> Self {
         Self {
             config: Arc::new(config),
-            game_store: Arc::new(RwLock::new(GameStore::new())),
-            add_numbers_store: Arc::new(RwLock::new(AddNumbersStore::new())),
-            bitvmx_store: Arc::new(RwLock::new(BitVMXStore::new())),
-            bitvmx_rpc: bitvmx_rpc,
+            game_service: Arc::new(RwLock::new(GameService::new())),
+            add_numbers_service: Arc::new(RwLock::new(AddNumbersService::new())),
+            bitvmx_service: Arc::new(RwLock::new(BitVMXService::new(rpc_client.clone()))),
+            rpc_client: rpc_client,
         }
     }
     

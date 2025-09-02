@@ -1,46 +1,43 @@
 use std::sync::Arc;
-use crate::types::P2PAddress;
+use crate::models::P2PAddress;
 use tracing::{trace, debug};
 use uuid::Uuid;
 use bitvmx_client::types::{IncomingBitVMXApiMessages, OutgoingBitVMXApiMessages};
-use crate::rpc::bitvmx_rpc::RpcService;
+use crate::rpc::rpc_client::RpcClient;
 
 #[derive(Debug, Clone)]
-pub struct BitVMXStore {
+pub struct BitVMXService {
     pub p2p_address: Option<P2PAddress>,
     pub pub_key: Option<String>,
     pub funding_key: Option<String>,
+    /// BitVMX RPC client
+    pub rpc_client: Arc<RpcClient>,
 }
 
-impl Default for BitVMXStore {
-    fn default() -> Self {
+impl BitVMXService {
+    pub fn new(rpc_client: Arc<RpcClient>) -> Self {
         Self {
             p2p_address: None,
             pub_key: None,
             funding_key: None,
+            rpc_client: rpc_client,
         }
-    }
-}
-
-impl BitVMXStore {
-    pub fn new() -> Self {
-        Self::default()
     }
 
     /// Update P2P address
-    fn set_p2p_address(&mut self, address: P2PAddress) {
+    pub fn set_p2p_address(&mut self, address: P2PAddress) {
         self.p2p_address = Some(address);
         trace!("Updated P2P address in store");
     }
 
     /// Update pub key
-    fn set_pub_key(&mut self, pub_key: String) {
+    pub fn set_pub_key(&mut self, pub_key: String) {
         self.pub_key = Some(pub_key);
         trace!("Updated pub key in store");
     }
 
     /// Update funding key
-    fn set_funding_key(&mut self, funding_key: String) {
+    pub fn set_funding_key(&mut self, funding_key: String) {
         self.funding_key = Some(funding_key);
         trace!("Updated funding key in store");
     }
@@ -61,9 +58,9 @@ impl BitVMXStore {
     }
 
     /// Setup BitVMX
-    pub async fn setup(&mut self, rpc_client: &Arc<RpcService>) -> Result<(), anyhow::Error> {
+    pub async fn setup(&mut self) -> Result<(), anyhow::Error> {
         debug!("Get comm info from BitVMX");
-        let comm_info_response = rpc_client.send_request(IncomingBitVMXApiMessages::GetCommInfo()).await?;
+        let comm_info_response = self.rpc_client.send_request(IncomingBitVMXApiMessages::GetCommInfo()).await?;
         // Set P2P address
         if let OutgoingBitVMXApiMessages::CommInfo(comm_info) = comm_info_response {
             self.set_p2p_address(P2PAddress {
@@ -77,16 +74,16 @@ impl BitVMXStore {
         // If keys do not exist, setup keys
         if self.get_pub_key().is_none() {
             debug!("No keys found, creating them");
-            self.setup_keys(rpc_client).await?;
+            self.setup_keys().await?;
         }
         Ok(())
     }
 
     /// Setup operator and funding keys
-    async fn setup_keys(&mut self, rpc_client: &Arc<RpcService>) -> Result<(), anyhow::Error> {
+    async fn setup_keys(&mut self) -> Result<(), anyhow::Error> {
         debug!("Create operator key from BitVMX");
         let pub_key_id = Uuid::new_v4();
-        let pub_key_response = rpc_client.send_request(IncomingBitVMXApiMessages::GetPubKey(pub_key_id, true)).await?;
+        let pub_key_response = self.rpc_client.send_request(IncomingBitVMXApiMessages::GetPubKey(pub_key_id, true)).await?;
         
         if let OutgoingBitVMXApiMessages::PubKey(_, pub_key) = pub_key_response {
             self.set_pub_key(pub_key.to_string());
@@ -96,7 +93,7 @@ impl BitVMXStore {
 
         debug!("Create funding key for speedups from BitVMX");
         let speedup_key_id = Uuid::new_v4();
-        let funding_key_response = rpc_client.send_request(IncomingBitVMXApiMessages::GetPubKey(speedup_key_id, true)).await?;
+        let funding_key_response = self.rpc_client.send_request(IncomingBitVMXApiMessages::GetPubKey(speedup_key_id, true)).await?;
         
         if let OutgoingBitVMXApiMessages::PubKey(_, funding_key) = funding_key_response {
             self.set_funding_key(funding_key.to_string());

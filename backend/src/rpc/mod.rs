@@ -1,2 +1,2 @@
-pub mod bitvmx_rpc;
-pub mod ordered_bag;
+pub mod rpc_client;
+pub mod chained_map;

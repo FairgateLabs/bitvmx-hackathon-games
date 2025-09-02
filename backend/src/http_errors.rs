@@ -1,6 +1,6 @@
 use axum::Json;
 use http::StatusCode;
-use crate::types::ErrorResponse;
+use crate::models::ErrorResponse;
 
 /// Create a bad request error response
 pub fn bad_request(message: &str) -> (StatusCode, Json<ErrorResponse>) {

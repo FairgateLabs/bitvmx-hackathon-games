@@ -1,14 +1,14 @@
-use crate::types::{Game, GameStatus, Move, Player, Position};
+use crate::models::{Game, GameStatus, Move, Player, Position};
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
 #[derive(Debug)]
-pub struct GameStore {
+pub struct GameService {
     games: HashMap<Uuid, Game>,
 }
 
-impl GameStore {
+impl GameService {
     pub fn new() -> Self {
         Self {
             games: HashMap::new(),
@@ -130,7 +130,7 @@ impl GameStore {
     }
 }
 
-impl Default for GameStore {
+impl Default for GameService {
     fn default() -> Self {
         Self::new()
     }

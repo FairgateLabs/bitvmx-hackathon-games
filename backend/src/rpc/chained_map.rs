@@ -4,7 +4,7 @@ use std::hash::Hash;
 use anyhow::{Result, anyhow};
 
 #[derive(Debug, Default)]
-pub struct OrderedBag<K, V>
+pub struct ChainedMap<K, V>
 where
     K: Eq + Hash + Clone + Debug,
 {
@@ -12,7 +12,7 @@ where
     global: VecDeque<(K, V)>,         // global storage of actual values
 }
 
-impl<K, V> OrderedBag<K, V>
+impl<K, V> ChainedMap<K, V>
 where
     K: Eq + Hash + Clone + Debug,
 {
@@ -75,10 +75,11 @@ where
 mod tests {
     use super::*;
     use anyhow::Result;
+    use tokio::sync::oneshot;
 
     #[tokio::test]
     async fn test_insert_and_remove_by_key() -> Result<()> {
-        let mut bag: OrderedBag<&str, oneshot::Sender<String>> = OrderedBag::new();
+        let mut bag: ChainedMap<&str, oneshot::Sender<String>> = ChainedMap::new();
 
         let (tx, rx) = oneshot::channel();
         bag.insert("job1", tx);
@@ -93,7 +94,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_insert_and_remove_global() -> Result<()> {
-        let mut bag: OrderedBag<&str, oneshot::Sender<String>> = OrderedBag::new();
+        let mut bag: ChainedMap<&str, oneshot::Sender<String>> = ChainedMap::new();
 
         let (tx1, rx1) = oneshot::channel();
         let (tx2, rx2) = oneshot::channel();

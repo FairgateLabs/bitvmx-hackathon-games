@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 use utoipa::ToSchema;
 
-#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
 pub struct P2PAddress {
     pub address: String,

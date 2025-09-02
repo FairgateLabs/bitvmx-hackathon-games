@@ -1,5 +1,5 @@
 use axum::{Router, routing::get, Json, extract::State};
-use crate::types::HealthResponse;
+use crate::models::HealthResponse;
 use crate::app_state::AppState;
 use tracing::instrument;
 use std::time::{SystemTime, UNIX_EPOCH};

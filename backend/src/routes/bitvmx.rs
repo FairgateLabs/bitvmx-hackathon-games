@@ -1,6 +1,6 @@
 use axum::{Json, Router, routing::{get, post}, extract::State};
 use http::StatusCode;
-use crate::types::{ErrorResponse, P2PAddress, SetupKey};
+use crate::models::{ErrorResponse, P2PAddress, SetupKey};
 use crate::app_state::AppState;
 use crate::http_errors;
 use tracing::instrument;
@@ -24,8 +24,8 @@ pub fn router() -> Router<AppState> {
 )]
 #[instrument(skip(app_state))]
 pub async fn comm_info(State(app_state): State<AppState>) -> Result<Json<P2PAddress>, (StatusCode, Json<ErrorResponse>)> {
-    let store_guard = app_state.bitvmx_store.read().await;
-    let p2p_address = store_guard.get_p2p_address().ok_or(http_errors::not_found("P2P address not found"))?;
+    let service_guard = app_state.bitvmx_service.read().await;
+    let p2p_address = service_guard.get_p2p_address().ok_or(http_errors::not_found("P2P address not found"))?;
     Ok(Json(p2p_address))
 }
 

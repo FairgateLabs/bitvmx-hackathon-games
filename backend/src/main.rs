@@ -1,6 +1,6 @@
 
 
-use bitvmx_tictactoe_backend::{api, app_state::AppState, config, rpc::bitvmx_rpc::{RpcService}};
+use bitvmx_tictactoe_backend::{api, app_state::AppState, config, rpc::rpc_client::{RpcClient}};
 use tracing::{error, info, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use tokio::sync::broadcast;
@@ -35,21 +35,21 @@ async fn main() -> anyhow::Result<()> {
     let (shutdown_tx, _) = broadcast::channel::<()>(1);
     
     // 4. Connect to BitVMX RPC, spawn sender and listener tasks
-    let (rpc_service, rpc_sender_task, rpc_listener_task) = RpcService::connect(config.bitvmx.broker_port, None, &shutdown_tx);
+    let (rpc_client, rpc_sender_task, rpc_listener_task) = RpcClient::connect(config.bitvmx.broker_port, None, &shutdown_tx);
 
     // 5. Initialize app state
-    let app_state = AppState::new(config.clone(), rpc_service.clone());
+    let app_state = AppState::new(config.clone(), rpc_client.clone());
 
     // 6. Spawn setup task that waits for RPC to be ready
     let app_state_setup = app_state.clone();
     let setup_task = tokio::task::spawn(async move {
         // Wait for the RPC client to be ready
-        app_state_setup.bitvmx_rpc.wait_for_ready().await;
+        app_state_setup.rpc_client.wait_for_ready().await;
         
         // Now perform the setup
         {
-            let mut store_guard = app_state_setup.bitvmx_store.write().await;
-            store_guard.setup(&app_state_setup.bitvmx_rpc).await?;
+            let mut service_guard = app_state_setup.bitvmx_service.write().await;
+            service_guard.setup().await?;
         }
         info!("BitVMX RPC setup successful");
         

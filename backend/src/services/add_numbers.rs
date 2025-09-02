@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
-use crate::types::{AddNumbersGame, AddNumbersGameStatus};
+use crate::models::{AddNumbersGame, AddNumbersGameStatus};
 
 #[derive(Debug)]
-pub struct AddNumbersStore {
+pub struct AddNumbersService {
     games: HashMap<Uuid, AddNumbersGame>,
 }
 
-impl AddNumbersStore {
+impl AddNumbersService {
     pub fn new() -> Self {
         Self {
             games: HashMap::new(),
@@ -103,7 +103,7 @@ impl AddNumbersStore {
     }
 }
 
-impl Default for AddNumbersStore {
+impl Default for AddNumbersService {
     fn default() -> Self {
         Self::new()
     }

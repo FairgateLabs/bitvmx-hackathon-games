@@ -1,5 +1,5 @@
 use axum::{Router, routing::{get, post}, extract::{Path, State}, http::StatusCode, Json};
-use crate::types::{
+use crate::models::{
     CreateAddNumbersGameRequest, CreateAddNumbersGameResponse, AddNumbersGameResponse,
     AddNumbersRequest, AddNumbersResponse, MakeGuessRequest, MakeGuessResponse, ErrorResponse
 };
@@ -31,8 +31,8 @@ pub async fn create_game(
     State(app_state): State<AppState>,
     Json(request): Json<CreateAddNumbersGameRequest>,
 ) -> Result<Json<CreateAddNumbersGameResponse>, (StatusCode, Json<ErrorResponse>)> {
-    let mut store = app_state.add_numbers_store.write().await;
-    let game = store.create_game(request.player1, request.player2);
+    let mut service = app_state.add_numbers_service.write().await;
+    let game = service.create_game(request.player1, request.player2);
 
     Ok(Json(CreateAddNumbersGameResponse {
         game,
@@ -57,9 +57,9 @@ pub async fn get_game(
     State(app_state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<AddNumbersGameResponse>, (StatusCode, Json<ErrorResponse>)> {
-    let store = app_state.add_numbers_store.read().await;
+    let service = app_state.add_numbers_service.read().await;
     
-    let game = store.get_game(id).ok_or(http_errors::not_found("Game not found"))?;
+    let game = service.get_game(id).ok_or(http_errors::not_found("Game not found"))?;
 
     Ok(Json(AddNumbersGameResponse {
         game: game.clone(),
@@ -86,9 +86,9 @@ pub async fn add_numbers(
     Path(id): Path<Uuid>,
     Json(request): Json<AddNumbersRequest>,
 ) -> Result<Json<AddNumbersResponse>, (StatusCode, Json<ErrorResponse>)> {
-    let mut store = app_state.add_numbers_store.write().await;
+    let mut service = app_state.add_numbers_service.write().await;
     
-    let game = store
+    let game = service
         .add_numbers(id, request.player, request.number1, request.number2)
         .map_err(|error| {
             http_errors::error_response(StatusCode::BAD_REQUEST, "INVALID_OPERATION", &error)
@@ -120,9 +120,9 @@ pub async fn make_guess(
     Path(id): Path<Uuid>,
     Json(request): Json<MakeGuessRequest>,
 ) -> Result<Json<MakeGuessResponse>, (StatusCode, Json<ErrorResponse>)> {
-    let mut store = app_state.add_numbers_store.write().await;
+    let mut service = app_state.add_numbers_service.write().await;
     
-    let game = store
+    let game = service
         .make_guess(id, request.player, request.guess)
         .map_err(|error| {
             http_errors::error_response(StatusCode::BAD_REQUEST, "INVALID_OPERATION", &error)

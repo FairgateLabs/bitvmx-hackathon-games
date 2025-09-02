@@ -1,5 +1,5 @@
 use axum::{Router, routing::{get, post}, extract::{Path, State}, http::StatusCode, Json};
-use crate::types::{CreateGameRequest, CreateGameResponse, GameResponse, GameStatusResponse, MakeMoveRequest, MakeMoveResponse, ErrorResponse};
+use crate::models::{CreateGameRequest, CreateGameResponse, GameResponse, GameStatusResponse, MakeMoveRequest, MakeMoveResponse, ErrorResponse};
 use crate::app_state::AppState;
 use crate::http_errors;
 use uuid::Uuid;
@@ -30,8 +30,8 @@ pub async fn create_game(
     State(app_state): State<AppState>,
     Json(request): Json<CreateGameRequest>,
 ) -> Result<Json<CreateGameResponse>, (StatusCode, Json<ErrorResponse>)> {
-    let mut store = app_state.game_store.write().await;
-    let game = store.create_game();
+    let mut service = app_state.game_service.write().await;
+    let game = service.create_game();
 
     Ok(Json(CreateGameResponse {
         game,
@@ -57,9 +57,9 @@ pub async fn get_game(
     State(app_state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<GameResponse>, (StatusCode, Json<ErrorResponse>)> {
-    let store = app_state.game_store.read().await;
+    let service = app_state.game_service.read().await;
     
-    let game = store.get_game(id).ok_or(http_errors::not_found("Game not found"))?;
+    let game = service.get_game(id).ok_or(http_errors::not_found("Game not found"))?;
 
     Ok(Json(GameResponse {
         game: game.clone(),
@@ -87,9 +87,9 @@ pub async fn make_move(
     Path(id): Path<Uuid>,
     Json(request): Json<MakeMoveRequest>,
 ) -> Result<Json<MakeMoveResponse>, (StatusCode, Json<ErrorResponse>)> {
-    let mut store = app_state.game_store.write().await;
+    let mut service = app_state.game_service.write().await;
     
-    let game = store
+    let game = service
         .make_move(id, request.player, request.position)
         .map_err(|error| {
             tracing::warn!("Invalid move: {}", error);
@@ -119,12 +119,12 @@ pub async fn get_game_status(
     State(app_state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<GameStatusResponse>, (StatusCode, Json<ErrorResponse>)> {
-    let store = app_state.game_store.read().await;
+    let service = app_state.game_service.read().await;
     
-    let game = store.get_game(id).ok_or(http_errors::not_found("Game not found"))?;
+    let game = service.get_game(id).ok_or(http_errors::not_found("Game not found"))?;
 
     let current_player = match game.status {
-        crate::types::GameStatus::InProgress => Some(game.current_player.clone()),
+        crate::models::GameStatus::InProgress => Some(game.current_player.clone()),
         _ => None,
     };
 

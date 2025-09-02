@@ -1,5 +1,5 @@
 use std::net::IpAddr;
-use crate::rpc::ordered_bag::OrderedBag;
+use crate::rpc::chained_map::ChainedMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use bitvmx_broker::rpc::{BrokerConfig, async_client::AsyncClient};
@@ -18,19 +18,19 @@ use std::time::Duration;
 
 /// BitVMX RPC Client with async message queue
 #[derive(Debug, Clone)]
-pub struct RpcService {
+pub struct RpcClient {
     /// Internal Broker RPC client
     client: AsyncClient,
     /// Outgoing messages
     outgoing: mpsc::Sender<(String, IncomingBitVMXApiMessages)>,
     /// Pending responses
-    pending: Arc<Mutex<OrderedBag<String, oneshot::Sender<OutgoingBitVMXApiMessages>>>>,
+    pending: Arc<Mutex<ChainedMap<String, oneshot::Sender<OutgoingBitVMXApiMessages>>>>,
     /// Ready flag
     ready: Arc<AtomicBool>,
 }
 
 
-impl RpcService {
+impl RpcClient {
     /// Start a new RPC service
     /// Initialize the Broker RPC client with the specified port
     pub fn connect(broker_port: u16, broker_ip: Option<IpAddr>, shutdown_tx: &Sender<()>) -> (Arc<Self>,JoinHandle<Result<(), anyhow::Error>>, JoinHandle<Result<(), anyhow::Error>>) {
@@ -39,37 +39,18 @@ impl RpcService {
 
         let (tx, rx) = mpsc::channel(100);
 
-        let service = Arc::new(RpcService {
+        let service = Arc::new(RpcClient {
             client,
             outgoing: tx,
-            pending: Arc::new(Mutex::new(OrderedBag::new())),
+            pending: Arc::new(Mutex::new(ChainedMap::new())),
             ready: Arc::new(AtomicBool::new(false)),
         });
 
-        let sender_task = RpcService::spawn_sender(service.clone(), rx, shutdown_tx.subscribe());
-        let listener_task = RpcService::spawn_listener(service.clone(), shutdown_tx.subscribe());
+        let sender_task = RpcClient::spawn_sender(service.clone(), rx, shutdown_tx.subscribe());
+        let listener_task = RpcClient::spawn_listener(service.clone(), shutdown_tx.subscribe());
 
         (service, sender_task, listener_task)
     }
-
-    fn request_to_correlation_id(&self, message: &IncomingBitVMXApiMessages) -> Result<String, anyhow::Error> {
-        // Serialize the message
-        match message {
-            IncomingBitVMXApiMessages::SetupKey(uuid, _addresses, _operator_key, _funding_key) => {
-                Ok(uuid.to_string())
-            },
-            IncomingBitVMXApiMessages::GetPubKey(uuid, _new_key) => {
-                Ok(uuid.to_string())
-            },
-            IncomingBitVMXApiMessages::GetCommInfo() => {
-                Ok("get_comm_info".to_string())
-            },
-            _ => {
-                Err(anyhow::anyhow!("Unhandled message type: {:?}", message))
-            }
-        }
-    }
-
 
     pub async fn send_request(&self, message: IncomingBitVMXApiMessages) -> Result<OutgoingBitVMXApiMessages, anyhow::Error> {
         let correlation_id = self.request_to_correlation_id(&message)?;
@@ -87,6 +68,26 @@ impl RpcService {
         Ok(response)
     }
 
+    /// Convert the message to send to BitVMX to a correlation ID
+    fn request_to_correlation_id(&self, message: &IncomingBitVMXApiMessages) -> Result<String, anyhow::Error> {
+        // Serialize the message
+        match message {
+            IncomingBitVMXApiMessages::SetupKey(uuid, _addresses, _operator_key, _funding_key) => {
+                Ok(uuid.to_string())
+            },
+            IncomingBitVMXApiMessages::GetPubKey(uuid, _new_key) => {
+                Ok(uuid.to_string())
+            },
+            IncomingBitVMXApiMessages::GetCommInfo() => {
+                Ok("get_comm_info".to_string())
+            },
+            _ => {
+                Err(anyhow::anyhow!("[rpc_sender] unhandled message type: {:?}", message))
+            }
+        }
+    }
+
+    /// Convert the response received from BitVMX to a correlation ID
     fn response_to_correlation_id(&self, response: &OutgoingBitVMXApiMessages) -> Result<String, anyhow::Error> {
         match response {
             OutgoingBitVMXApiMessages::PubKey(uuid, _pub_key) => {
@@ -96,7 +97,7 @@ impl RpcService {
                 Ok("get_comm_info".to_string())
             }
             _ => {
-                Err(anyhow::anyhow!("Unhandled message type: {:?}", response))
+                Err(anyhow::anyhow!("[rpc_listener] unhandled message type: {:?}", response))
             }
         }
     }
@@ -146,7 +147,7 @@ impl RpcService {
         })
     }
 
-    fn spawn_listener(service: Arc<RpcService>, mut shutdown_rx: Receiver<()>) -> JoinHandle<Result<(), anyhow::Error>> {
+    fn spawn_listener(service: Arc<RpcClient>, mut shutdown_rx: Receiver<()>) -> JoinHandle<Result<(), anyhow::Error>> {
         tokio::spawn(async move {
             info!("[rpc_listener] spawned");
             let mut first_time = true;
