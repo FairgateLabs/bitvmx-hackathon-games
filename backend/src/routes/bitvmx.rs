@@ -1,7 +1,7 @@
 use axum::{Json, Router, routing::{get, post}, extract::State};
 use http::StatusCode;
 use crate::models::{ErrorResponse, P2PAddress, SetupKey};
-use crate::app_state::AppState;
+use crate::state::AppState;
 use crate::http_errors;
 use tracing::instrument;
 

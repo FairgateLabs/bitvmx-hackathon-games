@@ -3,7 +3,7 @@ use crate::models::{
     CreateAddNumbersGameRequest, CreateAddNumbersGameResponse, AddNumbersGameResponse,
     AddNumbersRequest, AddNumbersResponse, MakeGuessRequest, MakeGuessResponse, ErrorResponse
 };
-use crate::app_state::AppState;
+use crate::state::AppState;
 use crate::http_errors;
 use uuid::Uuid;
 

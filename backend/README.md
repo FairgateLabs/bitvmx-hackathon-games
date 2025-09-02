@@ -196,12 +196,12 @@ cargo build --release
 Start bitcoin and bitvmx with:
 
 ```bash
-bash start.sh
+bash start-op-1.sh
 ```
 
 Run the backend api server with:
 
-```bash
+```bashß
 cargo run
 ```
 

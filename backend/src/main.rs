@@ -1,6 +1,6 @@
 
 
-use bitvmx_tictactoe_backend::{api, app_state::AppState, config, rpc::rpc_client::{RpcClient}};
+use bitvmx_tictactoe_backend::{api, state::AppState, config, rpc::rpc_client::{RpcClient}};
 use tracing::{error, info, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use tokio::sync::broadcast;
@@ -48,6 +48,8 @@ async fn main() -> anyhow::Result<()> {
         
         // Now perform the setup
         {
+            // Setup does multiple things so we should not lock the service, 
+            // but since this is just a one time task at the beginning, we can do it here
             let mut service_guard = app_state_setup.bitvmx_service.write().await;
             service_guard.setup().await?;
         }

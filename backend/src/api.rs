@@ -8,7 +8,8 @@ use uuid::Uuid;
 
 use crate::config;
 use crate::routes;
-use crate::app_state::AppState;
+use crate::middleware::logging::LoggingLayer;
+use crate::state::AppState;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -94,6 +95,7 @@ pub async fn app(app_state: AppState) -> Router {
         .nest("/api/add-numbers", routes::add_numbers::router())
         .nest("/api/bitvmx", routes::bitvmx::router())
         .merge(SwaggerUi::new("/").url("/api-docs/openapi.json", ApiDoc::openapi()))
+        .layer(LoggingLayer::new(1024)) // Limit the body log to 1024 bytes
         .layer(trace_layer)
         .layer(cors)
         .with_state(app_state)

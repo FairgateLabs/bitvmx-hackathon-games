@@ -1,6 +1,6 @@
 use axum::{Router, routing::{get, post}, extract::{Path, State}, http::StatusCode, Json};
 use crate::models::{CreateGameRequest, CreateGameResponse, GameResponse, GameStatusResponse, MakeMoveRequest, MakeMoveResponse, ErrorResponse};
-use crate::app_state::AppState;
+use crate::state::AppState;
 use crate::http_errors;
 use uuid::Uuid;
 use tracing::instrument;
