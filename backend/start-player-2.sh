@@ -5,5 +5,8 @@ set -e
 CURRENT_PATH=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 cd "$CURRENT_PATH";
 
+# remove the log file (no need to create the directory its done by the program)
+rm -rf logs/player_2.log/backend
+
 # run the bitvmx client
-RUST_LOG=debug CONFIG_FILE=player_1 cargo run
+RUST_LOG=debug CONFIG_FILE=player_2 cargo run

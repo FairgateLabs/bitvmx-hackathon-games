@@ -4,11 +4,11 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use bitvmx_broker::rpc::{BrokerConfig, async_client::AsyncClient};
 use bitvmx_client::{
-    types::{IncomingBitVMXApiMessages, OutgoingBitVMXApiMessages::{self}, L2_ID, BITVMX_ID},
+    types::{IncomingBitVMXApiMessages, OutgoingBitVMXApiMessages},
 };
-use tokio::sync::broadcast::{Receiver, Sender};
+use tokio::sync::broadcast::Sender;
 use tokio::task::JoinHandle;
-use tracing::{debug, error, info, trace, warn};
+use tracing::{debug, error, info, trace, warn, Instrument};
 
 use tokio::sync::{mpsc, oneshot, Mutex};
 use tokio::time::sleep;
@@ -33,7 +33,7 @@ pub struct RpcClient {
 impl RpcClient {
     /// Start a new RPC service
     /// Initialize the Broker RPC client with the specified port
-    pub fn connect(broker_port: u16, broker_ip: Option<IpAddr>, shutdown_tx: &Sender<()>) -> (Arc<Self>,JoinHandle<Result<(), anyhow::Error>>, JoinHandle<Result<(), anyhow::Error>>) {
+    pub fn connect( my_id:u32, to_id:u32, broker_port: u16, broker_ip: Option<IpAddr>, shutdown_tx: Option<&Sender<()>>) -> (Arc<Self>,JoinHandle<Result<(), anyhow::Error>>, JoinHandle<Result<(), anyhow::Error>>) {
         let config = BrokerConfig::new(broker_port, broker_ip);
         let client = AsyncClient::new(&config);
 
@@ -46,8 +46,8 @@ impl RpcClient {
             ready: Arc::new(AtomicBool::new(false)),
         });
 
-        let sender_task = RpcClient::spawn_sender(service.clone(), rx, shutdown_tx.subscribe());
-        let listener_task = RpcClient::spawn_listener(service.clone(), shutdown_tx.subscribe());
+        let sender_task = RpcClient::spawn_sender(service.clone(), rx, my_id, to_id, shutdown_tx);
+        let listener_task = RpcClient::spawn_listener(service.clone(), my_id, shutdown_tx);
 
         (service, sender_task, listener_task)
     }
@@ -81,8 +81,11 @@ impl RpcClient {
             IncomingBitVMXApiMessages::GetCommInfo() => {
                 Ok("get_comm_info".to_string())
             },
+            IncomingBitVMXApiMessages::Ping() => {
+                Ok("ping".to_string())
+            },
             _ => {
-                Err(anyhow::anyhow!("[rpc_sender] unhandled message type: {:?}", message))
+                Err(anyhow::anyhow!("unhandled message type: {:?}", message))
             }
         }
     }
@@ -96,8 +99,11 @@ impl RpcClient {
             OutgoingBitVMXApiMessages::CommInfo(_p2p_address) => {
                 Ok("get_comm_info".to_string())
             }
+            OutgoingBitVMXApiMessages::Pong() => {
+                Ok("ping".to_string())
+            }
             _ => {
-                Err(anyhow::anyhow!("[rpc_listener] unhandled message type: {:?}", response))
+                Err(anyhow::anyhow!("unhandled message type: {:?}", response))
             }
         }
     }
@@ -107,79 +113,97 @@ impl RpcClient {
         let response = serde_json::from_str(&resp)?;
 
         let correlation_id = self.response_to_correlation_id(&response)?;
-        trace!("[rpc_listener] received response: {:?} message: {:?}", correlation_id, response);
+        trace!("Received response: {:?} message: {:?}", correlation_id, response);
 
         let tx = {
             let mut pending = self.pending.lock().await;
             let optional_tx = pending.remove_first_for_key(&correlation_id)?;
             if optional_tx.is_none() {
-                warn!("[rpc_listener] no response handler found for correlation ID: {}", correlation_id);
+                warn!("No response handler found for correlation ID: {}", correlation_id);
                 return Ok(());
             }
             let tx = optional_tx.unwrap();
             tx
         };
 
-        tx.send(response).map_err(|e| anyhow::anyhow!("[rpc_listener] failed to send response: {:?}", e))?;
+        tx.send(response).map_err(|e| anyhow::anyhow!("failed to send response: {:?}", e))?;
 
         Ok(())
     }
 
-    fn spawn_sender(service: Arc<Self>, mut rx: mpsc::Receiver<(String, IncomingBitVMXApiMessages)>, mut shutdown_rx: Receiver<()>) -> JoinHandle<Result<(), anyhow::Error>> {
-        tokio::spawn(async move {
-            info!("[rpc_sender] spawned");
-            while let Some((_id, msg)) = rx.recv().await {
-                // Serialize the message
-                let serialized_msg = serde_json::to_string(&msg)?;
-                // Send the message to BitVMX
-                match service.client.send_msg(L2_ID, BITVMX_ID, serialized_msg).await {
-                    Ok(resp) => trace!("[rpc_sender] sent message to BitVMX: {:?} result: {:?}", msg, resp),
-                    Err(e) => error!("[rpc_sender] send message to BitVMX failed: {e}"),
+    fn spawn_sender(service: Arc<Self>, mut rx: mpsc::Receiver<(String, IncomingBitVMXApiMessages)>, my_id:u32, to_id:u32, shutdown_tx: Option<&Sender<()>>) -> JoinHandle<Result<(), anyhow::Error>> {
+        let mut shutdown_rx = None;
+        if let Some(shutdown_tx) = shutdown_tx {
+            shutdown_rx = Some(shutdown_tx.subscribe());
+        }
+        tokio::spawn(
+            async move {
+                info!("Start rpc sender");
+                while let Some((_id, msg)) = rx.recv().await {
+                    // Serialize the message
+                    let serialized_msg = serde_json::to_string(&msg)?;
+                    // Send the message to BitVMX
+                    match service.client.send_msg(my_id, to_id, serialized_msg).await {
+                        Ok(resp) => trace!("Sent message to BitVMX: {:?} result: {:?}", msg, resp),
+                        Err(e) => error!("Send message to BitVMX failed: {e}"),
+                    }
+                    if let Some(shutdown_rx) = &mut shutdown_rx {
+                        if shutdown_rx.try_recv().is_ok() {
+                            info!("Shutting down...");
+                            break;
+                        }
+                    }
+                    sleep(std::time::Duration::from_millis(10)).await;
                 }
-                if shutdown_rx.try_recv().is_ok() {
-                    info!("[rpc_sender] shutting down...");
-                    break;
-                }
-                sleep(std::time::Duration::from_millis(10)).await;
+                info!("Channel closed, exiting loop");
+                Ok::<_, anyhow::Error>(()) // coercion to Result
             }
-            info!("[rpc_sender] channel closed, exiting loop");
-            Ok::<_, anyhow::Error>(()) // coercion to Result
-        })
+            .instrument(tracing::info_span!("rpc_sender"))
+        )
     }
 
-    fn spawn_listener(service: Arc<RpcClient>, mut shutdown_rx: Receiver<()>) -> JoinHandle<Result<(), anyhow::Error>> {
-        tokio::spawn(async move {
-            info!("[rpc_listener] spawned");
-            let mut first_time = true;
-            loop {
-                if shutdown_rx.try_recv().is_ok() {
-                    info!("[rpc_listener] shutting down...");
-                    break;
-                }
+    fn spawn_listener(service: Arc<RpcClient>, my_id:u32, shutdown_tx: Option<&Sender<()>>) -> JoinHandle<Result<(), anyhow::Error>> {
+        let mut shutdown_rx = None;
+        if let Some(shutdown_tx) = shutdown_tx {
+            shutdown_rx = Some(shutdown_tx.subscribe());
+        }
+        tokio::spawn(
+            async move {
+                info!("Start rpc listener");
+                let mut first_time = true;
+                loop {
+                    if let Some(shutdown_rx) = &mut shutdown_rx {
+                        if shutdown_rx.try_recv().is_ok() {
+                            info!("Shutting down...");
+                            break;
+                        }
+                    }
 
-                match service.client.get_msg(L2_ID).await {
-                    Ok(Some(msg)) => {
-                        trace!("[rpc_listener] received message from BitVMX: {:?}", msg);
-                        service.handle_response( msg.msg).await?;
-                        service.client.ack(L2_ID, msg.uid).await?;
-                    },
-                    Ok(None) => { 
-                        // No message received, sleep and continue loop
-                    },
-                    Err(e) => {
-                        error!("[rpc_listener] get message from BitVMX failed: {e}");
-                        break;
-                    },
+                    match service.client.get_msg(my_id).await {
+                        Ok(Some(msg)) => {
+                            trace!("Received message from BitVMX: {:?}", msg);
+                            service.handle_response( msg.msg).await?;
+                            service.client.ack(my_id, msg.uid).await?;
+                        },
+                        Ok(None) => { 
+                            // No message received, sleep and continue loop
+                        },
+                        Err(e) => {
+                            error!("Get message from BitVMX failed: {e}");
+                            break;
+                        },
+                    }
+                    
+                    if first_time {
+                        first_time = false;
+                        service.set_ready();
+                    }
+                    sleep(std::time::Duration::from_millis(10)).await;
                 }
-                
-                if first_time {
-                    first_time = false;
-                    service.set_ready();
-                }
-                sleep(std::time::Duration::from_millis(10)).await;
+                Ok::<_, anyhow::Error>(()) // coercion to Result
             }
-            Ok::<_, anyhow::Error>(()) // coercion to Result
-        })
+            .instrument(tracing::info_span!("rpc_listener"))
+        )
     }
 
     /// Set the RPC client as ready

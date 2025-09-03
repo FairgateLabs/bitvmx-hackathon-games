@@ -44,6 +44,7 @@ config = "0.15"
 
 # Thread-safe initialization
 once_cell = "1.19"
+tracing-appender = "0.2.3"
 
 [dev-dependencies]
 tokio-test = "0.4"

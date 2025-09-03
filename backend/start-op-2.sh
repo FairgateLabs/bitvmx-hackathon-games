@@ -6,18 +6,18 @@ CURRENT_PATH=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 cd "$CURRENT_PATH";
 
 # remove bitvmx client tmp data
-rm -rf /tmp/broker_p2p_61180
-rm -rf /tmp/op_1
+rm -rf /tmp/broker_p2p_61181
+rm -rf /tmp/op_2
 
 # create logs directory if it doesn't exist
-mkdir -p logs/player_1.log
+mkdir -p logs/player_2.log
 
 # remove the log file
-rm -rf logs/player_1.log/bitvmx
+rm -rf logs/player_2.log/bitvmx
 
 # go to the bitvmx client workspace
 BITVMX_PATH="$CURRENT_PATH/../../rust-bitvmx-workspace/rust-bitvmx-client"
 cd "$BITVMX_PATH"
 
 # run the bitvmx client with output to both console and file
-RUST_LOG=debug cargo run op_1 2>&1 | tee "$CURRENT_PATH/logs/player_1.log/bitvmx"
+RUST_LOG=debug cargo run op_2 2>&1 | tee "$CURRENT_PATH/logs/player_2.log/bitvmx"
