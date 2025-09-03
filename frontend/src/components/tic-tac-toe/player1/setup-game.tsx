@@ -7,14 +7,13 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { CopyButton } from "../ui/copy-button";
+import { CopyButton } from "@/components/ui/copy-button";
 import { GameNumbersToAdd, GameState } from "@/types/game";
 import { useNextGameState } from "@/hooks/useGameState";
 import { useNetwork } from "@/hooks/useNetwork";
 import { NetworkType } from "@/types/network";
 
 export function SetupGame() {
-  const [numbers, setNumbers] = useState<GameNumbersToAdd>({});
   const [isLoading, setIsLoading] = useState(false);
   const [inputsDisabled, setInputsDisabled] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -31,15 +30,6 @@ export function SetupGame() {
       setIsSuccess(true);
     }, 2000);
     nextGameState(GameState.StartGame);
-  };
-
-  const handleNumberChange = (key: string, value: string) => {
-    const parsedValue = parseInt(value);
-    if (parsedValue >= 0) {
-      setNumbers({ ...numbers, [key]: parsedValue });
-    } else {
-      setNumbers({ ...numbers, [key]: 0 });
-    }
   };
 
   const [gameUUID, setGameUUID] = useState<string>("");
@@ -92,74 +82,20 @@ export function SetupGame() {
               </div>
             </div>
 
-            <p className="text-sm text-gray-700 my-4">
-              Please enter the numbers you wish to use for the game. These will
-              be utilized to create the program for your game session.
-            </p>
-
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="cursor-pointer">
-                  <Label htmlFor="number1">First Number</Label>
-                  <Input
-                    id="number1"
-                    type="number"
-                    value={numbers.number1 || ""}
-                    onChange={(e) =>
-                      handleNumberChange("number1", e.target.value)
-                    }
-                    placeholder="Eg: 5"
-                    disabled={inputsDisabled}
-                  />
-                </div>
-                <div className="cursor-pointer">
-                  <Label htmlFor="number2">Second Number</Label>
-                  <Input
-                    id="number2"
-                    type="number"
-                    value={numbers.number2 || ""}
-                    onChange={(e) =>
-                      handleNumberChange("number2", e.target.value)
-                    }
-                    placeholder="Eg: 3"
-                    disabled={inputsDisabled}
-                  />
-                </div>
-              </div>
-
               <Button
                 onClick={generateProgram}
-                disabled={
-                  !numbers.number1 ||
-                  !numbers.number2 ||
-                  isLoading ||
-                  inputsDisabled
-                }
+                disabled={isLoading || inputsDisabled}
                 className="w-full"
               >
                 {isLoading ? "Generating..." : "🚀 Generate Program"}
               </Button>
-
-              {!isSuccess && (
-                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <h3 className="font-semibold mb-2 text-yellow-800">
-                    ⚠️ Choose the numbers to start the program
-                  </h3>
-                  <p className="text-sm text-yellow-700">
-                    Please enter the numbers and click the button to send them
-                    to BitVMX for program creation.
-                  </p>
-                </div>
-              )}
 
               {isSuccess && (
                 <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                   <h3 className="font-semibold mb-2 text-green-800">
                     ✅ UUID Generation Successful
                   </h3>
-                  <p className="text-sm text-green-700">
-                    Program generated successfully with the provided numbers.
-                  </p>
                 </div>
               )}
             </div>

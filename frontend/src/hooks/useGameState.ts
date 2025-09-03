@@ -1,4 +1,4 @@
-import { GameState } from "@/types/gameState";
+import { GameState } from "@/types/game";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 function useGameState() {

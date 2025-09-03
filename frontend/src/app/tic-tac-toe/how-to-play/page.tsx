@@ -8,7 +8,7 @@ export default function HowToPlayPage() {
       <Card className="bg-muted/40 shadow-lg">
         <CardHeader>
           <CardTitle className="text-2xl flex items-center gap-2">
-            📚 How to Play <span className="text-primary">Add Numbers</span>
+            📚 How to Play <span className="text-primary">Tic Tac Toe</span>
           </CardTitle>
           <p className="text-sm text-muted-foreground">
             Learn the game step by step before betting with Bitcoin ⚡
@@ -54,18 +54,10 @@ export default function HowToPlayPage() {
             <h3 className="text-lg font-semibold mb-2">
               🆔 Game Identification
             </h3>
-            <p className="text-sm text-muted-foreground pb-2">
+            <p className="text-sm text-muted-foreground">
               Player 1 creates the <strong>Game UUID</strong> (program ID).
             </p>
             <p className="text-sm text-muted-foreground">
-              {" "}
-              Player 1 must enter:
-            </p>
-            <ul className="list-disc list-inside text-sm text-muted-foreground mt-2">
-              <li>Player 2’s IP address</li>
-              <li>The corresponding port</li>
-            </ul>
-            <p className="text-sm text-muted-foreground pt-2">
               {" "}
               Player 2 must enter:
             </p>
@@ -103,37 +95,46 @@ export default function HowToPlayPage() {
           <section>
             <h3 className="text-lg font-semibold mb-2">🎲 Game Flow</h3>
 
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid md:grid-cols-2 gap-6d">
               {/* Player 1 */}
               <div className="p-4 rounded-xl bg-white shadow-sm border">
                 <h4 className="font-semibold mb-2">👤 Player 1</h4>
                 <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-1">
-                  <li>Choose two numbers to add and generate the program.</li>
-                  <li>Wait for Player 2’s sum answer.</li>
                   <li>
-                    Review the sum answer and either <strong>Accept</strong>{" "}
-                    (they win) or <strong>Challenge</strong> (start a dispute
-                    on-chain).
+                    Mark with mark X on the grid, you can overwrite any previous
+                    mark by Player 2.
+                  </li>
+                  <li>
+                    Declare "I win" if you believe you have a winning line.
                   </li>
                   <li>
                     If you don’t act before the timeout ⏳, you automatically
                     lose.
                   </li>
+                  <li>
+                    If challenged, wait for BitVMX process the dispute and
+                    receive the result.
+                  </li>
                 </ol>
               </div>
 
-              {/* Player 2 */}
-              <div className="p-4 rounded-xl bg-white shadow-sm border">
+              <div className="ml-2 p-4 rounded-xl bg-white shadow-sm border">
                 <h4 className="font-semibold mb-2">👤 Player 2</h4>
                 <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-1">
                   <li>
-                    Join the game using the UUID, IP, and port from Player 1.
+                    Mark with mark O on the grid, you can overwrite any previous
+                    mark by Player 1.
                   </li>
-                  <li>Sum the two numbers of Player 1.</li>
-                  <li>Submit the sum answer.</li>
                   <li>
-                    Wait for Player 1’s decision. If challenged, respond before
-                    the timeout to avoid losing.
+                    Declare "I win" if you believe you have a winning line.
+                  </li>
+                  <li>
+                    If you don’t act before the timeout ⏳, you automatically
+                    lose.
+                  </li>
+                  <li>
+                    If challenged, wait for BitVMX process the dispute and
+                    receive the result.
                   </li>
                 </ol>
               </div>
@@ -145,33 +146,33 @@ export default function HowToPlayPage() {
             <h3 className="text-lg font-semibold mb-2">⚖️ Possible Outcomes</h3>
             <div className="space-y-4 text-sm text-muted-foreground">
               <p>
-                <strong>✅ Case 1:</strong> Player 2 sums the correct sum →
-                Player 1 <strong>accepts</strong> → Player 2 receives the funds.
+                <strong>✅ Case 1:</strong> A player declares "I win" and the
+                claim is correct → The declaring player receives the funds.
               </p>
 
               <p>
-                <strong>⚔️ Case 2:</strong> Player 2 guesses the sum → Player 1{" "}
-                <strong>challenges</strong>. The truth is settled on-chain:
+                <strong>⚔️ Case 2:</strong> A player declares "I win" and the
+                claim is challenged. The truth is settled on-chain:
               </p>
               <ul className="list-disc list-inside ml-4 mt-1 space-y-1">
                 <li>
-                  If Player 2’s answer was <strong>correct</strong>, Player 2
-                  wins on-chain and receives the funds.
+                  If the claim was <strong>correct</strong>, the declaring
+                  player wins on-chain and receives the funds.
                 </li>
                 <li>
-                  If Player 2’s answer was <strong>wrong</strong>, Player 1 wins
-                  on-chain and wins the funds.
+                  If the claim was <strong>wrong</strong>, the challenging
+                  player wins on-chain and wins the funds.
                 </li>
                 <li>
-                  If Player 1 lied and challenged a correct answer, Player 1
-                  will <strong>lose the dispute</strong> on-chain and Player 2
-                  wins the funds.
+                  If the declaring player lied and challenged a correct
+                  challenge, they will <strong>lose the dispute</strong>{" "}
+                  on-chain and the challenging player wins the funds.
                 </li>
               </ul>
 
               <p>
                 <strong>⏳ Case 3:</strong> Timeout applies at every stage. If
-                either player fails to act (accept, challenge, or respond to a
+                either player fails to act (declare, challenge, or respond to a
                 challenge) before the deadline, that player{" "}
                 <strong>automatically loses</strong> and the other player wins
                 the funds.

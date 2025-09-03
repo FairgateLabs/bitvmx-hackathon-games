@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNextGameState } from "@/hooks/useGameState";
-import { GameState } from "@/types/gameState";
+import { GameState } from "@/types/game";
 
 export function AnswerGame() {
   const [answer, setAnswer] = useState("");

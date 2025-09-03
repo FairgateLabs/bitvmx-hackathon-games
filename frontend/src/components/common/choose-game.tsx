@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useNextGameState } from "@/hooks/useGameState";
-import { GameState } from "@/types/gameState";
+import { GameState } from "@/types/game";
 
 export function ChooseGame() {
   const { mutate: nextState } = useNextGameState();
@@ -54,7 +54,7 @@ export function ChooseGame() {
           </CardFooter>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow opacity-60">
+        <Card className="hover:shadow-lg transition-shadow">
           <CardHeader>
             <CardTitle className="text-2xl">⭕ Tic Tac Toe</CardTitle>
           </CardHeader>
@@ -69,10 +69,9 @@ export function ChooseGame() {
             <Link href="/tic-tac-toe/play-game" className="w-full">
               <Button
                 className="w-full"
-                disabled
                 onClick={() => nextState(GameState.ChooseRole)}
               >
-                🚧 Coming Soon...
+                Play Now!
               </Button>
             </Link>
           </CardFooter>

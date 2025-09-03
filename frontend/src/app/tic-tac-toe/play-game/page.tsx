@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -10,8 +10,8 @@ import {
 } from "@/components/ui/card";
 import { ChooseRole } from "@/components/common/game-role-selector";
 import { WalletSection } from "@/components/common/wallet-section";
-import { SetupGame as SetupGamePlayer1 } from "@/components/player1/setup-game";
-import { SetupGame as SetupGamePlayer2 } from "@/components/player2/setup-game";
+import { SetupGame as SetupGamePlayer1 } from "@/components/tic-tac-toe/player1/setup-game";
+import { SetupGame as SetupGamePlayer2 } from "@/components/tic-tac-toe/player2/setup-game";
 import { ChooseAction } from "@/components/player1/choose-actions";
 import { NetworkInfo } from "@/components/common/network-info";
 import { PeerConnectionInfo } from "@/components/common/peer-connection-info";
@@ -52,9 +52,9 @@ export default function AddNumbersPage() {
   if (gameState === GameState.ChooseRole) {
     return (
       <ChooseRole
-        title="🎮 Add Numbers Game"
+        title="⭕ Tic Tac Toe Game"
         description="Choose the role you want to play"
-        subtitle="Two players compete by adding numbers. Who are you?"
+        subtitle="Two players compete by playing Tic Tac Toe. Who are you?"
       />
     );
   }
@@ -65,8 +65,8 @@ export default function AddNumbersPage() {
         <CardHeader>
           <CardTitle className="text-2xl">
             {role === PlayerRole.Player1
-              ? "➕ Player 1 - Add Numbers"
-              : "🤝 Player 2 - Add Numbers"}
+              ? "➕ Player 1 - Tic Tac Toe"
+              : "🤝 Player 2 - Tic Tac Toe"}
           </CardTitle>
           <CardDescription>
             {role === PlayerRole.Player1

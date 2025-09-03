@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useGameState, useNextGameState } from "@/hooks/useGameState";
-import { GameState } from "@/types/gameState";
+import { GameState } from "@/types/game";
 import { TimeRemaining } from "@/components/ui/time-remaining";
 
 export function ChooseAction() {

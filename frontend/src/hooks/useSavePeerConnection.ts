@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import { getApiBaseUrl } from "../config/backend";
 
 export const useSavePeerConnection = () => {
   // Send IP and Port to backend using react-query
@@ -10,7 +11,8 @@ export const useSavePeerConnection = () => {
       networkAddress: string;
       peerId: string;
     }) => {
-      // const response = await fetch("/api/peer-connection", {
+      // const baseUrl = getApiBaseUrl();
+      // const response = await fetch(`${baseUrl}/api/peer-connection`, {
       //   method: "POST",
       //   headers: {
       //     "Content-Type": "application/json",

@@ -1,14 +1,13 @@
-import { AlertTriangle, Shield, Coins, Link } from "lucide-react";
-import { GameRole } from "../common/game-role-selector";
+import { Shield } from "lucide-react";
 import { useGameRole } from "@/hooks/useGameRole";
 import { TimeRemaining } from "../ui/time-remaining";
-import { GameState } from "@/types/gameState";
+import { GameState, PlayerRole } from "@/types/game";
 import { useNextGameState } from "@/hooks/useGameState";
 
 export function ChallengeAnswer() {
   const { data: role } = useGameRole();
-  let whoDecidedChallenge = role === GameRole.Player1 ? "You" : "Player 1";
-  let whoIsChallenged = role === GameRole.Player1 ? "Player 2" : "Your";
+  let whoDecidedChallenge = role === PlayerRole.Player1 ? "You" : "Player 1";
+  let whoIsChallenged = role === PlayerRole.Player1 ? "Player 2" : "Your";
 
   const { mutate: nextGameState } = useNextGameState();
 

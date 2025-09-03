@@ -9,7 +9,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { useNextGameState } from "@/hooks/useGameState";
-import { GameState } from "@/types/gameState";
+import { GameState } from "@/types/game";
 
 export function PeerConnectionInput() {
   const [networkAddress, setPeerIP] = useState("");

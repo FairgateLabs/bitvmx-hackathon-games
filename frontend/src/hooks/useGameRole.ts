@@ -1,16 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { GameRole, Role } from "@/components/common/game-role-selector";
+import { PlayerRole } from "@/types/game";
 
 // Hook for getting the current role
 const useGameRole = () => {
-  return useQuery<Role>({
+  async function fetchGameRole() {
+    const queryClient = useQueryClient();
+    const current = queryClient.getQueryData<PlayerRole>(["role"]);
+    return current || PlayerRole.Player1;
+  }
+
+  return useQuery<PlayerRole | null>({
     queryKey: ["role"],
-    queryFn: async () => {
-      const queryClient = useQueryClient();
-      const current = queryClient.getQueryData<Role>(["role"]);
-      console.log("current ROLE", current);
-      return current || null;
-    },
+    queryFn: fetchGameRole,
+    initialData: PlayerRole.Player1,
   });
 };
 
@@ -19,7 +21,7 @@ const useSaveGameRole = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (role: GameRole) => {
+    mutationFn: async (role: PlayerRole) => {
       queryClient.setQueryData(["role"], role);
       console.log("saved role", role);
     },

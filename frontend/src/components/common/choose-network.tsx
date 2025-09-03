@@ -9,7 +9,7 @@ import {
 import { useNetwork } from "@/hooks/useNetwork";
 import { useNextGameState } from "@/hooks/useGameState";
 import { NetworkType } from "@/types/network";
-import { GameState } from "@/types/gameState";
+import { GameState } from "@/types/game";
 
 export function ChooseNetwork() {
   const { mutate: nextState } = useNextGameState();

@@ -8,30 +8,23 @@ import {
 import { Button } from "@/components/ui/button";
 import { useNextGameState } from "@/hooks/useGameState";
 import { useSaveGameRole } from "@/hooks/useGameRole";
-import { GameState } from "@/types/gameState";
-
-export enum GameRole {
-  Player1 = "Player 1",
-  Player2 = "Player 2",
-}
-
-export type Role = GameRole.Player1 | GameRole.Player2 | null;
+import { GameState, PlayerRole } from "@/types/game";
 
 interface GameRoleSelectorProps {
-  title?: string;
-  description?: string;
-  subtitle?: string;
+  title: string;
+  description: string;
+  subtitle: string;
 }
 
 export function ChooseRole({
-  title = "🎮 Add Numbers Game",
-  description = "Choose the role you want to play",
-  subtitle = "Two players compete by adding numbers. Who are you?",
+  title,
+  description,
+  subtitle,
 }: GameRoleSelectorProps) {
   const { mutate: nextState } = useNextGameState();
   const { mutate: saveRole } = useSaveGameRole();
 
-  const handleRoleSelect = (role: GameRole) => {
+  const handleRoleSelect = (role: PlayerRole) => {
     saveRole(role);
     nextState(GameState.ChooseNetwork);
   };
@@ -52,7 +45,7 @@ export function ChooseRole({
 
           <div className="grid grid-cols-2 gap-4">
             <Button
-              onClick={() => handleRoleSelect(GameRole.Player1)}
+              onClick={() => handleRoleSelect(PlayerRole.Player1)}
               className="h-24 text-lg"
               variant="outline"
             >
@@ -61,7 +54,7 @@ export function ChooseRole({
             </Button>
 
             <Button
-              onClick={() => handleRoleSelect(GameRole.Player2)}
+              onClick={() => handleRoleSelect(PlayerRole.Player2)}
               className="h-24 text-lg"
               variant="outline"
             >

@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Play } from "lucide-react";
 import { useNextGameState } from "@/hooks/useGameState";
-import { GameState } from "@/types/gameState";
+import { GameState } from "@/types/game";
 
 export function StartGame() {
   const { mutate: nextGameState } = useNextGameState();

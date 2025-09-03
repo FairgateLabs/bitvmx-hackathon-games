@@ -1,6 +1,6 @@
 import { TimeRemaining } from "@/components/ui/time-remaining";
 import { useNextGameState } from "@/hooks/useGameState";
-import { GameState } from "@/types/gameState";
+import { GameState } from "@/types/game";
 
 export function WaitingForAnswer() {
   const { mutate: nextGameState } = useNextGameState();

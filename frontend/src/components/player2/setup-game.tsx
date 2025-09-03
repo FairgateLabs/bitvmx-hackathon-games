@@ -7,7 +7,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { GameNumbersToAdd, GameState } from "@/types/gameState";
+import { GameNumbersToAdd, GameState } from "@/types/game";
 import { useNextGameState } from "@/hooks/useGameState";
 import { useNetwork } from "@/hooks/useNetwork";
 import { NetworkType } from "@/types/network";
