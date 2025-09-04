@@ -1,16 +1,27 @@
-import { useQuery } from "@tanstack/react-query";
-import { GameState } from "@/types/gameState";
+import { GameState } from "@/types/game";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-async function fetchGameState(): Promise<GameState> {
-  const response = await fetch("/api/game-state");
-  const data = await response.json();
-  return data.stateOfTheGame;
-}
-
-export function useGameState() {
+function useGameState() {
   return useQuery<GameState>({
     queryKey: ["gameState"],
-    queryFn: fetchGameState,
-    initialData: GameState.SetupProgram,
+    queryFn: async () => {
+      const queryClient = useQueryClient();
+      const current = queryClient.getQueryData<GameState>(["gameState"]);
+      return current || GameState.ChooseGame;
+    },
+    initialData: GameState.ChooseGame,
   });
 }
+
+function useNextGameState() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (gameState: GameState) => {
+      queryClient.setQueryData(["gameState"], gameState);
+      return gameState;
+    },
+  });
+}
+
+export { useGameState, useNextGameState };

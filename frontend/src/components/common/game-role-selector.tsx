@@ -6,25 +6,29 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-
-export enum GameRole {
-  Player1 = "Player 1",
-  Player2 = "Player 2",
-}
+import { useNextGameState } from "@/hooks/useGameState";
+import { useSaveGameRole } from "@/hooks/useGameRole";
+import { GameState, PlayerRole } from "@/types/game";
 
 interface GameRoleSelectorProps {
-  onRoleSelect: (role: GameRole) => void;
-  title?: string;
-  description?: string;
-  subtitle?: string;
+  title: string;
+  description: string;
+  subtitle: string;
 }
 
-export function GameRoleSelector({
-  onRoleSelect,
-  title = "🎮 Add Numbers Game",
-  description = "Choose the role you want to play",
-  subtitle = "Two players compete by adding numbers. Who are you?",
+export function ChooseRole({
+  title,
+  description,
+  subtitle,
 }: GameRoleSelectorProps) {
+  const { mutate: nextState } = useNextGameState();
+  const { mutate: saveRole } = useSaveGameRole();
+
+  const handleRoleSelect = (role: PlayerRole) => {
+    saveRole(role);
+    nextState(GameState.ChooseNetwork);
+  };
+
   return (
     <div className="container mx-auto p-6 max-w-2xl">
       <Card>
@@ -41,7 +45,7 @@ export function GameRoleSelector({
 
           <div className="grid grid-cols-2 gap-4">
             <Button
-              onClick={() => onRoleSelect(GameRole.Player1)}
+              onClick={() => handleRoleSelect(PlayerRole.Player1)}
               className="h-24 text-lg"
               variant="outline"
             >
@@ -50,7 +54,7 @@ export function GameRoleSelector({
             </Button>
 
             <Button
-              onClick={() => onRoleSelect(GameRole.Player2)}
+              onClick={() => handleRoleSelect(PlayerRole.Player2)}
               className="h-24 text-lg"
               variant="outline"
             >

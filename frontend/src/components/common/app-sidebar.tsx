@@ -70,12 +70,12 @@ const menu_items = [
     items: [
       {
         title: "How to play",
-        url: "tic-tac-toe/how-to-play",
+        url: "/tic-tac-toe/how-to-play",
         icon: BookOpen,
       },
       {
         title: "Play game",
-        url: "tic-tac-toe/play-game",
+        url: "/tic-tac-toe/play-game",
         icon: Gamepad2,
       },
       {

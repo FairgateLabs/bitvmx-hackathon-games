@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -8,89 +8,54 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { GameRoleSelector, GameRole } from "@/components/game-role-selector";
-import { WalletSection } from "@/components/wallet-section";
+import { ChooseRole } from "@/components/common/game-role-selector";
+import { WalletSection } from "@/components/common/wallet-section";
 import { SetupGame as SetupGamePlayer1 } from "@/components/player1/setup-game";
 import { SetupGame as SetupGamePlayer2 } from "@/components/player2/setup-game";
-import { GameActions } from "@/components/game-actions";
-import { NetworkInfo } from "@/components/network-info";
-import { PeerConnectionInfo } from "@/components/peer-connection-info";
-import { PeerConnectionInput } from "@/components/peer-connection-input";
-import { GameUUIDInput } from "@/components/game-uuid-input";
-import { Button } from "@/components/ui/button";
-import { NetworkType } from "@/types/network";
-import { GameState } from "@/types/gameState";
-import { useGameState } from "@/hooks/useGameState";
-import { useGame } from "@/hooks/useGame";
+import { ChooseAction } from "@/components/player1/choose-actions";
+import { NetworkInfo } from "@/components/common/network-info";
+import { PeerConnectionInfo } from "@/components/common/peer-connection-info";
+import { PeerConnectionInput } from "@/components/common/peer-connection-input";
+import { ChooseNetwork } from "@/components/common/choose-network";
+import { GameState, PlayerRole } from "@/types/game";
 import { StartGame } from "@/components/player1/start-game";
+import { useGameState, useNextGameState } from "@/hooks/useGameState";
+import { useGameRole } from "@/hooks/useGameRole";
+import { AcceptLoseGame } from "@/components/player1/accept-lose-game";
+import { ChallengeWinGame } from "@/components/player1/challege-win-game";
+import { ChallengeWinGame as ChallengeWinGamePlayer2 } from "@/components/player2/challenge-win-game";
+import { ChallengeAnswer } from "@/components/player1/challenge-answer";
+import { AnswerGame } from "@/components/player2/answer-game";
+import { WaitingForAnswer } from "@/components/player2/waiting-for-answer";
+import { TimeoutWinGame } from "@/components/player1/timeout-win-game";
+import { WaitingAnswer } from "@/components/player1/waiting-answer";
+import { ChallengeLoseGame } from "@/components/player1/challenge-lose-game";
+import { TimeoutLoseGame } from "@/components/player2/timeout-lose-game";
+import { AcceptWinGame } from "@/components/player2/accept-win-game";
+import { WaitingStartGame } from "@/components/player2/waiting-start-game";
 
 export default function AddNumbersPage() {
-  const [gameRole, setGameRole] = useState<GameRole | null>(null);
-  const [isGameStarted, setIsGameStarted] = useState(false);
-  const { gameId } = useGame();
   const { data: gameState } = useGameState();
+  const { data: role } = useGameRole();
+  const { mutate: nextGameState } = useNextGameState();
 
-  const [networkSelected, setNetworkSelected] = useState<NetworkType | null>(
-    null
-  );
+  useEffect(() => {
+    if (gameState === GameState.ChooseGame) {
+      nextGameState(GameState.ChooseRole);
+    }
+  });
 
-  if (!networkSelected) {
-    return (
-      <div className="container mx-auto p-6 max-w-[840px]">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl text-center">
-              🔽 Select Network
-            </CardTitle>
-            <CardDescription className="text-center">
-              Choose the Bitcoin network for your game session.
-              <br />
-              In Regtest, you have the flexibility to simulate transactions
-              without real funds, ideal for testing and development. <br />
-              In Testnet, transactions mimic real-world scenarios, requiring you
-              to fund your wallet with testnet Bitcoins.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-4">
-            <Button
-              onClick={() => setNetworkSelected(NetworkType.Regtest)}
-              className="flex text-center h-40 text-lg"
-              variant="outline"
-            >
-              <div className="flex flex-col w-full gap-2 h-[130px]">
-                🔗 Regtest
-                <p className="text-sm font-normal max-w-xs whitespace-normal block">
-                  Easy to use and ideal for testing and development. Funds are
-                  given to you automatically without worrying about funding your
-                  wallet.
-                </p>
-              </div>
-            </Button>
-            <Button
-              onClick={() => setNetworkSelected(NetworkType.Testnet)}
-              className="flex text-center h-40 text-lg"
-              variant="outline"
-              disabled
-            >
-              <div className="flex flex-col w-full gap-2 h-[130px]">
-                🔗 Testnet
-                <p className="text-sm font-normal max-w-xs whitespace-normal block">
-                  More complex and realistic. You need to fund your wallet
-                  manually to play the game.
-                </p>
-              </div>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
+  if (gameState === GameState.ChooseNetwork) {
+    return <ChooseNetwork />;
   }
 
-  if (!gameRole) {
+  if (gameState === GameState.ChooseRole) {
     return (
-      <div className="space-y-6">
-        <GameRoleSelector onRoleSelect={setGameRole} />
-      </div>
+      <ChooseRole
+        title="🎮 Add Numbers Game"
+        description="Choose the role you want to play"
+        subtitle="Two players compete by adding numbers. Who are you?"
+      />
     );
   }
 
@@ -99,47 +64,79 @@ export default function AddNumbersPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl">
-            {gameRole === GameRole.Player1
+            {role === PlayerRole.Player1
               ? "➕ Player 1 - Add Numbers"
               : "🤝 Player 2 - Add Numbers"}
           </CardTitle>
           <CardDescription>
-            {gameRole === GameRole.Player1
+            {role === PlayerRole.Player1
               ? "Create the game and choose the numbers to add"
               : "Join the game and answer the sum"}
           </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-6">
-          <NetworkInfo networkSelected={networkSelected} />
-          <WalletSection networkSelected={networkSelected} />
+          <NetworkInfo />
+          <WalletSection />
           <PeerConnectionInfo />
-          <PeerConnectionInput networkSelected={networkSelected} />
-          {/* Game UUID Section */}
-          {gameRole === GameRole.Player2 && <GameUUIDInput />}
-
-          {gameRole === GameRole.Player1 ? (
+          <PeerConnectionInput />
+          {role === PlayerRole.Player1 && (
             <>
-              <SetupGamePlayer1 />
-              <StartGame
-                onStartGame={() => setIsGameStarted(true)}
-                isPlayer1={true}
-                isGameStarted={isGameStarted}
-                gameId={gameId}
-              />
+              {gameState === GameState.SetupProgram && <SetupGamePlayer1 />}
+              {gameState === GameState.StartGame && <StartGame />}
+              {gameState === GameState.WaitingAnswer && <WaitingAnswer />}
+              {gameState === GameState.ChooseAction && <ChooseAction />}
+
+              {gameState === GameState.ChallengeAnswer && <ChallengeAnswer />}
+
+              {gameState === GameState.GameCompleteYouLoseByAccept && (
+                <AcceptLoseGame />
+              )}
+
+              {gameState === GameState.GameCompleteYouWinByTimeout && (
+                <TimeoutWinGame />
+              )}
+
+              {gameState === GameState.GameCompleteYouLoseByChallenge && (
+                <ChallengeLoseGame />
+              )}
+              {gameState === GameState.GameCompleteYouLoseByTimeout && (
+                <TimeoutLoseGame />
+              )}
+
+              {gameState === GameState.GameCompleteYouWinByChallenge && (
+                <ChallengeWinGame />
+              )}
             </>
-          ) : (
-            <SetupGamePlayer2 />
           )}
 
-          {gameState === GameState.WaitingResponse &&
-            gameRole === GameRole.Player1 && (
-              <GameActions
-                onAccept={() => {}}
-                onChallenge={() => {}}
-                isLoading={false}
-              />
-            )}
+          {role === PlayerRole.Player2 && (
+            <>
+              {gameState === GameState.SetupProgram && <SetupGamePlayer2 />}
+              {gameState === GameState.WaitingStartGame && <WaitingStartGame />}
+              {gameState === GameState.StartGame && <AnswerGame />}
+              {gameState === GameState.ChooseAction && <WaitingForAnswer />}
+              {gameState === GameState.ChallengeAnswer && <ChallengeAnswer />}
+
+              {gameState === GameState.GameCompleteYouLoseByChallenge && (
+                <ChallengeLoseGame />
+              )}
+              {gameState === GameState.GameCompleteYouLoseByTimeout && (
+                <TimeoutLoseGame />
+              )}
+
+              {gameState === GameState.GameCompleteYouWinByChallenge && (
+                <ChallengeWinGamePlayer2 />
+              )}
+
+              {gameState === GameState.GameCompleteYouWinByAccept && (
+                <AcceptWinGame />
+              )}
+              {gameState === GameState.GameCompleteYouWinByTimeout && (
+                <TimeoutWinGame />
+              )}
+            </>
+          )}
         </CardContent>
       </Card>
     </div>

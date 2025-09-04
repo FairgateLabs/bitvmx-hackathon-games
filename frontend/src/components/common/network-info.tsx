@@ -1,19 +1,14 @@
 import { useState } from "react";
-import { NetworkType } from "@/types/network";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { useNetwork } from "@/hooks/useNetwork";
 
-interface NetworkInfoProps {
-  networkSelected: NetworkType | null;
-}
-
-export function NetworkInfo({ networkSelected }: NetworkInfoProps) {
+export function NetworkInfo() {
   const [isOpen, setIsOpen] = useState(true);
-
-  if (!networkSelected) return null;
+  const { data: network } = useNetwork();
 
   return (
     <div className="p-4 bg-white border border-gray-200 rounded-lg">
@@ -26,8 +21,7 @@ export function NetworkInfo({ networkSelected }: NetworkInfoProps) {
         <CollapsibleContent>
           <p className="text-sm text-gray-700">
             You are currently connected to the{" "}
-            <span className="text-sm font-semibold">{networkSelected}</span>{" "}
-            network.
+            <span className="text-sm font-semibold">{network}</span> network.
           </p>
         </CollapsibleContent>
       </Collapsible>

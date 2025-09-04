@@ -1,14 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
+import { getApiBaseUrl } from "../config/backend";
 
 export function useGame() {
   async function fetchGameId() {
-    // Simulate fetching game ID from a request
-    const response = await fetch("/api/game-id");
-    if (!response.ok) {
-      throw new Error("Failed to fetch game ID");
-    }
-    const data = await response.json();
-    return data.gameId;
+    // const baseUrl = getApiBaseUrl();
+    // const response = await fetch(`${baseUrl}/api/game-id`);
+    // if (!response.ok) {
+    //   throw new Error("Failed to fetch game ID");
+    // }
+    // const data = await response.json();
+    // return data.gameId;
+
+    return "123";
   }
 
   return useQuery({

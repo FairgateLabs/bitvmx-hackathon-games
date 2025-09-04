@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:3000": "PORT=3000 next dev",
+    "dev:3001": "PORT=3001 next dev",
+    "dev:multiple": "./scripts/run-multiple.sh",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"

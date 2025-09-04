@@ -54,10 +54,18 @@ export default function HowToPlayPage() {
             <h3 className="text-lg font-semibold mb-2">
               🆔 Game Identification
             </h3>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground pb-2">
               Player 1 creates the <strong>Game UUID</strong> (program ID).
             </p>
             <p className="text-sm text-muted-foreground">
+              {" "}
+              Player 1 must enter:
+            </p>
+            <ul className="list-disc list-inside text-sm text-muted-foreground mt-2">
+              <li>Player 2’s IP address</li>
+              <li>The corresponding port</li>
+            </ul>
+            <p className="text-sm text-muted-foreground pt-2">
               {" "}
               Player 2 must enter:
             </p>
@@ -100,17 +108,11 @@ export default function HowToPlayPage() {
               <div className="p-4 rounded-xl bg-white shadow-sm border">
                 <h4 className="font-semibold mb-2">👤 Player 1</h4>
                 <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-1">
+                  <li>Choose two numbers to add and generate the program.</li>
+                  <li>Wait for Player 2’s sum answer.</li>
                   <li>
-                    Choose two <strong>secret</strong> numbers and generate the
-                    program (your numbers remain hidden).
-                  </li>
-                  <li>
-                    Wait for Player 2’s guess (a single <strong>sum</strong>{" "}
-                    value).
-                  </li>
-                  <li>
-                    Review the guess and either <strong>Accept</strong> (they
-                    win) or <strong>Challenge</strong> (start a dispute
+                    Review the sum answer and either <strong>Accept</strong>{" "}
+                    (they win) or <strong>Challenge</strong> (start a dispute
                     on-chain).
                   </li>
                   <li>
@@ -127,14 +129,8 @@ export default function HowToPlayPage() {
                   <li>
                     Join the game using the UUID, IP, and port from Player 1.
                   </li>
-                  <li>
-                    Guess the <strong>sum</strong> of Player 1’s two hidden
-                    numbers (you do <em>not</em> see the numbers and don’t need
-                    to provide them).
-                  </li>
-                  <li>
-                    Submit a single value (e.g., <code>sum = 7</code>).
-                  </li>
+                  <li>Sum the two numbers of Player 1.</li>
+                  <li>Submit the sum answer.</li>
                   <li>
                     Wait for Player 1’s decision. If challenged, respond before
                     the timeout to avoid losing.
@@ -149,7 +145,7 @@ export default function HowToPlayPage() {
             <h3 className="text-lg font-semibold mb-2">⚖️ Possible Outcomes</h3>
             <div className="space-y-4 text-sm text-muted-foreground">
               <p>
-                <strong>✅ Case 1:</strong> Player 2 guesses the correct sum →
+                <strong>✅ Case 1:</strong> Player 2 sums the correct sum →
                 Player 1 <strong>accepts</strong> → Player 2 receives the funds.
               </p>
 

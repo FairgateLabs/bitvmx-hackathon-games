@@ -10,7 +10,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { GameNumbersToAdd } from "@/types/gameState";
+import { GameNumbersToAdd } from "@/types/game";
 
 interface GameUUIDInputProps {
   isExpanded?: boolean;

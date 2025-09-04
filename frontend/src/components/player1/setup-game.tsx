@@ -8,14 +8,19 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { CopyButton } from "../ui/copy-button";
-import { GameNumbersToAdd } from "@/types/gameState";
+import { GameNumbersToAdd, GameState } from "@/types/game";
+import { useNextGameState } from "@/hooks/useGameState";
+import { useNetwork } from "@/hooks/useNetwork";
+import { NetworkType } from "@/types/network";
 
 export function SetupGame() {
   const [numbers, setNumbers] = useState<GameNumbersToAdd>({});
   const [isLoading, setIsLoading] = useState(false);
   const [inputsDisabled, setInputsDisabled] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
+  const [isSuccess, setIsSuccess] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
+  const { mutate: nextGameState } = useNextGameState();
+  const { data: network } = useNetwork();
 
   const generateProgram = () => {
     // Placeholder for the actual generate program logic
@@ -23,11 +28,9 @@ export function SetupGame() {
     setTimeout(() => {
       setIsLoading(false);
       setInputsDisabled(true);
-      setSuccessMessage(
-        "Program generated successfully with the provided numbers."
-      );
-      console.log("Program generated with numbers:", numbers);
+      setIsSuccess(true);
     }, 2000);
+    nextGameState(GameState.StartGame);
   };
 
   const handleNumberChange = (key: string, value: string) => {
@@ -52,6 +55,8 @@ export function SetupGame() {
     }
   }, []);
 
+  let amountToBet = network && network === NetworkType.Regtest ? 1 : 0.0001;
+
   return (
     <div className="space-y-4 p-4 rounded-lg border border-gray-200">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -67,7 +72,7 @@ export function SetupGame() {
               your game.
             </p>
 
-            <div className="space-y-3">
+            <div className="space-y-3 flex gap-8">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <p className="text-sm text-gray-700 mb-1">Game UUID:</p>
@@ -77,6 +82,12 @@ export function SetupGame() {
                 </div>
                 <div className="flex gap-2 ml-3 mt-5">
                   <CopyButton text={gameUUID} size="sm" variant="outline" />
+                </div>
+              </div>
+              <div className="space-y-3 mt-4">
+                <div className="flex items-center justify-between gap-2 pt-4">
+                  <p className="text-sm text-gray-700">Amount to Bet:</p>
+                  <p className="font-mono text-sm">{amountToBet} BTC</p>
                 </div>
               </div>
             </div>
@@ -129,7 +140,7 @@ export function SetupGame() {
                 {isLoading ? "Generating..." : "🚀 Generate Program"}
               </Button>
 
-              {!successMessage && (
+              {!isSuccess && (
                 <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <h3 className="font-semibold mb-2 text-yellow-800">
                     ⚠️ Choose the numbers to start the program
@@ -141,12 +152,14 @@ export function SetupGame() {
                 </div>
               )}
 
-              {successMessage && (
+              {isSuccess && (
                 <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                   <h3 className="font-semibold mb-2 text-green-800">
                     ✅ UUID Generation Successful
                   </h3>
-                  <p className="text-sm text-green-700">{successMessage}</p>
+                  <p className="text-sm text-green-700">
+                    Program generated successfully with the provided numbers.
+                  </p>
                 </div>
               )}
             </div>
