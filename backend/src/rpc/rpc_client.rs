@@ -1,20 +1,16 @@
-use std::net::IpAddr;
 use crate::rpc::chained_map::ChainedMap;
-use std::sync::Arc;
+use bitvmx_broker::rpc::{async_client::AsyncClient, BrokerConfig};
+use bitvmx_client::types::{IncomingBitVMXApiMessages, OutgoingBitVMXApiMessages};
+use std::net::IpAddr;
 use std::sync::atomic::{AtomicBool, Ordering};
-use bitvmx_broker::rpc::{BrokerConfig, async_client::AsyncClient};
-use bitvmx_client::{
-    types::{IncomingBitVMXApiMessages, OutgoingBitVMXApiMessages},
-};
+use std::sync::Arc;
 use tokio::sync::broadcast::Sender;
 use tokio::task::JoinHandle;
 use tracing::{debug, error, info, trace, warn, Instrument};
 
+use std::time::Duration;
 use tokio::sync::{mpsc, oneshot, Mutex};
 use tokio::time::sleep;
-use std::time::Duration;
-
-
 
 /// BitVMX RPC Client with async message queue
 #[derive(Debug, Clone)]
@@ -29,11 +25,20 @@ pub struct RpcClient {
     ready: Arc<AtomicBool>,
 }
 
-
 impl RpcClient {
     /// Start a new RPC service
     /// Initialize the Broker RPC client with the specified port
-    pub fn connect( my_id:u32, to_id:u32, broker_port: u16, broker_ip: Option<IpAddr>, shutdown_tx: Option<&Sender<()>>) -> (Arc<Self>,JoinHandle<Result<(), anyhow::Error>>, JoinHandle<Result<(), anyhow::Error>>) {
+    pub fn connect(
+        my_id: u32,
+        to_id: u32,
+        broker_port: u16,
+        broker_ip: Option<IpAddr>,
+        shutdown_tx: Option<&Sender<()>>,
+    ) -> (
+        Arc<Self>,
+        JoinHandle<Result<(), anyhow::Error>>,
+        JoinHandle<Result<(), anyhow::Error>>,
+    ) {
         let config = BrokerConfig::new(broker_port, broker_ip);
         let client = AsyncClient::new(&config);
 
@@ -52,76 +57,81 @@ impl RpcClient {
         (service, sender_task, listener_task)
     }
 
-    pub async fn send_request(&self, message: IncomingBitVMXApiMessages) -> Result<OutgoingBitVMXApiMessages, anyhow::Error> {
+    pub async fn send_request(
+        &self,
+        message: IncomingBitVMXApiMessages,
+    ) -> Result<OutgoingBitVMXApiMessages, anyhow::Error> {
         let correlation_id = self.request_to_correlation_id(&message)?;
-        debug!("Sending to BitVMX request: {:?} message: {:?}", correlation_id, message);
+        debug!(
+            "Sending to BitVMX request: {:?} message: {:?}",
+            correlation_id, message
+        );
         let (tx, rx) = oneshot::channel();
         {
             let mut pending = self.pending.lock().await;
             pending.insert(correlation_id.clone(), tx);
         }
 
-        self.outgoing.send((correlation_id.clone(), message)).await?;
+        self.outgoing
+            .send((correlation_id.clone(), message))
+            .await?;
         // TODO add timeout
         let response = rx.await?;
-        debug!("Received from BitVMX response: {:?} message: {:?}", correlation_id, response);
+        debug!(
+            "Received from BitVMX response: {:?} message: {:?}",
+            correlation_id, response
+        );
         Ok(response)
     }
 
-    pub async fn send_fire_and_forget(&self, message: IncomingBitVMXApiMessages) -> Result<(), anyhow::Error> {
+    pub async fn send_fire_and_forget(
+        &self,
+        message: IncomingBitVMXApiMessages,
+    ) -> Result<(), anyhow::Error> {
         let correlation_id = self.request_to_correlation_id(&message)?;
-        debug!("Sending fire-and-forget to BitVMX request: {:?} message: {:?}", correlation_id, message);
+        debug!(
+            "Sending fire-and-forget to BitVMX request: {:?} message: {:?}",
+            correlation_id, message
+        );
 
-        self.outgoing.send((correlation_id.clone(), message)).await?;
+        self.outgoing
+            .send((correlation_id.clone(), message))
+            .await?;
         Ok(())
     }
 
     /// Convert the message to send to BitVMX to a correlation ID
-    fn request_to_correlation_id(&self, message: &IncomingBitVMXApiMessages) -> Result<String, anyhow::Error> {
+    fn request_to_correlation_id(
+        &self,
+        message: &IncomingBitVMXApiMessages,
+    ) -> Result<String, anyhow::Error> {
         // Serialize the message
         match message {
             IncomingBitVMXApiMessages::SetupKey(uuid, _addresses, _operator_key, _funding_key) => {
                 Ok(uuid.to_string())
-            },
-            IncomingBitVMXApiMessages::GetAggregatedPubkey(uuid) => {
-                Ok(uuid.to_string())
-            },
-            IncomingBitVMXApiMessages::GetPubKey(uuid, _new_key) => {
-                Ok(uuid.to_string())
-            },
-            IncomingBitVMXApiMessages::GetCommInfo() => {
-                Ok("get_comm_info".to_string())
-            },
-            IncomingBitVMXApiMessages::Ping() => {
-                Ok("ping".to_string())
-            },
-            _ => {
-                Err(anyhow::anyhow!("unhandled message type: {:?}", message))
             }
+            IncomingBitVMXApiMessages::GetAggregatedPubkey(uuid) => Ok(uuid.to_string()),
+            IncomingBitVMXApiMessages::GetPubKey(uuid, _new_key) => Ok(uuid.to_string()),
+            IncomingBitVMXApiMessages::GetCommInfo() => Ok("get_comm_info".to_string()),
+            IncomingBitVMXApiMessages::Ping() => Ok("ping".to_string()),
+            _ => Err(anyhow::anyhow!("unhandled message type: {:?}", message)),
         }
     }
 
     /// Convert the response received from BitVMX to a correlation ID
-    fn response_to_correlation_id(&self, response: &OutgoingBitVMXApiMessages) -> Result<String, anyhow::Error> {
+    fn response_to_correlation_id(
+        &self,
+        response: &OutgoingBitVMXApiMessages,
+    ) -> Result<String, anyhow::Error> {
         match response {
-            OutgoingBitVMXApiMessages::AggregatedPubkeyNotReady(uuid) => {
-                Ok(uuid.to_string())
-            },
+            OutgoingBitVMXApiMessages::AggregatedPubkeyNotReady(uuid) => Ok(uuid.to_string()),
             OutgoingBitVMXApiMessages::AggregatedPubkey(uuid, _aggregated_pubkey) => {
                 Ok(uuid.to_string())
-            },
-            OutgoingBitVMXApiMessages::PubKey(uuid, _pub_key) => {
-                Ok(uuid.to_string())
             }
-            OutgoingBitVMXApiMessages::CommInfo(_p2p_address) => {
-                Ok("get_comm_info".to_string())
-            }
-            OutgoingBitVMXApiMessages::Pong() => {
-                Ok("ping".to_string())
-            }
-            _ => {
-                Err(anyhow::anyhow!("unhandled message type: {:?}", response))
-            }
+            OutgoingBitVMXApiMessages::PubKey(uuid, _pub_key) => Ok(uuid.to_string()),
+            OutgoingBitVMXApiMessages::CommInfo(_p2p_address) => Ok("get_comm_info".to_string()),
+            OutgoingBitVMXApiMessages::Pong() => Ok("ping".to_string()),
+            _ => Err(anyhow::anyhow!("unhandled message type: {:?}", response)),
         }
     }
 
@@ -130,25 +140,39 @@ impl RpcClient {
         let response = serde_json::from_str(&resp)?;
 
         let correlation_id = self.response_to_correlation_id(&response)?;
-        trace!("Received response: {:?} message: {:?}", correlation_id, response);
+        trace!(
+            "Received response: {:?} message: {:?}",
+            correlation_id,
+            response
+        );
 
         let tx = {
             let mut pending = self.pending.lock().await;
             let optional_tx = pending.remove_first_for_key(&correlation_id)?;
             if optional_tx.is_none() {
-                warn!("No response handler found for correlation ID: {}", correlation_id);
+                warn!(
+                    "No response handler found for correlation ID: {}",
+                    correlation_id
+                );
                 return Ok(());
             }
             let tx = optional_tx.unwrap();
             tx
         };
 
-        tx.send(response).map_err(|e| anyhow::anyhow!("failed to send response: {:?}", e))?;
+        tx.send(response)
+            .map_err(|e| anyhow::anyhow!("failed to send response: {:?}", e))?;
 
         Ok(())
     }
 
-    fn spawn_sender(service: Arc<Self>, mut rx: mpsc::Receiver<(String, IncomingBitVMXApiMessages)>, my_id:u32, to_id:u32, shutdown_tx: Option<&Sender<()>>) -> JoinHandle<Result<(), anyhow::Error>> {
+    fn spawn_sender(
+        service: Arc<Self>,
+        mut rx: mpsc::Receiver<(String, IncomingBitVMXApiMessages)>,
+        my_id: u32,
+        to_id: u32,
+        shutdown_tx: Option<&Sender<()>>,
+    ) -> JoinHandle<Result<(), anyhow::Error>> {
         let mut shutdown_rx = None;
         if let Some(shutdown_tx) = shutdown_tx {
             shutdown_rx = Some(shutdown_tx.subscribe());
@@ -175,11 +199,15 @@ impl RpcClient {
                 info!("Channel closed, exiting loop");
                 Ok::<_, anyhow::Error>(()) // coercion to Result
             }
-            .instrument(tracing::info_span!("rpc_sender"))
+            .instrument(tracing::info_span!("rpc_sender")),
         )
     }
 
-    fn spawn_listener(service: Arc<RpcClient>, my_id:u32, shutdown_tx: Option<&Sender<()>>) -> JoinHandle<Result<(), anyhow::Error>> {
+    fn spawn_listener(
+        service: Arc<RpcClient>,
+        my_id: u32,
+        shutdown_tx: Option<&Sender<()>>,
+    ) -> JoinHandle<Result<(), anyhow::Error>> {
         let mut shutdown_rx = None;
         if let Some(shutdown_tx) = shutdown_tx {
             shutdown_rx = Some(shutdown_tx.subscribe());
@@ -199,18 +227,18 @@ impl RpcClient {
                     match service.client.get_msg(my_id).await {
                         Ok(Some(msg)) => {
                             trace!("Received message from BitVMX: {:?}", msg);
-                            service.handle_response( msg.msg).await?;
+                            service.handle_response(msg.msg).await?;
                             service.client.ack(my_id, msg.uid).await?;
-                        },
-                        Ok(None) => { 
+                        }
+                        Ok(None) => {
                             // No message received, sleep and continue loop
-                        },
+                        }
                         Err(e) => {
                             error!("Get message from BitVMX failed: {e}");
                             break;
-                        },
+                        }
                     }
-                    
+
                     if first_time {
                         first_time = false;
                         service.set_ready();
@@ -219,7 +247,7 @@ impl RpcClient {
                 }
                 Ok::<_, anyhow::Error>(()) // coercion to Result
             }
-            .instrument(tracing::info_span!("rpc_listener"))
+            .instrument(tracing::info_span!("rpc_listener")),
         )
     }
 
@@ -242,5 +270,4 @@ impl RpcClient {
             tokio::time::sleep(Duration::from_millis(10)).await;
         }
     }
-
 }

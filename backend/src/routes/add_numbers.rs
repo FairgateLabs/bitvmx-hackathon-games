@@ -1,10 +1,15 @@
-use axum::{Router, routing::{get, post}, extract::{Path, State}, http::StatusCode, Json};
+use crate::http_errors;
 use crate::models::{
-    CreateAddNumbersGameRequest, CreateAddNumbersGameResponse, AddNumbersGameResponse,
-    AddNumbersRequest, AddNumbersResponse, MakeGuessRequest, MakeGuessResponse, ErrorResponse
+    AddNumbersGameResponse, AddNumbersRequest, AddNumbersResponse, CreateAddNumbersGameRequest,
+    CreateAddNumbersGameResponse, ErrorResponse, MakeGuessRequest, MakeGuessResponse,
 };
 use crate::state::AppState;
-use crate::http_errors;
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    routing::{get, post},
+    Json, Router,
+};
 use uuid::Uuid;
 
 pub fn router() -> Router<AppState> {
@@ -58,12 +63,12 @@ pub async fn get_game(
     Path(id): Path<Uuid>,
 ) -> Result<Json<AddNumbersGameResponse>, (StatusCode, Json<ErrorResponse>)> {
     let service = app_state.add_numbers_service.read().await;
-    
-    let game = service.get_game(id).ok_or(http_errors::not_found("Game not found"))?;
 
-    Ok(Json(AddNumbersGameResponse {
-        game: game.clone(),
-    }))
+    let game = service
+        .get_game(id)
+        .ok_or(http_errors::not_found("Game not found"))?;
+
+    Ok(Json(AddNumbersGameResponse { game: game.clone() }))
 }
 
 /// Add two numbers to the game
@@ -87,7 +92,7 @@ pub async fn add_numbers(
     Json(request): Json<AddNumbersRequest>,
 ) -> Result<Json<AddNumbersResponse>, (StatusCode, Json<ErrorResponse>)> {
     let mut service = app_state.add_numbers_service.write().await;
-    
+
     let game = service
         .add_numbers(id, request.player, request.number1, request.number2)
         .map_err(|error| {
@@ -121,7 +126,7 @@ pub async fn make_guess(
     Json(request): Json<MakeGuessRequest>,
 ) -> Result<Json<MakeGuessResponse>, (StatusCode, Json<ErrorResponse>)> {
     let mut service = app_state.add_numbers_service.write().await;
-    
+
     let game = service
         .make_guess(id, request.player, request.guess)
         .map_err(|error| {

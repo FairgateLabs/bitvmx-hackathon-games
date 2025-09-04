@@ -1,7 +1,11 @@
-use std::{future::Future, pin::Pin, task::{Context, Poll}};
 use axum::{
-    body::{Body, to_bytes},
+    body::{to_bytes, Body},
     http::{Request, Response},
+};
+use std::{
+    future::Future,
+    pin::Pin,
+    task::{Context, Poll},
 };
 use tower::{Layer, Service};
 use tracing::info;

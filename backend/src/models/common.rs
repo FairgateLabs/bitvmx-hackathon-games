@@ -15,4 +15,3 @@ pub struct HealthResponse {
     pub status: String,
     pub timestamp: u64,
 }
-

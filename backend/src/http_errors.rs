@@ -1,6 +1,6 @@
+use crate::models::ErrorResponse;
 use axum::Json;
 use http::StatusCode;
-use crate::models::ErrorResponse;
 
 /// Create a bad request error response
 pub fn bad_request(message: &str) -> (StatusCode, Json<ErrorResponse>) {
@@ -36,7 +36,11 @@ pub fn internal_server_error(message: &str) -> (StatusCode, Json<ErrorResponse>)
 }
 
 /// Create a custom error response
-pub fn error_response(status: StatusCode, error_type: &str, message: &str) -> (StatusCode, Json<ErrorResponse>) {
+pub fn error_response(
+    status: StatusCode,
+    error_type: &str,
+    message: &str,
+) -> (StatusCode, Json<ErrorResponse>) {
     (
         status,
         Json(ErrorResponse {
@@ -76,7 +80,8 @@ mod tests {
 
     #[test]
     fn test_error_response() {
-        let (status, response) = error_response(StatusCode::UNAUTHORIZED, "UNAUTHORIZED", "Access denied");
+        let (status, response) =
+            error_response(StatusCode::UNAUTHORIZED, "UNAUTHORIZED", "Access denied");
         assert_eq!(status, StatusCode::UNAUTHORIZED);
         assert_eq!(response.0.error, "UNAUTHORIZED");
         assert_eq!(response.0.message, "Access denied");

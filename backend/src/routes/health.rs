@@ -1,8 +1,8 @@
-use axum::{Router, routing::get, Json, extract::State};
 use crate::models::HealthResponse;
 use crate::state::AppState;
-use tracing::instrument;
+use axum::{extract::State, routing::get, Json, Router};
 use std::time::{SystemTime, UNIX_EPOCH};
+use tracing::instrument;
 
 pub fn router() -> Router<AppState> {
     // Base path is /api/health
@@ -24,12 +24,9 @@ pub async fn health_check(State(_app_state): State<AppState>) -> Json<HealthResp
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_secs();
-    
+
     Json(HealthResponse {
         status: "healthy".to_string(),
         timestamp,
     })
 }
-
-
-

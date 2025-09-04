@@ -1,10 +1,10 @@
-use std::sync::Arc;
 use crate::models::{AggregatedKey, P2PAddress};
-use bitcoin::PublicKey;
-use tracing::{trace, debug};
-use uuid::Uuid;
-use bitvmx_client::types::{IncomingBitVMXApiMessages, OutgoingBitVMXApiMessages};
 use crate::rpc::rpc_client::RpcClient;
+use bitcoin::PublicKey;
+use bitvmx_client::types::{IncomingBitVMXApiMessages, OutgoingBitVMXApiMessages};
+use std::sync::Arc;
+use tracing::{debug, trace};
+use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct BitVMXService {
@@ -41,14 +41,24 @@ impl BitVMXService {
     }
 
     /// Create aggregated key
-    pub async fn create_agregated_key(&self, uuid: Uuid, p2p_addresses: Vec<P2PAddress>, operator_keys: Option<Vec<PublicKey>>, leader_idx: u16) -> Result<AggregatedKey, anyhow::Error> {
+    pub async fn create_agregated_key(
+        &self,
+        uuid: Uuid,
+        p2p_addresses: Vec<P2PAddress>,
+        operator_keys: Option<Vec<PublicKey>>,
+        leader_idx: u16,
+    ) -> Result<AggregatedKey, anyhow::Error> {
         trace!("Create aggregated key from BitVMX");
-        let addresses = p2p_addresses.iter().map(|p2p| bitvmx_client::types::P2PAddress {
-            address: p2p.address.clone(),
-            peer_id: bitvmx_client::types::PeerId(p2p.peer_id.clone()),
-        }).collect();
-        let message = IncomingBitVMXApiMessages::SetupKey(uuid, addresses, operator_keys, leader_idx);
-    
+        let addresses = p2p_addresses
+            .iter()
+            .map(|p2p| bitvmx_client::types::P2PAddress {
+                address: p2p.address.clone(),
+                peer_id: bitvmx_client::types::PeerId(p2p.peer_id.clone()),
+            })
+            .collect();
+        let message =
+            IncomingBitVMXApiMessages::SetupKey(uuid, addresses, operator_keys, leader_idx);
+
         let response = self.rpc_client.send_request(message).await?;
 
         if let OutgoingBitVMXApiMessages::AggregatedPubkey(uuid, aggregated_pubkey) = response {
@@ -58,14 +68,20 @@ impl BitVMXService {
                 aggregated_key: aggregated_pubkey.to_string(),
             })
         } else {
-            Err(anyhow::anyhow!("Expected AggregatedPubkey response, got: {:?}", response))
+            Err(anyhow::anyhow!(
+                "Expected AggregatedPubkey response, got: {:?}",
+                response
+            ))
         }
     }
 
     /// Get aggregated key
     pub async fn get_aggregated_key(&self, uuid: Uuid) -> Result<AggregatedKey, anyhow::Error> {
         trace!("Get aggregated key from BitVMX");
-        let response = self.rpc_client.send_request(IncomingBitVMXApiMessages::GetAggregatedPubkey(uuid)).await?;
+        let response = self
+            .rpc_client
+            .send_request(IncomingBitVMXApiMessages::GetAggregatedPubkey(uuid))
+            .await?;
         if let OutgoingBitVMXApiMessages::AggregatedPubkey(uuid, aggregated_pubkey) = response {
             trace!("Obtained aggregated key: {:?}", aggregated_pubkey);
             Ok(AggregatedKey {
@@ -75,11 +91,12 @@ impl BitVMXService {
         } else if let OutgoingBitVMXApiMessages::AggregatedPubkeyNotReady(uuid) = response {
             Err(anyhow::anyhow!("Aggregated key not ready: {:?}", uuid))
         } else {
-            Err(anyhow::anyhow!("Expected AggregatedPubkey response, got: {:?}", response))
+            Err(anyhow::anyhow!(
+                "Expected AggregatedPubkey response, got: {:?}",
+                response
+            ))
         }
     }
-
-
 
     /// Update P2P address
     fn set_p2p_address(&mut self, address: P2PAddress) {
@@ -102,7 +119,10 @@ impl BitVMXService {
     /// Setup BitVMX
     pub async fn initial_setup(&mut self) -> Result<(), anyhow::Error> {
         debug!("Get comm info from BitVMX");
-        let comm_info_response = self.rpc_client.send_request(IncomingBitVMXApiMessages::GetCommInfo()).await?;
+        let comm_info_response = self
+            .rpc_client
+            .send_request(IncomingBitVMXApiMessages::GetCommInfo())
+            .await?;
         // Set P2P address
         if let OutgoingBitVMXApiMessages::CommInfo(comm_info) = comm_info_response {
             self.set_p2p_address(P2PAddress {
@@ -110,7 +130,10 @@ impl BitVMXService {
                 peer_id: comm_info.peer_id.to_string(),
             });
         } else {
-            return Err(anyhow::anyhow!("Expected Comm Info response, got: {:?}", comm_info_response));
+            return Err(anyhow::anyhow!(
+                "Expected Comm Info response, got: {:?}",
+                comm_info_response
+            ));
         }
 
         // If keys do not exist, setup keys
@@ -125,29 +148,36 @@ impl BitVMXService {
     async fn initial_setup_keys(&mut self) -> Result<(), anyhow::Error> {
         debug!("Create operator key from BitVMX");
         let pub_key_id = Uuid::new_v4();
-        let pub_key_response = self.rpc_client.send_request(IncomingBitVMXApiMessages::GetPubKey(pub_key_id, true)).await?;
-        
+        let pub_key_response = self
+            .rpc_client
+            .send_request(IncomingBitVMXApiMessages::GetPubKey(pub_key_id, true))
+            .await?;
+
         if let OutgoingBitVMXApiMessages::PubKey(_, pub_key) = pub_key_response {
             self.set_pub_key(pub_key.to_string());
         } else {
-            return Err(anyhow::anyhow!("Expected Operator PubKey response, got: {:?}", pub_key_response));
+            return Err(anyhow::anyhow!(
+                "Expected Operator PubKey response, got: {:?}",
+                pub_key_response
+            ));
         }
 
         debug!("Create funding key for speedups from BitVMX");
         let speedup_key_id = Uuid::new_v4();
-        let funding_key_response = self.rpc_client.send_request(IncomingBitVMXApiMessages::GetPubKey(speedup_key_id, true)).await?;
-        
+        let funding_key_response = self
+            .rpc_client
+            .send_request(IncomingBitVMXApiMessages::GetPubKey(speedup_key_id, true))
+            .await?;
+
         if let OutgoingBitVMXApiMessages::PubKey(_, funding_key) = funding_key_response {
             self.set_funding_key(funding_key.to_string());
         } else {
-            return Err(anyhow::anyhow!("Expected Funding PubKey response, got: {:?}", funding_key_response));
+            return Err(anyhow::anyhow!(
+                "Expected Funding PubKey response, got: {:?}",
+                funding_key_response
+            ));
         }
 
         Ok(())
     }
-
-
 }
-
-
-

@@ -1,7 +1,7 @@
+use anyhow::{anyhow, Result};
 use std::collections::{HashMap, VecDeque};
 use std::fmt::Debug;
 use std::hash::Hash;
-use anyhow::{Result, anyhow};
 
 #[derive(Debug, Default)]
 pub struct ChainedMap<K, V>
@@ -17,13 +17,19 @@ where
     K: Eq + Hash + Clone + Debug,
 {
     pub fn new() -> Self {
-        Self { map: HashMap::new(), global: VecDeque::new() }
+        Self {
+            map: HashMap::new(),
+            global: VecDeque::new(),
+        }
     }
 
     pub fn insert(&mut self, key: K, value: V) {
         let idx = self.global.len(); // index of this element
         self.global.push_back((key.clone(), value));
-        self.map.entry(key).or_insert_with(VecDeque::new).push_back(idx);
+        self.map
+            .entry(key)
+            .or_insert_with(VecDeque::new)
+            .push_back(idx);
     }
 
     /// Remove and return the first value for a given key
@@ -69,7 +75,6 @@ where
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {

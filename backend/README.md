@@ -208,9 +208,8 @@ cargo run
 ### TypeScript Bindings Generation
 
 ```bash
-cargo test --lib  # Generates bindings during test compilation
+cargo test --lib  # Generates TypeScript bindings during test compilation
 ```
-
 
 ## Message Flow Summary
 

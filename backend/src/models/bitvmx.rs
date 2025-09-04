@@ -16,7 +16,6 @@ pub struct OperatorKeys {
     pub funding_key: String,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
 pub struct AggregatedKeySubmission {

@@ -1,12 +1,19 @@
-use std::str::FromStr;
-use axum::{Json, Router, routing::{get, post}, extract::State, extract::Path};
-use http::StatusCode;
-use crate::models::{AggregatedKey, AggregatedKeySubmission, ErrorResponse, OperatorKeys, P2PAddress};
-use crate::state::AppState;
 use crate::http_errors;
+use crate::models::{
+    AggregatedKey, AggregatedKeySubmission, ErrorResponse, OperatorKeys, P2PAddress,
+};
+use crate::state::AppState;
+use axum::{
+    extract::Path,
+    extract::State,
+    routing::{get, post},
+    Json, Router,
+};
+use bitcoin::PublicKey;
+use http::StatusCode;
+use std::str::FromStr;
 use tracing::instrument;
 use uuid::Uuid;
-use bitcoin::PublicKey;
 
 pub fn router() -> Router<AppState> {
     // Base path is /api/bitvmx/
@@ -28,9 +35,13 @@ pub fn router() -> Router<AppState> {
     tag = "BitVMX"
 )]
 #[instrument(skip(app_state))]
-pub async fn comm_info(State(app_state): State<AppState>) -> Result<Json<P2PAddress>, (StatusCode, Json<ErrorResponse>)> {
+pub async fn comm_info(
+    State(app_state): State<AppState>,
+) -> Result<Json<P2PAddress>, (StatusCode, Json<ErrorResponse>)> {
     let service_guard = app_state.bitvmx_service.read().await;
-    let p2p_address = service_guard.get_p2p_address().ok_or(http_errors::not_found("P2P address not found"))?;
+    let p2p_address = service_guard
+        .get_p2p_address()
+        .ok_or(http_errors::not_found("P2P address not found"))?;
     Ok(Json(p2p_address))
 }
 
@@ -46,10 +57,16 @@ pub async fn comm_info(State(app_state): State<AppState>) -> Result<Json<P2PAddr
     tag = "BitVMX"
 )]
 #[instrument(skip(app_state))]
-pub async fn operator_keys(State(app_state): State<AppState>) -> Result<Json<OperatorKeys>, (StatusCode, Json<ErrorResponse>)> {
+pub async fn operator_keys(
+    State(app_state): State<AppState>,
+) -> Result<Json<OperatorKeys>, (StatusCode, Json<ErrorResponse>)> {
     let service_guard = app_state.bitvmx_service.read().await;
-    let pub_key = service_guard.get_pub_key().ok_or(http_errors::not_found("Operator pub key not found"))?;
-    let funding_key = service_guard.get_funding_key().ok_or(http_errors::not_found("Operator funding key not found"))?;
+    let pub_key = service_guard
+        .get_pub_key()
+        .ok_or(http_errors::not_found("Operator pub key not found"))?;
+    let funding_key = service_guard
+        .get_funding_key()
+        .ok_or(http_errors::not_found("Operator funding key not found"))?;
     Ok(Json(OperatorKeys {
         pub_key: pub_key,
         funding_key: funding_key,
@@ -73,16 +90,20 @@ pub async fn operator_keys(State(app_state): State<AppState>) -> Result<Json<Ope
 #[instrument(skip(app_state))]
 pub async fn submit_aggregated_key(
     State(app_state): State<AppState>,
-    Json(aggregated_key_submission): Json<AggregatedKeySubmission>
+    Json(aggregated_key_submission): Json<AggregatedKeySubmission>,
 ) -> Result<Json<AggregatedKey>, (StatusCode, Json<ErrorResponse>)> {
     // Validate the id
     if aggregated_key_submission.uuid.is_empty() {
-        return Err(http_errors::bad_request("Aggregated key ID cannot be empty"));
+        return Err(http_errors::bad_request(
+            "Aggregated key ID cannot be empty",
+        ));
     }
 
     // Validate the p2p addresses
     if aggregated_key_submission.p2p_addresses.is_empty() {
-        return Err(http_errors::bad_request("At least one P2P address is required"));
+        return Err(http_errors::bad_request(
+            "At least one P2P address is required",
+        ));
     }
 
     // Validate the operator keys
@@ -94,14 +115,32 @@ pub async fn submit_aggregated_key(
         }
     }
 
-    let uuid = Uuid::parse_str(&aggregated_key_submission.uuid).map_err(|_| http_errors::bad_request("Invalid UUID"))?;
+    let uuid = Uuid::parse_str(&aggregated_key_submission.uuid)
+        .map_err(|_| http_errors::bad_request("Invalid UUID"))?;
     let mut operator_keys = None;
     if let Some(keys) = aggregated_key_submission.operator_keys {
-        operator_keys = Some(keys.iter().map(|key| PublicKey::from_str(key).map_err(|_| http_errors::bad_request("Invalid operator key"))).collect::<Result<Vec<PublicKey>, (StatusCode, Json<ErrorResponse>)>>()?);
+        operator_keys = Some(
+            keys.iter()
+                .map(|key| {
+                    PublicKey::from_str(key)
+                        .map_err(|_| http_errors::bad_request("Invalid operator key"))
+                })
+                .collect::<Result<Vec<PublicKey>, (StatusCode, Json<ErrorResponse>)>>()?,
+        );
     }
 
     let service_guard = app_state.bitvmx_service.read().await;
-    let aggregated_key = service_guard.create_agregated_key(uuid, aggregated_key_submission.p2p_addresses, operator_keys, aggregated_key_submission.leader_idx).await.map_err(|e| http_errors::internal_server_error(&format!("Failed to create aggregated key: {:?}", e)))?;
+    let aggregated_key = service_guard
+        .create_agregated_key(
+            uuid,
+            aggregated_key_submission.p2p_addresses,
+            operator_keys,
+            aggregated_key_submission.leader_idx,
+        )
+        .await
+        .map_err(|e| {
+            http_errors::internal_server_error(&format!("Failed to create aggregated key: {:?}", e))
+        })?;
     Ok(Json(aggregated_key))
 }
 
@@ -116,8 +155,13 @@ pub async fn submit_aggregated_key(
     tag = "BitVMX"
 )]
 #[instrument(skip(app_state))]
-pub async fn get_aggregated_key(State(app_state): State<AppState>, Path(uuid): Path<Uuid>) -> Result<Json<AggregatedKey>, (StatusCode, Json<ErrorResponse>)> {
+pub async fn get_aggregated_key(
+    State(app_state): State<AppState>,
+    Path(uuid): Path<Uuid>,
+) -> Result<Json<AggregatedKey>, (StatusCode, Json<ErrorResponse>)> {
     let service_guard = app_state.bitvmx_service.read().await;
-    let aggregated_key = service_guard.get_aggregated_key(uuid).await.map_err(|e| http_errors::internal_server_error(&format!("Failed to get aggregated key: {:?}", e)))?;
+    let aggregated_key = service_guard.get_aggregated_key(uuid).await.map_err(|e| {
+        http_errors::internal_server_error(&format!("Failed to get aggregated key: {:?}", e))
+    })?;
     Ok(Json(aggregated_key))
 }
