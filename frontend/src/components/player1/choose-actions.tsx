@@ -34,7 +34,7 @@ export function ChooseAction() {
         <p className="text-xs text-muted-foreground text-center">
           ⏰ If you do nothing, Player 2 will automatically win by timeout
         </p>
-        <TimeRemaining numberBlocks={2} onTimeout={handleTimeout} size="lg" />
+        <TimeRemaining numberBlocks={5} onTimeout={handleTimeout} size="lg" />
       </div>
 
       <div className="p-3 ">

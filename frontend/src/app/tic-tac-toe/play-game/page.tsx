@@ -18,7 +18,7 @@ import { PeerConnectionInfo } from "@/components/common/peer-connection-info";
 import { PeerConnectionInput } from "@/components/common/peer-connection-input";
 import { ChooseNetwork } from "@/components/common/choose-network";
 import { GameState, PlayerRole } from "@/types/game";
-import { StartGame } from "@/components/player1/start-game";
+import { StartGame } from "@/components/tic-tac-toe/common/start-game";
 import { useGameState, useNextGameState } from "@/hooks/useGameState";
 import { useGameRole } from "@/hooks/useGameRole";
 import { AcceptLoseGame } from "@/components/player1/accept-lose-game";
@@ -84,7 +84,8 @@ export default function AddNumbersPage() {
             <>
               {gameState === GameState.SetupProgram && <SetupGamePlayer1 />}
               {gameState === GameState.StartGame && <StartGame />}
-              {gameState === GameState.WaitingAnswer && <WaitingAnswer />}
+
+              {/* {gameState === GameState.WaitingAnswer && <WaitingAnswer />}
               {gameState === GameState.ChooseAction && <ChooseAction />}
 
               {gameState === GameState.ChallengeAnswer && <ChallengeAnswer />}
@@ -106,7 +107,7 @@ export default function AddNumbersPage() {
 
               {gameState === GameState.GameCompleteYouWinByChallenge && (
                 <ChallengeWinGame />
-              )}
+              )} */}
             </>
           )}
 
@@ -114,7 +115,8 @@ export default function AddNumbersPage() {
             <>
               {gameState === GameState.SetupProgram && <SetupGamePlayer2 />}
               {gameState === GameState.WaitingStartGame && <WaitingStartGame />}
-              {gameState === GameState.StartGame && <AnswerGame />}
+
+              {/* {gameState === GameState.StartGame && <AnswerGame />}
               {gameState === GameState.ChooseAction && <WaitingForAnswer />}
               {gameState === GameState.ChallengeAnswer && <ChallengeAnswer />}
 
@@ -134,7 +136,7 @@ export default function AddNumbersPage() {
               )}
               {gameState === GameState.GameCompleteYouWinByTimeout && (
                 <TimeoutWinGame />
-              )}
+              )} */}
             </>
           )}
         </CardContent>

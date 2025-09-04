@@ -27,7 +27,7 @@ export function ChallengeAnswer() {
           blocks.
         </div>
 
-        <TimeRemaining numberBlocks={2} size="lg" onTimeout={handleTimeout} />
+        <TimeRemaining numberBlocks={5} size="lg" onTimeout={handleTimeout} />
       </div>
 
       <div className="space-y-4">

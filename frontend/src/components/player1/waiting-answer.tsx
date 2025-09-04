@@ -20,7 +20,7 @@ export function WaitingAnswer() {
       <p className="text-sm text-gray-700 mb-3">
         Player 2 is answering, please wait.
       </p>
-      <TimeRemaining numberBlocks={2} size="lg" onTimeout={handleTimeout} />
+      <TimeRemaining numberBlocks={5} size="lg" onTimeout={handleTimeout} />
     </div>
   );
 }

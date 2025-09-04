@@ -20,7 +20,7 @@ export function AcceptLoseGame() {
         BitVMX is processing the transaction to finalize this acceptance.
       </p>
 
-      <TimeRemaining numberBlocks={2} size="lg" onTimeout={handleTimeout} />
+      <TimeRemaining numberBlocks={5} size="lg" onTimeout={handleTimeout} />
     </div>
   );
 }

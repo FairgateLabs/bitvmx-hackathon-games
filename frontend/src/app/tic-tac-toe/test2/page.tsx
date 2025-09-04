@@ -12,12 +12,29 @@ import { TimeoutLoseGame as TimeoutWinGame2 } from "@/components/player2/timeout
 import { WaitingAnswer } from "@/components/player1/waiting-answer";
 import { WaitingStartGame } from "@/components/player2/waiting-start-game";
 import { Titan_One } from "next/font/google";
-import { TicTacToeBoard } from "@/components/tic-tac-toe/common/tic-tac-toe-board";
+import {
+  GameEndResult,
+  TicTacToeBoard,
+} from "@/components/tic-tac-toe/common/tic-tac-toe-board";
+import { ChooseAction } from "@/components/tic-tac-toe/common/choose-actions";
+import { useState } from "react";
 
 export default function TransactionsPage() {
+  let [gameResult, setGameResult] = useState<GameEndResult | null>(null);
   return (
     <>
-      <TicTacToeBoard onGameEnd={() => {}} />
+      <TicTacToeBoard
+        onGameEnd={(gameResult) => {
+          setGameResult(gameResult);
+          console.log(gameResult);
+        }}
+      />
+      {gameResult && (
+        <ChooseAction
+          winner={gameResult.winner}
+          isTimeout={gameResult.isTimeout}
+        />
+      )}
 
       {/* <ChallengeWinGame />
       <ChallengeLoseGame />

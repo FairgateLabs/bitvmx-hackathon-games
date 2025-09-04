@@ -32,7 +32,7 @@ export function WaitingForAnswer() {
 
         <div className="text-center">
           <p className="text-sm text-red-600 mb-2">Time remaining:</p>
-          <TimeRemaining numberBlocks={2} size="lg" onTimeout={handleTimeout} />
+          <TimeRemaining numberBlocks={5} size="lg" onTimeout={handleTimeout} />
         </div>
       </div>
     </div>

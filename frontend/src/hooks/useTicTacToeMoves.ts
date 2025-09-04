@@ -50,6 +50,8 @@ export function useTicTacToeMoves(gameId?: string) {
  * Returns simulated opponent moves
  */
 export function useMockTicTacToeMoves(gameId?: string) {
+  const usedMoves = new Set<number>();
+
   return useQuery({
     queryKey: ["mockTicTacToeMoves", gameId],
     queryFn: async (): Promise<{
@@ -58,9 +60,18 @@ export function useMockTicTacToeMoves(gameId?: string) {
       playerSymbol: PlayerSymbol;
     }> => {
       // Simulate random opponent moves for testing
-      const availableMoves = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+      const availableMoves = [0, 1, 2, 3, 4, 5, 6, 7, 8].filter(
+        (move) => !usedMoves.has(move)
+      );
+
+      if (availableMoves.length === 0) {
+        throw new Error("No more available moves");
+      }
+
       const randomIndex =
         availableMoves[Math.floor(Math.random() * availableMoves.length)];
+
+      usedMoves.add(randomIndex);
 
       return {
         index: randomIndex,

@@ -53,8 +53,10 @@ export const TimeRemaining = forwardRef<TimeRemainingRef, TimeRemainingProps>(
           });
         }, 1000);
         return () => clearInterval(timer);
+      } else {
+        setBlocksLeft(0); // Ensure blocks count is 0 when time is 0
       }
-    }, [timeLeft, initialTime, numberBlocks, timePerBlock, onTimeout]);
+    }, [timeLeft, numberBlocks]);
 
     const getSizeClasses = () => {
       switch (size) {
