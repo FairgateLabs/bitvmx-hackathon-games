@@ -68,8 +68,8 @@ pub async fn operator_keys(
         .get_funding_key()
         .ok_or(http_errors::not_found("Operator funding key not found"))?;
     Ok(Json(OperatorKeys {
-        pub_key: pub_key,
-        funding_key: funding_key,
+        pub_key,
+        funding_key,
     }))
 }
 
@@ -139,7 +139,7 @@ pub async fn submit_aggregated_key(
         )
         .await
         .map_err(|e| {
-            http_errors::internal_server_error(&format!("Failed to create aggregated key: {:?}", e))
+            http_errors::internal_server_error(&format!("Failed to create aggregated key: {e:?}"))
         })?;
     Ok(Json(aggregated_key))
 }
@@ -161,7 +161,7 @@ pub async fn get_aggregated_key(
 ) -> Result<Json<AggregatedKey>, (StatusCode, Json<ErrorResponse>)> {
     let service_guard = app_state.bitvmx_service.read().await;
     let aggregated_key = service_guard.get_aggregated_key(uuid).await.map_err(|e| {
-        http_errors::internal_server_error(&format!("Failed to get aggregated key: {:?}", e))
+        http_errors::internal_server_error(&format!("Failed to get aggregated key: {e:?}"))
     })?;
     Ok(Json(aggregated_key))
 }

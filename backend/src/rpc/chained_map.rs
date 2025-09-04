@@ -28,7 +28,7 @@ where
         self.global.push_back((key.clone(), value));
         self.map
             .entry(key)
-            .or_insert_with(VecDeque::new)
+            .or_default()
             .push_back(idx);
     }
 

@@ -27,7 +27,7 @@ impl AppState {
             config: Arc::new(config),
             add_numbers_service: Arc::new(RwLock::new(AddNumbersService::new())),
             bitvmx_service: Arc::new(RwLock::new(BitVMXService::new(rpc_client.clone()))),
-            rpc_client: rpc_client,
+            rpc_client,
         }
     }
 }

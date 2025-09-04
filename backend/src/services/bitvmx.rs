@@ -21,7 +21,7 @@ impl BitVMXService {
             p2p_address: None,
             pub_key: None,
             funding_key: None,
-            rpc_client: rpc_client,
+            rpc_client,
         }
     }
 

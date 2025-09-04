@@ -156,8 +156,8 @@ impl RpcClient {
                 );
                 return Ok(());
             }
-            let tx = optional_tx.unwrap();
-            tx
+            
+            optional_tx.unwrap()
         };
 
         tx.send(response)
