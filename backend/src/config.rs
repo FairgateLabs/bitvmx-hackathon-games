@@ -63,9 +63,7 @@ impl Default for Config {
                 allowed_origins: vec!["*".to_string()],
                 allowed_headers: vec!["*".to_string()],
             },
-            bitvmx: BitVMXClientConfig {
-                broker_port: 22222,
-            },
+            bitvmx: BitVMXClientConfig { broker_port: 22222 },
         }
     }
 }

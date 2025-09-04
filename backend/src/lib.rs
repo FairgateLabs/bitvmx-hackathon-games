@@ -1,9 +1,9 @@
-
-pub mod app;
-pub mod types;
-pub mod handlers;
-pub mod routes;
+pub mod api;
 pub mod config;
-pub mod stores;
-pub mod bitvmx_rpc;
 pub mod http_errors;
+pub mod middleware;
+pub mod models;
+pub mod routes;
+pub mod rpc;
+pub mod services;
+pub mod state;

@@ -1,13 +1,14 @@
+use crate::models::{AddNumbersGame, AddNumbersGameStatus};
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
-use crate::types::{AddNumbersGame, AddNumbersGameStatus};
 
-pub struct AddNumbersStore {
+#[derive(Debug)]
+pub struct AddNumbersService {
     games: HashMap<Uuid, AddNumbersGame>,
 }
 
-impl AddNumbersStore {
+impl AddNumbersService {
     pub fn new() -> Self {
         Self {
             games: HashMap::new(),
@@ -20,7 +21,7 @@ impl AddNumbersStore {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs();
-        
+
         let game = AddNumbersGame {
             id,
             player1,
@@ -41,9 +42,15 @@ impl AddNumbersStore {
         self.games.get(&id)
     }
 
-    pub fn add_numbers(&mut self, id: Uuid, player: String, number1: i32, number2: i32) -> Result<AddNumbersGame, String> {
+    pub fn add_numbers(
+        &mut self,
+        id: Uuid,
+        player: String,
+        number1: i32,
+        number2: i32,
+    ) -> Result<AddNumbersGame, String> {
         let game = self.games.get_mut(&id).ok_or("Game not found")?;
-        
+
         // Validate it's the correct player's turn
         if game.player1 != player {
             return Err("Not your turn to add numbers".to_string());
@@ -66,9 +73,14 @@ impl AddNumbersStore {
         Ok(game.clone())
     }
 
-    pub fn make_guess(&mut self, id: Uuid, player: String, guess: i32) -> Result<AddNumbersGame, String> {
+    pub fn make_guess(
+        &mut self,
+        id: Uuid,
+        player: String,
+        guess: i32,
+    ) -> Result<AddNumbersGame, String> {
         let game = self.games.get_mut(&id).ok_or("Game not found")?;
-        
+
         // Validate it's the correct player's turn
         if game.player2 != player {
             return Err("Not your turn to guess".to_string());
@@ -102,7 +114,7 @@ impl AddNumbersStore {
     }
 }
 
-impl Default for AddNumbersStore {
+impl Default for AddNumbersService {
     fn default() -> Self {
         Self::new()
     }

@@ -1,35 +1,36 @@
 #!/bin/bash
 set -e
 
-# we go to the root of the project to avoid relative path issues
-CURRENT_PATH=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
-cd "$CURRENT_PATH";
+pids=()
 
-# stop and remove the bitcoin-regtest container if it exists
-CONTAINER_NAME=bitcoin-regtest
-if [ -n "$(docker ps -a -f name="^$CONTAINER_NAME$" -q)" ]; then
-    echo "Stopping and remove $CONTAINER_NAME container"
-    docker rm -f $CONTAINER_NAME
-fi
+cleanup() {
+    echo "⚠️ Cleaning up processes with SIGINT..."
+    for pid in "${pids[@]}"; do
+        if kill -0 "$pid" 2>/dev/null; then
+            echo "🔴 Sending Ctrl+C (SIGINT) to process $pid"
+            kill -s SIGINT "$pid" 2>/dev/null || true
+        fi
+    done
+}
+trap cleanup EXIT
 
-# Start the Bitcoin Regtest node
-docker run --name $CONTAINER_NAME -d -p 18443:18443 -e BITCOIN_DATA=/data ruimarinho/bitcoin-core \
-        -regtest=1 \
-        -printtoconsole \
-        -rpcallowip=0.0.0.0/0 \
-        -rpcbind=0.0.0.0 \
-        -rpcuser=foo \
-        -rpcpassword=rpcpassword \
-        -server=1 \
-        -txindex=1 \
-        -fallbackfee=0.0002
+bash start-bitcoin.sh
 
-# remove bitvmx client tmp data
-rm -rf /tmp/broker_p2p_6118*
-rm -rf /tmp/op_*
+# Wait a bit before launching bitvmx
+echo "⏳ Waiting 2 second for bitcoind to start..."
+sleep 2
 
-# go to the bitvmx client workspace
-BITVMX_PATH="$CURRENT_PATH/../../rust-bitvmx-workspace/rust-bitvmx-client"
-cd "$BITVMX_PATH"
-# run the bitvmx client
-cargo run op_1
+bash start-op-1.sh & pids+=($!)
+bash start-op-2.sh & pids+=($!)
+
+# Wait a bit before launching the players
+echo "⏳ Waiting 5 second for bitvmx to start..."
+sleep 5
+
+bash start-player-1.sh & pids+=($!)
+bash start-player-2.sh & pids+=($!)
+
+# Wait for all, abort if any fails
+for pid in "${pids[@]}"; do
+    wait "$pid"
+done

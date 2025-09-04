@@ -1,23 +1,32 @@
-use axum::{Router, routing::get};
-use crate::handlers::health;
-use crate::types::HealthResponse;
+use crate::models::HealthResponse;
+use crate::state::AppState;
+use axum::{extract::State, routing::get, Json, Router};
+use std::time::{SystemTime, UNIX_EPOCH};
+use tracing::instrument;
 
-pub fn router() -> Router {
+pub fn router() -> Router<AppState> {
+    // Base path is /api/health
     Router::new().route("/", get(health_check))
 }
 
 /// Health check endpoint
 #[utoipa::path(
     get,
-    path = "/health",
+    path = "/api/health",
     responses(
         (status = 200, description = "Service is healthy", body = HealthResponse)
     ),
     tag = "Health"
 )]
-pub async fn health_check() -> axum::Json<HealthResponse> {
-    health::health_check().await
+#[instrument(skip(_app_state))]
+pub async fn health_check(State(_app_state): State<AppState>) -> Json<HealthResponse> {
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
+    Json(HealthResponse {
+        status: "healthy".to_string(),
+        timestamp,
+    })
 }
-
-
-

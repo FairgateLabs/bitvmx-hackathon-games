@@ -1,108 +1,159 @@
-use std::{thread::sleep, time::Duration};
-
-use bitvmx_tictactoe_backend::{app, config, bitvmx_rpc};
-use tracing::{error, info, warn};
+use bitvmx_client::types::{BITVMX_ID, L2_ID};
+use bitvmx_tictactoe_backend::{api, config, rpc::rpc_client::RpcClient, state::AppState};
+use tokio::{signal, sync::broadcast};
+use tracing::{error, info, trace, warn, Instrument};
+use tracing_appender::rolling;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use tokio::sync::broadcast;
-
 
 /// Initialize logs with the given log level
 /// It disables the tarpc and broker layers to avoid logging too much information
-fn init_tracing(log_level: String) {
+fn init_tracing(log_level: String, name: String) -> tracing_appender::non_blocking::WorkerGuard {
+    // Ensure logs directory exists
+    let logs_dir = "logs";
+    if !std::path::Path::new(logs_dir).exists() {
+        std::fs::create_dir_all(logs_dir).expect("Failed to create logs directory");
+    }
+    // Log file name
+    let log_file = format!("{logs_dir}/{name}.log");
+    println!(
+        "📝 Logging to: {}",
+        std::fs::canonicalize(&log_file)
+            .unwrap_or_else(|_| log_file.clone().into())
+            .display()
+    );
+
+    // Log appender configuration
+    let file_appender = rolling::never(log_file, "backend");
+    let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
+
+    // File log format
+    let file_log = tracing_subscriber::fmt::layer()
+        .with_target(false)
+        .with_ansi(false) // No colors for file
+        .with_writer(non_blocking);
+
+    // Console log format
+    let console_log = tracing_subscriber::fmt::layer()
+        .with_target(false)
+        .with_ansi(true); // Keep colors for console
+
     tracing_subscriber::registry()
-        .with(tracing_subscriber::EnvFilter::new(
-            format!("{log_level},tarpc=off,broker=off"),
-        ))
-        .with(
-            tracing_subscriber::fmt::layer()
-                .with_target(false)
-        )
+        .with(tracing_subscriber::EnvFilter::new(format!(
+            "{log_level},tarpc=off,broker=off"
+        )))
+        .with(file_log) // File log first otherwise it will use ansi for file
+        .with(console_log)
         .init();
+    guard
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // Load configuration
+    // 1. Load configuration
     let config_file = std::env::var("CONFIG_FILE").unwrap_or_else(|_| "player_1".to_string());
-    println!("--- Loading configuration from {config_file} ---");
+    println!("🔄 Loading configuration from: {config_file}");
     let config = config::Config::load(&config_file).unwrap_or_default();
-    
-    // Initialize logs
-    init_tracing(std::env::var("RUST_LOG").unwrap_or_else(|_| config.logging.level.clone()));
 
-    // Create shutdown signal
+    // 2. Initialize logging
+    let _log_guard = init_tracing(
+        std::env::var("RUST_LOG").unwrap_or_else(|_| config.logging.level.clone()),
+        config_file.to_string(),
+    );
+
+    // Create a span for the main application
+    let _main_span = tracing::info_span!("", config = %config_file).entered();
+
+    // 3. Create shutdown signals
     let (shutdown_tx, _) = broadcast::channel::<()>(1);
-    let mut shutdown_rx_bitvmx = shutdown_tx.subscribe();
 
-    // --- BITVMX RPC connection ---
-    let config_clone = config.clone();
-    let bitvmx_rpc = tokio::task::spawn_blocking(move || {
-        // Create a span for this task
-        let span = tracing::info_span!("bitvmx_rpc_task");
-        let _enter = span.enter();
-        
-        // Initialize the singleton BitVMXClient
-        bitvmx_rpc::handler::init_client(&config_clone)?;
-        
-        // Check for shutdown signal every 100ms
-        loop {
-            // Check if shutdown signal was received
-            if shutdown_rx_bitvmx.try_recv().is_ok() {
-                info!("BitVMX RPC shutting down...");
-                break;
+    // 4. Connect to BitVMX RPC, spawn sender and listener tasks
+    let (rpc_client, rpc_sender_task, rpc_listener_task) = RpcClient::connect(
+        L2_ID,
+        BITVMX_ID,
+        config.bitvmx.broker_port,
+        None,
+        Some(&shutdown_tx),
+    );
+
+    // 5. Initialize app state
+    let app_state = AppState::new(config.clone(), rpc_client.clone());
+
+    // 6. Spawn setup task that waits for RPC to be ready
+    let app_state_setup = app_state.clone();
+    let setup_task = tokio::task::spawn(
+        async move {
+            // Wait for the RPC client to be ready
+            app_state_setup.rpc_client.wait_for_ready().await;
+
+            // Now perform the setup
+            {
+                // Setup does multiple things so we should not lock the service,
+                // but since this is just a one time task at the beginning, we can do it here
+                let mut service_guard = app_state_setup.bitvmx_service.write().await;
+                service_guard.initial_setup().await?;
             }
-            
-            // Receive and process messages from BitVMX
-            bitvmx_rpc::handler::receive_message()?;
-            
-            // Wait before checking for new messages
-            sleep(Duration::from_millis(100));
+            info!("BitVMX RPC setup successful");
+
+            Ok::<_, anyhow::Error>(()) // coercion to Result
         }
-        Ok::<_, anyhow::Error>(()) // coercion to Result
-    });
+        .instrument(tracing::info_span!("setup")),
+    );
 
-    // --- Axum server ---
+    // 7. Spawn Axum server task
+    let app_state_axum = app_state.clone();
     let mut shutdown_rx_axum = shutdown_tx.subscribe();
-    let axum_server = tokio::task::spawn(async move {
-        // Create a span for this task
-        let span = tracing::info_span!("axum_server_task");
-        let _enter = span.enter();
-        
-        // Create the application
-        let app = app::app();
-        // Run it
-        let addr = config.server_addr()?;
-        info!("API REST at http://{}", addr);
-        let listener = tokio::net::TcpListener::bind(addr).await?;
-        
-        // Use graceful shutdown
-        axum::serve(listener, app)
-            .with_graceful_shutdown(async move {
-                let _ = shutdown_rx_axum.recv().await;
-                info!("Axum server shutting down...");
-            })
-            .await?;
-            
-        Ok::<_, anyhow::Error>(()) // coercion to Result
-    });
+    let axum_task = tokio::task::spawn(
+        async move {
+            // Create the application
+            let app = api::app(app_state_axum).await;
 
-    // Run both in parallel
+            // Run it
+            let addr = config.server_addr()?;
+            info!("API REST at http://{}", addr);
+            let listener = tokio::net::TcpListener::bind(addr).await?;
+
+            // Use graceful shutdown
+            axum::serve(listener, app)
+                .with_graceful_shutdown(async move {
+                    let _ = shutdown_rx_axum.recv().await;
+                    trace!("Axum server shutting down...");
+                })
+                .await?;
+
+            Ok::<_, anyhow::Error>(()) // coercion to Result
+        }
+        .instrument(tracing::info_span!("axum_server")),
+    );
+
+    // 8. Run tasks in parallel with tokio::select!
     tokio::select! {
-        res = bitvmx_rpc => match res {
-            Ok(Ok(())) => warn!("BitVMX RPC finished without errors"),
-            Ok(Err(e)) => error!("❌ Error at BitVMX RPC: {}", e),
-            Err(e) => error!("💥 Panic at BitVMX RPC: {}", e),
+        res = rpc_sender_task => match res {
+            Ok(Ok(())) => warn!("rpc_sender: Finished without errors"),
+            Ok(Err(e)) => error!("❌ rpc_sender: Error: {}", e),
+            Err(e) => error!("💥 rpc_sender: Panic: {}", e),
         },
-        res = axum_server => match res {
-            Ok(Ok(())) => warn!("API finished without errors"),
-            Ok(Err(e)) => error!("❌ Error at API: {}", e),
-            Err(e) => error!("💥 Panic at API: {}", e),
+        res = rpc_listener_task => match res {
+            Ok(Ok(())) => warn!("rpc_listener: Finished without errors"),
+            Ok(Err(e)) => error!("❌ rpc_listener: Error: {}", e),
+            Err(e) => error!("💥 rpc_listener: Panic: {}", e),
         },
-        _ = tokio::signal::ctrl_c() => {
+        res = axum_task => match res {
+            Ok(Ok(())) => warn!("axum_server: API Finished without errors"),
+            Ok(Err(e)) => error!("❌ axum_server: Error: {}", e),
+            Err(e) => error!("💥 axum_server: Panic: {}", e),
+        },
+        _ = signal::ctrl_c() => {
             info!("Ctrl-C received, shutting down...");
-            // Send shutdown signal to both tasks
+            // Send shutdown signal to all tasks
             let _ = shutdown_tx.send(());
         },
+    }
+
+    // 9. Check if setup task finished correctly
+    if let Err(e) = setup_task.await? {
+        error!("❌ setup: Error: {e}");
+        // Send shutdown signal to all tasks and exit
+        let _ = shutdown_tx.send(());
     }
 
     Ok(())

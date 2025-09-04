@@ -7,6 +7,8 @@ edition = "2021"
 [dependencies]
 # BitVMX client
 bitvmx-client = { path = "../../rust-bitvmx-workspace/rust-bitvmx-client" }
+# BitVMX Broker
+bitvmx-broker = { path = "../../rust-bitvmx-workspace/rust-bitvmx-broker" }
 
 # Web framework
 axum = "0.8"
@@ -42,6 +44,8 @@ config = "0.15"
 
 # Thread-safe initialization
 once_cell = "1.19"
+tracing-appender = "0.2.3"
+bitcoin = "0.32.6"
 
 [dev-dependencies]
 tokio-test = "0.4"
