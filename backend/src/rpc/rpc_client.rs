@@ -68,11 +68,22 @@ impl RpcClient {
         Ok(response)
     }
 
+    pub async fn send_fire_and_forget(&self, message: IncomingBitVMXApiMessages) -> Result<(), anyhow::Error> {
+        let correlation_id = self.request_to_correlation_id(&message)?;
+        debug!("Sending fire-and-forget to BitVMX request: {:?} message: {:?}", correlation_id, message);
+
+        self.outgoing.send((correlation_id.clone(), message)).await?;
+        Ok(())
+    }
+
     /// Convert the message to send to BitVMX to a correlation ID
     fn request_to_correlation_id(&self, message: &IncomingBitVMXApiMessages) -> Result<String, anyhow::Error> {
         // Serialize the message
         match message {
             IncomingBitVMXApiMessages::SetupKey(uuid, _addresses, _operator_key, _funding_key) => {
+                Ok(uuid.to_string())
+            },
+            IncomingBitVMXApiMessages::GetAggregatedPubkey(uuid) => {
                 Ok(uuid.to_string())
             },
             IncomingBitVMXApiMessages::GetPubKey(uuid, _new_key) => {
@@ -93,6 +104,12 @@ impl RpcClient {
     /// Convert the response received from BitVMX to a correlation ID
     fn response_to_correlation_id(&self, response: &OutgoingBitVMXApiMessages) -> Result<String, anyhow::Error> {
         match response {
+            OutgoingBitVMXApiMessages::AggregatedPubkeyNotReady(uuid) => {
+                Ok(uuid.to_string())
+            },
+            OutgoingBitVMXApiMessages::AggregatedPubkey(uuid, _aggregated_pubkey) => {
+                Ok(uuid.to_string())
+            },
             OutgoingBitVMXApiMessages::PubKey(uuid, _pub_key) => {
                 Ok(uuid.to_string())
             }
@@ -149,7 +166,7 @@ impl RpcClient {
                     }
                     if let Some(shutdown_rx) = &mut shutdown_rx {
                         if shutdown_rx.try_recv().is_ok() {
-                            info!("Shutting down...");
+                            trace!("Shutting down...");
                             break;
                         }
                     }
@@ -174,7 +191,7 @@ impl RpcClient {
                 loop {
                     if let Some(shutdown_rx) = &mut shutdown_rx {
                         if shutdown_rx.try_recv().is_ok() {
-                            info!("Shutting down...");
+                            trace!("Shutting down...");
                             break;
                         }
                     }

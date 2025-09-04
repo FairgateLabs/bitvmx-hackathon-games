@@ -2,7 +2,7 @@
 
 use bitvmx_client::types::{L2_ID, BITVMX_ID};
 use bitvmx_tictactoe_backend::{api, state::AppState, config, rpc::rpc_client::{RpcClient}};
-use tracing::{error, info, warn, Instrument};
+use tracing::{error, info, trace, warn, Instrument};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use tokio::{sync::broadcast, signal};
 use tracing_appender::rolling;
@@ -83,7 +83,7 @@ async fn main() -> anyhow::Result<()> {
                 // Setup does multiple things so we should not lock the service, 
                 // but since this is just a one time task at the beginning, we can do it here
                 let mut service_guard = app_state_setup.bitvmx_service.write().await;
-                service_guard.setup().await?;
+                service_guard.initial_setup().await?;
             }
             info!("BitVMX RPC setup successful");
             
@@ -109,7 +109,7 @@ async fn main() -> anyhow::Result<()> {
             axum::serve(listener, app)
                 .with_graceful_shutdown(async move {
                     let _ = shutdown_rx_axum.recv().await;
-                    info!("Axum server shutting down...");
+                    trace!("Axum server shutting down...");
                 })
                 .await?;
                 

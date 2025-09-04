@@ -24,7 +24,9 @@ use crate::state::AppState;
         routes::add_numbers::add_numbers,
         routes::add_numbers::make_guess,
         routes::bitvmx::comm_info,
-        routes::bitvmx::submit_aggregated_key
+        routes::bitvmx::operator_keys,
+        routes::bitvmx::submit_aggregated_key,
+        routes::bitvmx::get_aggregated_key
     ),
     components(
         schemas(
@@ -41,7 +43,9 @@ use crate::state::AppState;
             crate::models::AddNumbersRequest,
             crate::models::MakeGuessRequest,
             crate::models::P2PAddress,
-            crate::models::SetupKey,
+            crate::models::OperatorKeys,
+            crate::models::AggregatedKeySubmission,
+            crate::models::AggregatedKey,
         )
     ),
     tags(

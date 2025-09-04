@@ -35,7 +35,7 @@ pub struct Move {
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export)]
-pub struct Game {
+pub struct TicTacToe {
     #[ts(type = "string")]
     pub id: Uuid,
     pub board: [[Option<Player>; 3]; 3],
@@ -55,7 +55,7 @@ pub struct CreateGameRequest {
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct CreateGameResponse {
-    pub game: Game,
+    pub game: TicTacToe,
     pub message: String,
 }
 
@@ -69,14 +69,14 @@ pub struct MakeMoveRequest {
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct MakeMoveResponse {
-    pub game: Game,
+    pub game: TicTacToe,
     pub message: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct GameResponse {
-    pub game: Game,
+    pub game: TicTacToe,
 }
 
 #[derive(Debug, Serialize, Deserialize, TS, ToSchema)]

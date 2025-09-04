@@ -1,5 +1,6 @@
 use std::sync::Arc;
-use crate::models::P2PAddress;
+use crate::models::{AggregatedKey, P2PAddress};
+use bitcoin::PublicKey;
 use tracing::{trace, debug};
 use uuid::Uuid;
 use bitvmx_client::types::{IncomingBitVMXApiMessages, OutgoingBitVMXApiMessages};
@@ -24,24 +25,6 @@ impl BitVMXService {
         }
     }
 
-    /// Update P2P address
-    pub fn set_p2p_address(&mut self, address: P2PAddress) {
-        self.p2p_address = Some(address);
-        trace!("Updated P2P address in store");
-    }
-
-    /// Update pub key
-    pub fn set_pub_key(&mut self, pub_key: String) {
-        self.pub_key = Some(pub_key);
-        trace!("Updated pub key in store");
-    }
-
-    /// Update funding key
-    pub fn set_funding_key(&mut self, funding_key: String) {
-        self.funding_key = Some(funding_key);
-        trace!("Updated funding key in store");
-    }
-
     /// Get pub key
     pub fn get_pub_key(&self) -> Option<String> {
         self.pub_key.clone()
@@ -57,8 +40,67 @@ impl BitVMXService {
         self.p2p_address.clone()
     }
 
+    /// Create aggregated key
+    pub async fn create_agregated_key(&self, uuid: Uuid, p2p_addresses: Vec<P2PAddress>, operator_keys: Option<Vec<PublicKey>>, leader_idx: u16) -> Result<AggregatedKey, anyhow::Error> {
+        trace!("Create aggregated key from BitVMX");
+        let addresses = p2p_addresses.iter().map(|p2p| bitvmx_client::types::P2PAddress {
+            address: p2p.address.clone(),
+            peer_id: bitvmx_client::types::PeerId(p2p.peer_id.clone()),
+        }).collect();
+        let message = IncomingBitVMXApiMessages::SetupKey(uuid, addresses, operator_keys, leader_idx);
+    
+        let response = self.rpc_client.send_request(message).await?;
+
+        if let OutgoingBitVMXApiMessages::AggregatedPubkey(uuid, aggregated_pubkey) = response {
+            trace!("Obtained aggregated key: {:?}", aggregated_pubkey);
+            Ok(AggregatedKey {
+                uuid: uuid.to_string(),
+                aggregated_key: aggregated_pubkey.to_string(),
+            })
+        } else {
+            Err(anyhow::anyhow!("Expected AggregatedPubkey response, got: {:?}", response))
+        }
+    }
+
+    /// Get aggregated key
+    pub async fn get_aggregated_key(&self, uuid: Uuid) -> Result<AggregatedKey, anyhow::Error> {
+        trace!("Get aggregated key from BitVMX");
+        let response = self.rpc_client.send_request(IncomingBitVMXApiMessages::GetAggregatedPubkey(uuid)).await?;
+        if let OutgoingBitVMXApiMessages::AggregatedPubkey(uuid, aggregated_pubkey) = response {
+            trace!("Obtained aggregated key: {:?}", aggregated_pubkey);
+            Ok(AggregatedKey {
+                uuid: uuid.to_string(),
+                aggregated_key: aggregated_pubkey.to_string(),
+            })
+        } else if let OutgoingBitVMXApiMessages::AggregatedPubkeyNotReady(uuid) = response {
+            Err(anyhow::anyhow!("Aggregated key not ready: {:?}", uuid))
+        } else {
+            Err(anyhow::anyhow!("Expected AggregatedPubkey response, got: {:?}", response))
+        }
+    }
+
+
+
+    /// Update P2P address
+    fn set_p2p_address(&mut self, address: P2PAddress) {
+        self.p2p_address = Some(address);
+        trace!("Updated P2P address in store");
+    }
+
+    /// Update pub key
+    fn set_pub_key(&mut self, pub_key: String) {
+        self.pub_key = Some(pub_key);
+        trace!("Updated pub key in store");
+    }
+
+    /// Update funding key
+    fn set_funding_key(&mut self, funding_key: String) {
+        self.funding_key = Some(funding_key);
+        trace!("Updated funding key in store");
+    }
+
     /// Setup BitVMX
-    pub async fn setup(&mut self) -> Result<(), anyhow::Error> {
+    pub async fn initial_setup(&mut self) -> Result<(), anyhow::Error> {
         debug!("Get comm info from BitVMX");
         let comm_info_response = self.rpc_client.send_request(IncomingBitVMXApiMessages::GetCommInfo()).await?;
         // Set P2P address
@@ -74,13 +116,13 @@ impl BitVMXService {
         // If keys do not exist, setup keys
         if self.get_pub_key().is_none() {
             debug!("No keys found, creating them");
-            self.setup_keys().await?;
+            self.initial_setup_keys().await?;
         }
         Ok(())
     }
 
     /// Setup operator and funding keys
-    async fn setup_keys(&mut self) -> Result<(), anyhow::Error> {
+    async fn initial_setup_keys(&mut self) -> Result<(), anyhow::Error> {
         debug!("Create operator key from BitVMX");
         let pub_key_id = Uuid::new_v4();
         let pub_key_response = self.rpc_client.send_request(IncomingBitVMXApiMessages::GetPubKey(pub_key_id, true)).await?;

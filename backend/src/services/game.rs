@@ -1,11 +1,11 @@
-use crate::models::{Game, GameStatus, Move, Player, Position};
+use crate::models::{TicTacToe, GameStatus, Move, Player, Position};
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
 #[derive(Debug)]
 pub struct GameService {
-    games: HashMap<Uuid, Game>,
+    games: HashMap<Uuid, TicTacToe>,
 }
 
 impl GameService {
@@ -15,14 +15,14 @@ impl GameService {
         }
     }
 
-    pub fn create_game(&mut self) -> Game {
+    pub fn create_game(&mut self) -> TicTacToe {
         let id = Uuid::new_v4();
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs();
         
-        let game = Game {
+        let game = TicTacToe {
             id,
             board: [[None; 3]; 3],
             current_player: Player::X,
@@ -36,11 +36,11 @@ impl GameService {
         game
     }
 
-    pub fn get_game(&self, id: Uuid) -> Option<&Game> {
+    pub fn get_game(&self, id: Uuid) -> Option<&TicTacToe> {
         self.games.get(&id)
     }
 
-    pub fn make_move(&mut self, id: Uuid, player: Player, position: Position) -> Result<Game, String> {
+    pub fn make_move(&mut self, id: Uuid, player: Player, position: Position) -> Result<TicTacToe, String> {
         let game = self.games.get_mut(&id).ok_or("Game not found")?;
         
         // Validate move

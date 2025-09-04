@@ -19,5 +19,8 @@ rm -rf logs/player_2.log/bitvmx
 BITVMX_PATH="$CURRENT_PATH/../../rust-bitvmx-workspace/rust-bitvmx-client"
 cd "$BITVMX_PATH"
 
+# set logs level for bitvmx client
+RUST_LOG="debug,bitcoincore_rpc=off,hyper_util=off,libp2p=off,bitvmx_transaction_monitor=off,bitcoin_indexer=off,bitcoin_coordinator=info,p2p_protocol=off,p2p_handler=off,tarpc=off,broker=off"
+ 
 # run the bitvmx client with output to both console and file
-RUST_LOG=debug cargo run op_2 2>&1 | tee "$CURRENT_PATH/logs/player_2.log/bitvmx"
+cargo run op_2 2>&1 | tee "$CURRENT_PATH/logs/player_2.log/bitvmx"

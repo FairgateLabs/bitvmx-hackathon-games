@@ -8,5 +8,5 @@ cd "$CURRENT_PATH";
 # remove the log file (no need to create the directory its done by the program)
 rm -rf logs/player_1.log/backend
 
-# run the bitvmx client
+# run the backend
 RUST_LOG=debug CONFIG_FILE=player_1 cargo run
