@@ -22,7 +22,8 @@ use crate::state::AppState;
         routes::bitvmx::comm_info,
         routes::bitvmx::operator_keys,
         routes::bitvmx::submit_aggregated_key,
-        routes::bitvmx::get_aggregated_key
+        routes::bitvmx::get_aggregated_key,
+        routes::bitvmx::wallet_balance
     ),
     components(
         schemas(
@@ -36,6 +37,7 @@ use crate::state::AppState;
             crate::models::OperatorKeys,
             crate::models::AggregatedKeySubmission,
             crate::models::AggregatedKey,
+            crate::models::WalletBalance,
         )
     ),
     tags(
