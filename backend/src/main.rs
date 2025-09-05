@@ -39,7 +39,7 @@ fn init_tracing(log_level: String, name: String) -> tracing_appender::non_blocki
 
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(format!(
-            "{log_level},tarpc=off,broker=off"
+            "{log_level},bitvmx_bitcoin_rpc=off,bitcoincore_rpc=off,tarpc=off,broker=off"
         )))
         .with(file_log) // File log first otherwise it will use ansi for file
         .with(console_log)

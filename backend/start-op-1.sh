@@ -21,4 +21,4 @@ cd "$BITVMX_PATH"
 
 # run the bitvmx client with output to both console and file
 RUST_LOG="debug,bitvmx_wallet::wallet=off,bitvmx_bitcoin_rpc=off,bitcoincore_rpc=off,hyper_util=off,libp2p=off,bitvmx_transaction_monitor=off,bitcoin_indexer=off,bitcoin_coordinator=info,p2p_protocol=off,p2p_handler=off,tarpc=off,broker=off" \
-RUST_BACKTRACE=1cargo run op_1 2>&1 | tee "$CURRENT_PATH/logs/player_1.log/bitvmx"
+RUST_BACKTRACE=1 cargo run op_1 2>&1 | tee "$CURRENT_PATH/logs/player_1.log/bitvmx"

@@ -14,11 +14,11 @@ cleanup() {
 }
 trap cleanup EXIT
 
-bash start-bitcoin.sh
+bash start-bitcoin.sh > /dev/null & pids+=($!)
 
 # Wait a bit before launching bitvmx
-echo "⏳ Waiting 2 second for bitcoind to start..."
-sleep 2
+echo "⏳ Waiting 5 second for bitcoind to start..."
+sleep 5
 
 bash start-op-1.sh & pids+=($!)
 bash start-op-2.sh & pids+=($!)
