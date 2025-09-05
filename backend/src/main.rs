@@ -72,7 +72,7 @@ async fn main() -> anyhow::Result<()> {
         BITVMX_ID,
         config.bitvmx.broker_port,
         None,
-        Some(&shutdown_tx),
+        &shutdown_tx,
     );
 
     // 5. Initialize app state
@@ -80,10 +80,11 @@ async fn main() -> anyhow::Result<()> {
 
     // 6. Spawn setup task that waits for RPC to be ready
     let app_state_setup = app_state.clone();
+    let shutdown_rx_setup = shutdown_tx.subscribe();
     let setup_task = tokio::task::spawn(
         async move {
             // Wait for the RPC client to be ready
-            app_state_setup.rpc_client.wait_for_ready().await;
+            app_state_setup.rpc_client.wait_for_ready(shutdown_rx_setup).await;
 
             // Now perform the setup
             {
@@ -129,18 +130,42 @@ async fn main() -> anyhow::Result<()> {
     tokio::select! {
         res = rpc_sender_task => match res {
             Ok(Ok(())) => warn!("rpc_sender: Finished without errors"),
-            Ok(Err(e)) => error!("❌ rpc_sender: Error: {}", e),
-            Err(e) => error!("💥 rpc_sender: Panic: {}", e),
+            Ok(Err(e)) => {
+                error!("❌ rpc_sender: Error: {}", e);
+                // Send shutdown signal to all tasks and exit
+                let _ = shutdown_tx.send(());
+            },
+            Err(e) => {
+                error!("💥 rpc_sender: Panic: {}", e);
+                // Send shutdown signal to all tasks and exit
+                let _ = shutdown_tx.send(());
+            },
         },
         res = rpc_listener_task => match res {
             Ok(Ok(())) => warn!("rpc_listener: Finished without errors"),
-            Ok(Err(e)) => error!("❌ rpc_listener: Error: {}", e),
-            Err(e) => error!("💥 rpc_listener: Panic: {}", e),
+            Ok(Err(e)) => {
+                error!("❌ rpc_listener: Error: {}", e);
+                // Send shutdown signal to all tasks and exit
+                let _ = shutdown_tx.send(());
+            },
+            Err(e) => {
+                error!("💥 rpc_listener: Panic: {}", e);
+                // Send shutdown signal to all tasks and exit
+                let _ = shutdown_tx.send(());
+            },
         },
         res = axum_task => match res {
             Ok(Ok(())) => warn!("axum_server: API Finished without errors"),
-            Ok(Err(e)) => error!("❌ axum_server: Error: {}", e),
-            Err(e) => error!("💥 axum_server: Panic: {}", e),
+            Ok(Err(e)) => {
+                error!("❌ axum_server: Error: {}", e);
+                // Send shutdown signal to all tasks and exit
+                let _ = shutdown_tx.send(());
+            },
+            Err(e) => {
+                error!("💥 axum_server: Panic: {}", e);
+                // Send shutdown signal to all tasks and exit
+                let _ = shutdown_tx.send(());
+            },
         },
         _ = signal::ctrl_c() => {
             info!("Ctrl-C received, shutting down...");
