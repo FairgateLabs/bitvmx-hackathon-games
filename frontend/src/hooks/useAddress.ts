@@ -1,31 +1,26 @@
 import { useQuery } from "@tanstack/react-query";
 import { getApiBaseUrl } from "../config/backend";
+import { OperatorKeys } from "../../../backend/bindings/OperatorKeys";
 
-interface AddressInfo {
-  address: string;
-}
+const fetchAddressInfo = async (): Promise<OperatorKeys> => {
+  const baseUrl = getApiBaseUrl();
+  const response = await fetch(`${baseUrl}/api/bitvmx/operator-keys`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 
-const fetchAddressInfo = async (): Promise<AddressInfo> => {
-  // const baseUrl = getApiBaseUrl();
-  // const response = await fetch(`${baseUrl}/api/address-info`, {
-  //   method: "GET",
-  //   headers: {
-  //     "Content-Type": "application/json",
-  //   },
-  // });
-
-  // if (!response.ok) {
-  //   throw new Error("Failed to fetch address info");
-  // }
-  // return response.json();
-
-  return { address: "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa" };
+  if (!response.ok) {
+    throw new Error("Failed to fetch address info");
+  }
+  return await response.json();
 };
 
 // Hook for getting player address
-export const useAddress = () => {
+export const usePubKey = () => {
   return useQuery({
-    queryKey: ["address"],
+    queryKey: ["pubKey"],
     queryFn: fetchAddressInfo,
   });
 };

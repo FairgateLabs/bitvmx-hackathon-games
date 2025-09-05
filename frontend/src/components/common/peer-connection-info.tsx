@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { CopyButton } from "@/components/ui/copy-button";
-import { usePeerConnection } from "@/hooks/usePeerConnection";
+import { useCommunicationInfo } from "@/hooks/useCommunicationInfo";
 import {
   Collapsible,
   CollapsibleContent,
@@ -10,7 +10,7 @@ import {
 
 export function PeerConnectionInfo() {
   const [isOpen, setIsOpen] = useState(true);
-  const { data: peerConnectionInfo } = usePeerConnection();
+  const { data: peerConnectionInfo, isLoading, error } = useCommunicationInfo();
 
   return (
     <div className="p-4 bg-white border border-gray-200 rounded-lg">
@@ -47,11 +47,11 @@ export function PeerConnectionInfo() {
               <div>
                 <Label className="text-gray-800">Peer ID:</Label>
                 <p className="font-mono text-sm bg-gray-100 p-2 rounded overflow-hidden text-ellipsis whitespace-nowrap max-w-[500px]">
-                  {peerConnectionInfo?.peerId || "Loading..."}
+                  {peerConnectionInfo?.peer_id || "Loading..."}
                 </p>
               </div>
               <CopyButton
-                text={peerConnectionInfo?.peerId || "Loading..."}
+                text={peerConnectionInfo?.peer_id ?? ""}
                 size="sm"
                 variant="outline"
               />
