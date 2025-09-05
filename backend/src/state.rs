@@ -24,9 +24,9 @@ impl AppState {
     /// Create a new application state
     pub fn new(config: Config, rpc_client: Arc<RpcClient>) -> Self {
         Self {
-            config: Arc::new(config),
+            config: Arc::new(config.clone()),
             add_numbers_service: Arc::new(RwLock::new(AddNumbersService::new())),
-            bitvmx_service: Arc::new(RwLock::new(BitVMXService::new(rpc_client.clone()))),
+            bitvmx_service: Arc::new(RwLock::new(BitVMXService::new(rpc_client.clone(), config.bitcoin.clone()))),
             rpc_client,
         }
     }

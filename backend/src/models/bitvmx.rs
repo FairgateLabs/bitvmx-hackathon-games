@@ -31,3 +31,11 @@ pub struct AggregatedKey {
     pub uuid: String,
     pub aggregated_key: String,
 }
+
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema)]
+#[ts(export)]
+pub struct WalletBalance {
+    pub address: String,
+    pub balance: u64,
+}

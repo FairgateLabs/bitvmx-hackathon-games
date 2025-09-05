@@ -1,6 +1,6 @@
 use crate::http_errors;
 use crate::models::{
-    AggregatedKey, AggregatedKeySubmission, ErrorResponse, OperatorKeys, P2PAddress,
+    AggregatedKey, AggregatedKeySubmission, ErrorResponse, OperatorKeys, P2PAddress, WalletBalance,
 };
 use crate::state::AppState;
 use axum::{
@@ -22,6 +22,7 @@ pub fn router() -> Router<AppState> {
         .route("/operator-keys", get(operator_keys))
         .route("/aggregated-key", post(submit_aggregated_key))
         .route("/aggregated-key", get(get_aggregated_key))
+        .route("/wallet-balance", get(wallet_balance))
 }
 
 /// Get BitVMX P2P address information
@@ -160,8 +161,32 @@ pub async fn get_aggregated_key(
     Path(uuid): Path<Uuid>,
 ) -> Result<Json<AggregatedKey>, (StatusCode, Json<ErrorResponse>)> {
     let service_guard = app_state.bitvmx_service.read().await;
-    let aggregated_key = service_guard.get_aggregated_key(uuid).await.map_err(|e| {
+    let aggregated_key = service_guard.aggregated_key(uuid).await.map_err(|e| {
         http_errors::internal_server_error(&format!("Failed to get aggregated key: {e:?}"))
     })?;
     Ok(Json(aggregated_key))
+}
+
+/// Get BitVMX Wallet balance
+#[utoipa::path(
+    get,
+    path = "/api/bitvmx/wallet-balance",
+    responses(
+        (status = 200, description = "BitVMX Wallet balance", body = WalletBalance),
+        (status = 404, description = "Wallet balance not found", body = ErrorResponse)
+    ),
+    tag = "BitVMX"
+)]
+#[instrument(skip(app_state))]
+pub async fn wallet_balance(
+    State(app_state): State<AppState>,
+) -> Result<Json<WalletBalance>, (StatusCode, Json<ErrorResponse>)> {
+    let service_guard = app_state.bitvmx_service.read().await;
+    let wallet_balance = service_guard
+        .wallet_balance()
+        .await
+        .map_err(|e| {
+            http_errors::internal_server_error(&format!("Failed to get wallet balance: {e:?}"))
+        })?;
+    Ok(Json(wallet_balance))
 }

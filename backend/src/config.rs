@@ -7,6 +7,7 @@ pub struct Config {
     pub logging: LoggingConfig,
     pub cors: CorsConfig,
     pub bitvmx: BitVMXClientConfig,
+    pub bitcoin: BitcoinConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -29,6 +30,15 @@ pub struct CorsConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BitVMXClientConfig {
     pub broker_port: u16,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BitcoinConfig {
+    pub network: String,
+    pub url: String,
+    pub username: String,
+    pub password: String,
+    pub wallet: String,
 }
 
 impl Config {
@@ -64,6 +74,13 @@ impl Default for Config {
                 allowed_headers: vec!["*".to_string()],
             },
             bitvmx: BitVMXClientConfig { broker_port: 22222 },
+            bitcoin: BitcoinConfig {
+                network: "regtest".to_string(),
+                url: "http://127.0.0.1:18443".to_string(),
+                username: "foo".to_string(),
+                password: "rpcpassword".to_string(),
+                wallet: "test_wallet".to_string(),
+            },
         }
     }
 }

@@ -9,6 +9,8 @@ edition = "2021"
 bitvmx-client = { path = "../../rust-bitvmx-workspace/rust-bitvmx-client" }
 # BitVMX Broker
 bitvmx-broker = { path = "../../rust-bitvmx-workspace/rust-bitvmx-broker" }
+# Bitcoind RPC
+bitvmx-bitcoin-rpc = { path = "../../rust-bitvmx-workspace/rust-bitvmx-bitcoin-rpc" }
 
 # Web framework
 axum = "0.8"

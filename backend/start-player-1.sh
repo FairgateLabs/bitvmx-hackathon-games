@@ -9,4 +9,4 @@ cd "$CURRENT_PATH";
 rm -rf logs/player_1.log/backend
 
 # run the backend
-RUST_LOG=debug CONFIG_FILE=player_1 cargo run
+RUST_LOG=debug CONFIG_FILE=player_1 RUST_BACKTRACE=1 cargo run

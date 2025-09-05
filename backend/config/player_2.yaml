@@ -11,3 +11,10 @@ cors:
 
 bitvmx:
   broker_port: 33333
+
+bitcoin:
+  network: regtest
+  url: http://127.0.0.1:18443
+  username: foo
+  password: rpcpassword
+  wallet: test_wallet
