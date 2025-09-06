@@ -76,70 +76,6 @@ impl RpcClient {
         Ok(())
     }
 
-    /// Convert the message to send to BitVMX to a correlation ID
-    fn request_to_correlation_id(&self, message: &IncomingBitVMXApiMessages) -> Result<String, anyhow::Error> {
-        // Serialize the message
-        match message {
-            IncomingBitVMXApiMessages::GetFundingBalance(uuid) => {
-                Ok(uuid.to_string())
-            },
-            IncomingBitVMXApiMessages::GetFundingAddress(uuid) => {
-                Ok(uuid.to_string())
-            },
-            IncomingBitVMXApiMessages::SetupKey(uuid, _addresses, _operator_key, _funding_key) => {
-                Ok(uuid.to_string())
-            },
-            IncomingBitVMXApiMessages::GetAggregatedPubkey(uuid) => {
-                Ok(uuid.to_string())
-            },
-            IncomingBitVMXApiMessages::GetPubKey(uuid, _new_key) => {
-                Ok(uuid.to_string())
-            },
-            IncomingBitVMXApiMessages::GetCommInfo() => {
-                Ok("get_comm_info".to_string())
-            },
-            IncomingBitVMXApiMessages::Ping() => {
-                Ok("ping".to_string())
-            },
-            _ => {
-                Err(anyhow::anyhow!("unhandled message type: {:?}", message))
-            }
-        }
-    }
-
-    /// Convert the response received from BitVMX to a correlation ID
-    fn response_to_correlation_id(&self, response: &OutgoingBitVMXApiMessages) -> Result<String, anyhow::Error> {
-        match response {
-            OutgoingBitVMXApiMessages::FundingBalance(uuid, _balance) => {
-                Ok(uuid.to_string())
-            },
-            OutgoingBitVMXApiMessages::WalletNotReady(uuid) => {
-                Ok(uuid.to_string())
-            },
-            OutgoingBitVMXApiMessages::FundingAddress(uuid, _address) => {
-                Ok(uuid.to_string())
-            },
-            OutgoingBitVMXApiMessages::AggregatedPubkeyNotReady(uuid) => {
-                Ok(uuid.to_string())
-            },
-            OutgoingBitVMXApiMessages::AggregatedPubkey(uuid, _aggregated_pubkey) => {
-                Ok(uuid.to_string())
-            },
-            OutgoingBitVMXApiMessages::PubKey(uuid, _pub_key) => {
-                Ok(uuid.to_string())
-            }
-            OutgoingBitVMXApiMessages::CommInfo(_p2p_address) => {
-                Ok("get_comm_info".to_string())
-            }
-            OutgoingBitVMXApiMessages::Pong() => {
-                Ok("ping".to_string())
-            }
-            _ => {
-                Err(anyhow::anyhow!("unhandled message type: {:?}", response))
-            }
-        }
-    }
-
     async fn handle_response(&self, resp: String) -> Result<(), anyhow::Error> {
         // Deserialize the response
         let response = serde_json::from_str(&resp)?;
@@ -250,6 +186,91 @@ impl RpcClient {
                 break;
             }
             tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    }
+
+    /// Convert the message to send to BitVMX to a correlation ID
+    fn request_to_correlation_id(&self, message: &IncomingBitVMXApiMessages) -> Result<String, anyhow::Error> {
+        // Serialize the message
+        match message {
+            IncomingBitVMXApiMessages::SetVar(uuid, _key, _value) => {
+                Ok(uuid.to_string())
+            },
+            IncomingBitVMXApiMessages::GetVar(uuid, _key) => {
+                Ok(uuid.to_string())
+            },
+            IncomingBitVMXApiMessages::GetTransaction(uuid, _txid) => {
+                Ok(uuid.to_string())
+            },
+            IncomingBitVMXApiMessages::SendFunds(uuid, _destination, _amount, _fee) => {
+                Ok(uuid.to_string())
+            },
+            IncomingBitVMXApiMessages::GetFundingBalance(uuid) => {
+                Ok(uuid.to_string())
+            },
+            IncomingBitVMXApiMessages::GetFundingAddress(uuid) => {
+                Ok(uuid.to_string())
+            },
+            IncomingBitVMXApiMessages::SetupKey(uuid, _addresses, _operator_key, _funding_key) => {
+                Ok(uuid.to_string())
+            },
+            IncomingBitVMXApiMessages::GetAggregatedPubkey(uuid) => {
+                Ok(uuid.to_string())
+            },
+            IncomingBitVMXApiMessages::GetPubKey(uuid, _new_key) => {
+                Ok(uuid.to_string())
+            },
+            IncomingBitVMXApiMessages::GetCommInfo() => {
+                Ok("get_comm_info".to_string())
+            },
+            IncomingBitVMXApiMessages::Ping() => {
+                Ok("ping".to_string())
+            },
+            _ => {
+                Err(anyhow::anyhow!("unhandled request message type: {:?}", message))
+            }
+        }
+    }
+
+    /// Convert the response received from BitVMX to a correlation ID
+    fn response_to_correlation_id(&self, response: &OutgoingBitVMXApiMessages) -> Result<String, anyhow::Error> {
+        match response {
+            OutgoingBitVMXApiMessages::Variable(uuid, _key, _value) => {
+                Ok(uuid.to_string())
+            },
+            OutgoingBitVMXApiMessages::Transaction(uuid, _transaction_status, _transaction) => {
+                Ok(uuid.to_string())
+            },
+            OutgoingBitVMXApiMessages::FundsSent(uuid, _txid) => {
+                Ok(uuid.to_string())
+            },
+            OutgoingBitVMXApiMessages::FundingBalance(uuid, _balance) => {
+                Ok(uuid.to_string())
+            },
+            OutgoingBitVMXApiMessages::WalletNotReady(uuid) => {
+                Ok(uuid.to_string())
+            },
+            OutgoingBitVMXApiMessages::FundingAddress(uuid, _address) => {
+                Ok(uuid.to_string())
+            },
+            OutgoingBitVMXApiMessages::AggregatedPubkeyNotReady(uuid) => {
+                Ok(uuid.to_string())
+            },
+            OutgoingBitVMXApiMessages::AggregatedPubkey(uuid, _aggregated_pubkey) => {
+                Ok(uuid.to_string())
+            },
+            OutgoingBitVMXApiMessages::PubKey(uuid, _pub_key) => {
+                Ok(uuid.to_string())
+            }
+            OutgoingBitVMXApiMessages::CommInfo(_p2p_address) => {
+                Ok("get_comm_info".to_string())
+            }
+            OutgoingBitVMXApiMessages::Pong() => {
+                Ok("ping".to_string())
+            }
+            _ => {
+                Err(anyhow::anyhow!("unhandled response message type: {:?}", response))
+            }
         }
     }
 

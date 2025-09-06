@@ -1,9 +1,13 @@
-use crate::models::{AggregatedKey, P2PAddress, WalletBalance};
+use crate::models::{AggregatedKeyResponse, P2PAddress, WalletBalance};
 use crate::rpc::rpc_client::RpcClient;
 use crate::config::BitcoinConfig;
-use bitcoin::{Address, PublicKey};
-use bitvmx_client::types::{IncomingBitVMXApiMessages, OutgoingBitVMXApiMessages};
 use std::str::FromStr;
+use bitvmx_client::bitcoin_coordinator::TransactionStatus;
+use bitvmx_client::p2p_handler::PeerId;
+use bitvmx_client::program::participant::P2PAddress as BitVMXP2PAddress;
+use bitvmx_client::types::{Destination, IncomingBitVMXApiMessages, OutgoingBitVMXApiMessages};
+use bitvmx_client::protocol_builder::scripts::{ProtocolScript, SignMode};
+use bitvmx_client::bitcoin::{Address, PublicKey, ScriptBuf, Txid, XOnlyPublicKey};
 use std::sync::Arc;
 use tracing::{debug, trace};
 use uuid::Uuid;
@@ -61,13 +65,13 @@ impl BitVMXService {
         p2p_addresses: Vec<P2PAddress>,
         operator_keys: Option<Vec<PublicKey>>,
         leader_idx: u16,
-    ) -> Result<AggregatedKey, anyhow::Error> {
+    ) -> Result<PublicKey, anyhow::Error> {
         trace!("Create aggregated key from BitVMX");
         let addresses = p2p_addresses
             .iter()
-            .map(|p2p| bitvmx_client::types::P2PAddress {
+            .map(|p2p| BitVMXP2PAddress {
                 address: p2p.address.clone(),
-                peer_id: bitvmx_client::types::PeerId(p2p.peer_id.clone()),
+                peer_id: PeerId(p2p.peer_id.clone()),
             })
             .collect();
         let message =
@@ -75,12 +79,9 @@ impl BitVMXService {
 
         let response = self.rpc_client.send_request(message).await?;
 
-        if let OutgoingBitVMXApiMessages::AggregatedPubkey(uuid, aggregated_pubkey) = response {
+        if let OutgoingBitVMXApiMessages::AggregatedPubkey(_uuid, aggregated_pubkey) = response {
             trace!("Obtained aggregated key: {:?}", aggregated_pubkey);
-            Ok(AggregatedKey {
-                uuid: uuid.to_string(),
-                aggregated_key: aggregated_pubkey.to_string(),
-            })
+            Ok(aggregated_pubkey)
         } else {
             Err(anyhow::anyhow!(
                 "Expected AggregatedPubkey response, got: {:?}",
@@ -90,7 +91,7 @@ impl BitVMXService {
     }
 
     /// Get aggregated key
-    pub async fn aggregated_key(&self, uuid: Uuid) -> Result<AggregatedKey, anyhow::Error> {
+    pub async fn aggregated_key(&self, uuid: Uuid) -> Result<AggregatedKeyResponse, anyhow::Error> {
         trace!("Get aggregated key from BitVMX");
         let response = self
             .rpc_client
@@ -98,7 +99,7 @@ impl BitVMXService {
             .await?;
         if let OutgoingBitVMXApiMessages::AggregatedPubkey(uuid, aggregated_pubkey) = response {
             trace!("Obtained aggregated key: {:?}", aggregated_pubkey);
-            Ok(AggregatedKey {
+            Ok(AggregatedKeyResponse {
                 uuid: uuid.to_string(),
                 aggregated_key: aggregated_pubkey.to_string(),
             })
@@ -114,12 +115,12 @@ impl BitVMXService {
 
     pub async fn wallet_balance(&self) -> Result<WalletBalance, anyhow::Error> {
         let address = self.get_wallet_address()?;
-        let balance_response = self
+        let response = self
             .rpc_client
             .send_request(IncomingBitVMXApiMessages::GetFundingBalance(Uuid::new_v4()))
             .await?;
 
-        if let OutgoingBitVMXApiMessages::FundingBalance(_uuid, balance) = balance_response {
+        if let OutgoingBitVMXApiMessages::FundingBalance(_uuid, balance) = response {
             Ok(WalletBalance {
                 address: address.to_string(),
                 balance: balance
@@ -127,25 +128,77 @@ impl BitVMXService {
         } else {
             Err(anyhow::anyhow!(
                 "Expected Funding Address response, got: {:?}",
-                balance_response
+                response
             ))
         }
     }
 
+    pub async fn send_funds(&self, destination: String, amount: u64, scripts: Option<Vec<String>>) -> Result<Txid, anyhow::Error> {
+        let destination = if let Some(scripts) = scripts {
+            Destination::P2TR(
+                XOnlyPublicKey::from_str(&destination)?,
+                scripts.iter().map(|script| {
+                    let pubkey = PublicKey::from_str(format!("02{}", destination).as_str()).unwrap();
+                    ProtocolScript::new(
+                        ScriptBuf::from_hex(script).unwrap(),
+                        &pubkey,
+                        SignMode::Aggregate
+                    )
+                }).collect()
+            )
+        } else if destination.len() < 64 {
+            Destination::Address(destination)
+        } else {
+            Destination::P2WPKH(PublicKey::from_str(&destination)?)
+        };
+        let response = self
+            .rpc_client
+            .send_request(IncomingBitVMXApiMessages::SendFunds(Uuid::new_v4(), destination, amount, None))
+            .await?;
+
+        if let OutgoingBitVMXApiMessages::FundsSent(_uuid, txid) = response {
+            Ok(txid)
+        } else {
+            Err(anyhow::anyhow!(
+                "Expected Funds Sent response, got: {:?}",
+                response
+            ))
+        }
+    }
+
+    pub async fn get_transaction(&self, txid: String) -> Result<TransactionStatus, anyhow::Error> {
+        let response = self
+            .rpc_client
+            .send_request(IncomingBitVMXApiMessages::GetTransaction(Uuid::new_v4(), Txid::from_str(&txid)?))
+            .await?;
+
+        if let OutgoingBitVMXApiMessages::Transaction(_uuid, transaction_status, _) = response {
+            Ok(transaction_status)
+        } else {
+            Err(anyhow::anyhow!(
+                "Expected Transaction response, got: {:?}",
+                response
+            ))
+        }
+    }
+
+
+    // ----- Start internal methods -----
+
     /// Update P2P address
     async fn set_wallet_address(&mut self) -> Result<(), anyhow::Error> {
         // TODO use Wallet from bitvmx once bdk-wallet is merged
-        let address_response = self
+        let response = self
             .rpc_client
             .send_request(IncomingBitVMXApiMessages::GetFundingAddress(Uuid::new_v4()))
             .await?;
 
-        if let OutgoingBitVMXApiMessages::FundingAddress(_uuid, address) = address_response {
+        if let OutgoingBitVMXApiMessages::FundingAddress(_uuid, address) = response {
             self.wallet_address = Some(address.assume_checked());
         } else {
             return Err(anyhow::anyhow!(
                 "Expected Funding Address response, got: {:?}",
-                address_response
+                response
             ));
         }
         let address = Address::from_str(&self.wallet_address.as_ref().unwrap().to_string()).unwrap().assume_checked();
@@ -168,11 +221,11 @@ impl BitVMXService {
     /// Update P2P address
     async fn set_p2p_address(&mut self) -> Result<(), anyhow::Error> {
         // Set P2P address
-        let comm_info_response = self
+        let response = self
             .rpc_client
             .send_request(IncomingBitVMXApiMessages::GetCommInfo())
             .await?;
-        if let OutgoingBitVMXApiMessages::CommInfo(comm_info) = comm_info_response {
+        if let OutgoingBitVMXApiMessages::CommInfo(comm_info) = response {
             self.p2p_address = Some(P2PAddress {
                 address: comm_info.address.clone(),
                 peer_id: comm_info.peer_id.to_string(),
@@ -180,7 +233,7 @@ impl BitVMXService {
         } else {
             return Err(anyhow::anyhow!(
                 "Expected Comm Info response, got: {:?}",
-                comm_info_response
+                response
             ));
         }
         trace!("Updated P2P address in store");
@@ -191,17 +244,17 @@ impl BitVMXService {
     async fn set_pub_key(&mut self) -> Result<(), anyhow::Error> {
         debug!("Create operator key from BitVMX");
         let pub_key_id = Uuid::new_v4();
-        let pub_key_response = self
+        let response = self
             .rpc_client
             .send_request(IncomingBitVMXApiMessages::GetPubKey(pub_key_id, true))
             .await?;
 
-        if let OutgoingBitVMXApiMessages::PubKey(_uuid, pub_key) = pub_key_response {
+        if let OutgoingBitVMXApiMessages::PubKey(_uuid, pub_key) = response {
             self.pub_key = Some(pub_key.to_string());
         } else {
             return Err(anyhow::anyhow!(
                 "Expected Operator PubKey response, got: {:?}",
-                pub_key_response
+                response
             ));
         }
         trace!("Updated pub key in store");
@@ -212,17 +265,17 @@ impl BitVMXService {
     async fn set_funding_key(&mut self) -> Result<(), anyhow::Error> {
         debug!("Create funding key for speedups from BitVMX");
         let speedup_key_id = Uuid::new_v4();
-        let funding_key_response = self
+        let response = self
             .rpc_client
             .send_request(IncomingBitVMXApiMessages::GetPubKey(speedup_key_id, true))
             .await?;
 
-        if let OutgoingBitVMXApiMessages::PubKey(_uuid, funding_key) = funding_key_response {
+        if let OutgoingBitVMXApiMessages::PubKey(_uuid, funding_key) = response {
             self.funding_key = Some(funding_key.to_string());
         } else {
             return Err(anyhow::anyhow!(
                 "Expected Funding PubKey response, got: {:?}",
-                funding_key_response
+                response
             ));
         }
         trace!("Updated funding key in store");
@@ -250,5 +303,7 @@ impl BitVMXService {
 
         Ok(())
     }
+
+    // ----- End internal methods -----
 
 }

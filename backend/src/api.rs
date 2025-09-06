@@ -23,7 +23,9 @@ use crate::state::AppState;
         routes::bitvmx::operator_keys,
         routes::bitvmx::submit_aggregated_key,
         routes::bitvmx::get_aggregated_key,
-        routes::bitvmx::wallet_balance
+        routes::bitvmx::wallet_balance,
+        routes::bitvmx::send_funds,
+        routes::bitvmx::get_transaction
     ),
     components(
         schemas(
@@ -35,9 +37,12 @@ use crate::state::AppState;
             crate::models::MakeGuessRequest,
             crate::models::P2PAddress,
             crate::models::OperatorKeys,
-            crate::models::AggregatedKeySubmission,
-            crate::models::AggregatedKey,
+            crate::models::AggregatedKeyRequest,
+            crate::models::AggregatedKeyResponse,
             crate::models::WalletBalance,
+            crate::models::SendFundsRequest,
+            crate::models::SendFundsResponse,
+            crate::models::TransactionResponse,
         )
     ),
     tags(
