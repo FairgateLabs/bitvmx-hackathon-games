@@ -90,8 +90,8 @@ impl RpcClient {
                 warn!("No response handler found for correlation ID: {}", correlation_id);
                 return Ok(());
             }
-            let tx = optional_tx.unwrap();
-            tx
+            
+            optional_tx.unwrap()
         };
 
         tx.send(response).map_err(|e| anyhow::anyhow!("failed to send response: {:?}", e))?;

@@ -285,7 +285,7 @@ pub async fn get_transaction(
         txid: transaction.tx_id.to_string(),
         status: format!("{:?}", transaction.status),
         confirmations: transaction.confirmations,
-        block_height: block_height,
-        block_hash: block_hash,
+        block_height,
+        block_hash,
     }))
 }

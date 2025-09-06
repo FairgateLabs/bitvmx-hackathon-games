@@ -123,7 +123,7 @@ impl BitVMXService {
         if let OutgoingBitVMXApiMessages::FundingBalance(_uuid, balance) = response {
             Ok(WalletBalance {
                 address: address.to_string(),
-                balance: balance
+                balance
             })
         } else {
             Err(anyhow::anyhow!(
@@ -138,7 +138,7 @@ impl BitVMXService {
             Destination::P2TR(
                 XOnlyPublicKey::from_str(&destination)?,
                 scripts.iter().map(|script| {
-                    let pubkey = PublicKey::from_str(format!("02{}", destination).as_str()).unwrap();
+                    let pubkey = PublicKey::from_str(format!("02{destination}").as_str()).unwrap();
                     ProtocolScript::new(
                         ScriptBuf::from_hex(script).unwrap(),
                         &pubkey,
@@ -205,7 +205,7 @@ impl BitVMXService {
         let bitcoin_config = self.bitcoin_config.clone();
 
         // corre una rutina bloqueante sin trabar el runtime
-        let _ = tokio::task::spawn_blocking(move || {
+        tokio::task::spawn_blocking(move || {
             let bitcoin_client = BitcoinClient::new(&bitcoin_config.url, &bitcoin_config.username, &bitcoin_config.password).unwrap();
             // each block gives a 50 BTC reward
             bitcoin_client.mine_blocks_to_address(1, &address).unwrap();

@@ -19,5 +19,5 @@ pub fn pub_key_to_p2tr(
 
 pub fn pub_key_to_xonly(pubkey: &PublicKey) -> Result<XOnlyPublicKey, anyhow::Error> {
     // XOnlyPublicKey should be always even parity, compact pubkey should prefix with 02 if even or 03 if odd
-    Ok(XOnlyPublicKey::from_str(&pubkey.to_string().strip_prefix("02").unwrap())?)
+    Ok(XOnlyPublicKey::from_str(pubkey.to_string().strip_prefix("02").unwrap())?)
 }
