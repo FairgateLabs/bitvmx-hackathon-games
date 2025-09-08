@@ -165,7 +165,7 @@ impl BitVMXService {
                 }
                 Destination::Address(address) => {
                     let script_pubkey = Address::from_str(&address)?.assume_checked().script_pubkey();
-                    let output_type = OutputType::ExternalUnknown{script_pubkey: script_pubkey};
+                    let output_type = OutputType::ExternalUnknown{script_pubkey};
                     Ok((txid, 0, Some(amount), Some(output_type)))
                 }
                 Destination::P2WPKH(pubkey) => {
