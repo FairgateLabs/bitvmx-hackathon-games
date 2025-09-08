@@ -1,6 +1,6 @@
 pub mod api;
 pub mod config;
-pub mod http_errors;
+pub mod utils;
 pub mod middleware;
 pub mod models;
 pub mod routes;

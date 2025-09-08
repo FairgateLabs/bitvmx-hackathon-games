@@ -1,4 +1,4 @@
-use crate::http_errors;
+use crate::utils::http_errors;
 use crate::models::{
     AddNumbersGameResponse, AddNumbersRequest, AddNumbersResponse, CreateAddNumbersGameRequest,
     CreateAddNumbersGameResponse, ErrorResponse, MakeGuessRequest, MakeGuessResponse,
