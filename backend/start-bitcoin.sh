@@ -54,7 +54,7 @@ docker run  --name $EXPLORER_NAME -d \
     tyzbit/btc-rpc-explorer
 
 # Wait for the container to start
-sleep 1
+sleep 3
 
 # Start auto mine blocks one per second
 docker exec -it $BITCOIND_NAME sh -c \

@@ -11,7 +11,12 @@ use axum::{
     Json, Router,
 };
 use bitvmx_client::bitcoin::{Amount, PublicKey};
+use bitvmx_client::program::participant::P2PAddress as BitVMXP2PAddress;
+use bitvmx_client::p2p_handler::PeerId;
+use bitvmx_client::program::protocols::dispute::{TIMELOCK_BLOCKS, TIMELOCK_BLOCKS_KEY};
+use bitvmx_client::program::variables::VariableTypes;
 use bitvmx_client::protocol_builder::scripts;
+use bitvmx_client::types::PROGRAM_TYPE_DRP;
 use http::StatusCode;
 use std::str::FromStr;
 use tracing::{debug, instrument};
@@ -96,7 +101,7 @@ pub async fn operator_keys(
 pub async fn submit_aggregated_key(
     State(app_state): State<AppState>,
     Json(aggregated_key_request): Json<AggregatedKeyRequest>,
-) -> Result<Json<(AggregatedKeyResponse, String, String)>, (StatusCode, Json<ErrorResponse>)> {
+) -> Result<Json<(AggregatedKeyResponse, String)>, (StatusCode, Json<ErrorResponse>)> {
     // Validate the id
     if aggregated_key_request.uuid.is_empty() {
         return Err(http_errors::bad_request(
@@ -122,9 +127,9 @@ pub async fn submit_aggregated_key(
 
     let uuid = Uuid::parse_str(&aggregated_key_request.uuid)
         .map_err(|_| http_errors::bad_request("Invalid UUID"))?;
-    let mut operator_keys = None;
+    let mut participants_keys = None;
     if let Some(keys) = aggregated_key_request.operator_keys {
-        operator_keys = Some(
+        participants_keys = Some(
             keys.iter()
                 .map(|key| {
                     PublicKey::from_str(key)
@@ -134,13 +139,21 @@ pub async fn submit_aggregated_key(
         );
     }
 
+    let participants: Vec<BitVMXP2PAddress> = aggregated_key_request.p2p_addresses
+        .iter()
+        .map(|p2p| BitVMXP2PAddress {
+            address: p2p.address.clone(),
+            peer_id: PeerId(p2p.peer_id.clone()),
+        })
+        .collect();
+
     // Create aggregated key
     let service_guard = app_state.bitvmx_service.read().await;
     let aggregated_key = service_guard
         .create_agregated_key(
             uuid,
-            aggregated_key_request.p2p_addresses,
-            operator_keys,
+            participants.clone(),
+            participants_keys,
             aggregated_key_request.leader_idx,
         )
         .await
@@ -173,16 +186,29 @@ pub async fn submit_aggregated_key(
         aggregated_key, p2tr_address
     );
 
-    // Send funds to the aggregated key
+    // Send funds to cover protocol fees to the aggregated key
+    let amount = Amount::from_btc(22_000.0).map_err(|e| {
+        http_errors::internal_server_error(&format!("Failed to convert amount: {e:?}"))
+    })?;
+    let initial_utxo = service_guard
+        .send_funds(p2tr_address.to_string(), amount.to_sat(), None)
+        .await
+        .map_err(|e| {
+            http_errors::internal_server_error(&format!("Failed to send funds: {e:?}"))
+        })?;
+    debug!("Funds {amount} satoshis sent to cover protocol fees to the aggregated key txid: {:?}", initial_utxo.0);
+
+    // Send the amount that the players will bet to the aggregated key
     let amount = Amount::from_btc(1.0).map_err(|e| {
         http_errors::internal_server_error(&format!("Failed to convert amount: {e:?}"))
     })?;
-    let txid = service_guard
+    let prover_win_utxo = service_guard
         .send_funds(p2tr_address.to_string(), amount.to_sat(), None)
         .await
-        .map_err(|e| http_errors::internal_server_error(&format!("Failed to send funds: {e:?}")))?;
-
-    debug!("Funds sent to the aggregated key txid: {:?}", txid);
+        .map_err(|e| {
+            http_errors::internal_server_error(&format!("Failed to send funds: {e:?}"))
+        })?;
+    debug!("Funds {amount} satoshis sent to the aggregated key to cover the players bet txid: {:?}", prover_win_utxo.0);
 
     Ok(Json((
         aggregated_key_response,
@@ -260,10 +286,10 @@ pub async fn send_funds(
             send_funds_request.scripts,
         )
         .await
-        .map_err(|e| http_errors::internal_server_error(&format!("Failed to send funds: {e:?}")))?;
-    Ok(Json(SendFundsResponse {
-        txid: txid.to_string(),
-    }))
+        .map_err(|e| {
+            http_errors::internal_server_error(&format!("Failed to send funds: {e:?}"))
+        })?;
+    Ok(Json(SendFundsResponse { txid: txid.0.to_string() }))
 }
 
 /// Get Bitcoin transaction dispatched by BitVMX

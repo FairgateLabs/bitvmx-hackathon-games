@@ -184,6 +184,13 @@ cargo test --test bitvmx     # Run BitVMX integration tests
 - Bitcoind running
 - BitVMX RPC server running
 
+### Bitcoin Configuration
+
+The Bitcoin node is configured with the following settings:
+
+- **btc-rpc-explorer**: Runs on port 4000 for [blockchain exploration and transaction monitoring](https://github.com/janoside/btc-rpc-explorer)
+- **Auto mining**: Set to mine 1 block per second for development and testing purposes at [start-bitcoin.sh](./start-bitcoin.sh)
+
 ### Building
 
 ```bash
@@ -193,16 +200,32 @@ cargo build --release
 
 ### Running
 
-Start bitcoin and bitvmx with:
+Start bitcoin, bitvmx  and  backend with:
 
 ```bash
-bash start-op-1.sh
+bash start
 ```
 
-Run the backend api server with:
+If you want to run them independently youn can:
 
-```bashß
-cargo run
+Run bitcoin, explorer and auto mine:
+
+```bash
+bash start-bitcoin.sh
+```
+
+Run bitvmx operator 1 and 2:
+
+```bash
+bash start-op-1.sh 
+bash start-op-2.sh 
+```
+
+Run the backend api server for player 1 and 2:
+
+```bash
+bash start-player-1.sh 
+bash start-player-2.sh 
 ```
 
 ### TypeScript Bindings Generation

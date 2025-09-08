@@ -21,3 +21,8 @@ pub fn pub_key_to_xonly(pubkey: &PublicKey) -> Result<XOnlyPublicKey, anyhow::Er
     // XOnlyPublicKey should be always even parity, compact pubkey should prefix with 02 if even or 03 if odd
     Ok(XOnlyPublicKey::from_str(pubkey.to_string().strip_prefix("02").unwrap())?)
 }
+
+pub fn xonly_to_pub_key(x_only_pubkey: &XOnlyPublicKey) -> Result<PublicKey, anyhow::Error> {
+    // XOnlyPublicKey should be always even parity, compact pubkey should prefix with 02 if even or 03 if odd
+    Ok( PublicKey::from_str(format!("02{x_only_pubkey}").as_str())?)
+}

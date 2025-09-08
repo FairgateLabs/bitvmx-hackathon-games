@@ -193,6 +193,9 @@ impl RpcClient {
     fn request_to_correlation_id(&self, message: &IncomingBitVMXApiMessages) -> Result<String, anyhow::Error> {
         // Serialize the message
         match message {
+            IncomingBitVMXApiMessages::Setup(uuid, _program_type, _participants, _leader_idx) => {
+                Ok(uuid.to_string())
+            },
             IncomingBitVMXApiMessages::SetVar(uuid, _key, _value) => {
                 Ok(uuid.to_string())
             },
@@ -235,6 +238,12 @@ impl RpcClient {
     /// Convert the response received from BitVMX to a correlation ID
     fn response_to_correlation_id(&self, response: &OutgoingBitVMXApiMessages) -> Result<String, anyhow::Error> {
         match response {
+            OutgoingBitVMXApiMessages::NotFound(uuid, _key) => {
+                Ok(uuid.to_string())
+            },
+            OutgoingBitVMXApiMessages::SetupCompleted(uuid) => {
+                Ok(uuid.to_string())
+            },
             OutgoingBitVMXApiMessages::Variable(uuid, _key, _value) => {
                 Ok(uuid.to_string())
             },
