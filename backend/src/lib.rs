@@ -1,9 +1,9 @@
 pub mod api;
 pub mod config;
-pub mod utils;
 pub mod middleware;
 pub mod models;
 pub mod routes;
 pub mod rpc;
 pub mod services;
 pub mod state;
+pub mod utils;

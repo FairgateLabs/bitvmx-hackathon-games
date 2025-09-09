@@ -1,8 +1,8 @@
-use crate::utils::http_errors;
 use crate::models::{
     AddNumbersGame, AddNumbersRequest, AddNumbersResponse, ErrorResponse, MakeGuessRequest,
 };
 use crate::state::AppState;
+use crate::utils::http_errors;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
