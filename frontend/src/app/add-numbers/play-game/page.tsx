@@ -33,11 +33,13 @@ import { ChallengeLoseGame } from "@/components/player1/challenge-lose-game";
 import { TimeoutLoseGame } from "@/components/player2/timeout-lose-game";
 import { AcceptWinGame } from "@/components/player2/accept-win-game";
 import { WaitingStartGame } from "@/components/player2/waiting-start-game";
+import { useCurrentGame } from "@/hooks/useGame";
 
 export default function AddNumbersPage() {
   const { data: gameState } = useGameState();
   const { data: role } = useGameRole();
   const { mutate: nextGameState } = useNextGameState();
+  const { data: currentGame } = useCurrentGame();
 
   useEffect(() => {
     if (gameState === GameState.ChooseGame) {
@@ -45,11 +47,11 @@ export default function AddNumbersPage() {
     }
   });
 
-  if (gameState === GameState.ChooseNetwork) {
+  if (!currentGame && gameState === GameState.ChooseNetwork) {
     return <ChooseNetwork />;
   }
 
-  if (gameState === GameState.ChooseRole) {
+  if (!currentGame && gameState === GameState.ChooseRole) {
     return (
       <ChooseRole
         title="🎮 Add Numbers Game"

@@ -12,10 +12,13 @@ import { GameNumbersToAdd, GameState } from "@/types/game";
 import { useNextGameState } from "@/hooks/useGameState";
 import { useNetwork } from "@/hooks/useNetwork";
 import { NetworkType } from "@/types/network";
+import { useCreateGame, useGameById } from "@/hooks/useGame";
+import { AddNumbersRequest } from "../../../../backend/bindings/AddNumbersRequest";
 
 export function SetupGame() {
   const [numbers, setNumbers] = useState<GameNumbersToAdd>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [gameId, setGameId] = useState<string>("");
   const [inputsDisabled, setInputsDisabled] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [isOpen, setIsOpen] = useState(true);
@@ -25,6 +28,12 @@ export function SetupGame() {
   const generateProgram = () => {
     // Placeholder for the actual generate program logic
     setIsLoading(true);
+    let data: AddNumbersRequest = {
+      id: gameId,
+      number1: numbers.number1 || 0,
+      number2: numbers.number2 || 0,
+    };
+    useCreateGame(data);
     setTimeout(() => {
       setIsLoading(false);
       setInputsDisabled(true);
@@ -45,15 +54,13 @@ export function SetupGame() {
     }
   };
 
-  const [gameUUID, setGameUUID] = useState<string>("");
-
   const generateUUID = () => {
     const uuid = crypto.randomUUID();
-    setGameUUID(uuid);
+    setGameId(uuid);
   };
 
   useEffect(() => {
-    if (!gameUUID) {
+    if (!gameId) {
       generateUUID();
     }
   }, []);
@@ -80,11 +87,11 @@ export function SetupGame() {
                 <div className="flex-1">
                   <p className="text-sm text-gray-700 mb-1">Game UUID:</p>
                   <p className="font-mono text-sm bg-gray-100 p-3 rounded break-all">
-                    {gameUUID || "Generating..."}
+                    {gameId || "Generating..."}
                   </p>
                 </div>
                 <div className="flex gap-2 ml-3 mt-5">
-                  <CopyButton text={gameUUID} size="sm" variant="outline" />
+                  <CopyButton text={gameId} size="sm" variant="outline" />
                 </div>
               </div>
               <div className="space-y-3 mt-4">

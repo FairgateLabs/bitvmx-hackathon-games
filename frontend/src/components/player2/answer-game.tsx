@@ -4,11 +4,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNextGameState } from "@/hooks/useGameState";
 import { GameState } from "@/types/game";
+import {
+  useAnswerAddNumber,
+  useCurrentGameId,
+  useGameById,
+} from "@/hooks/useGame";
 
 export function AnswerGame() {
   const [answer, setAnswer] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const { mutate: nextGameState } = useNextGameState();
+  const { data: currentGameId } = useCurrentGameId();
 
   const isAnswerValid = () => {
     const parsedAnswer = parseInt(answer, 10);
@@ -17,6 +23,7 @@ export function AnswerGame() {
 
   const handleSubmit = () => {
     if (isAnswerValid()) {
+      // useAnswerAddNumber(id, answer);
       nextGameState(GameState.ChooseAction);
       setIsSubmitted(true);
     } else {

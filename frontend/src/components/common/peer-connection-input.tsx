@@ -22,15 +22,12 @@ export function PeerConnectionInput() {
   const { mutate: nextState } = useNextGameState();
 
   const isValidNetworkAddress = (networkAddress: string) => {
-    const [ip, port] = networkAddress.split(":");
-    const ipRegex =
-      /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-    return ipRegex.test(ip) && isValidPort(port);
-  };
-
-  const isValidPort = (port: string) => {
-    const portNumber = parseInt(port, 10);
-    return portNumber > 0 && portNumber <= 65535;
+    const regex =
+      /^\/ip4\/(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/tcp\/([0-9]{1,5})$/;
+    const match = networkAddress.match(regex);
+    if (!match) return false;
+    const port = parseInt(match[5], 10);
+    return port > 0 && port <= 65535;
   };
 
   const isValidPeeId = (key: string): boolean => {
@@ -40,7 +37,7 @@ export function PeerConnectionInput() {
 
   const isValidPubKey = (key: string): boolean => {
     const hexRegex = /^[0-9a-fA-F]+$/; // only hex chars
-    return hexRegex.test(key) && key.length === 66; // typical length for uncompressed public key
+    return hexRegex.test(key) && key.length === 66;
   };
 
   const handleSetConnection = () => {
@@ -59,13 +56,14 @@ export function PeerConnectionInput() {
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleTrigger asChild>
           <h3 className="font-semibold mb-3 text-gray-800 cursor-pointer hover:text-gray-900">
-            🔗 Other Player's Connection
+            🔗 Other Player's Setup Data
           </h3>
         </CollapsibleTrigger>
         <CollapsibleContent className="flex flex-col gap-3">
           <p className="text-sm text-gray-700 mb-4">
-            Enter the IP address and port of the other player to connect to
-            their game and allow bitvmx client to connect to it.
+            Enter the public key, Network Address and Peer ID of the other
+            player to connect to their game and allow bitvmx client to connect
+            to it.
           </p>
 
           <div>
@@ -93,13 +91,13 @@ export function PeerConnectionInput() {
               id="peerIP"
               value={networkAddress}
               onChange={(e) => setPeerIP(e.target.value)}
-              placeholder="e.g., 192.168.1.100"
+              placeholder="e.g., /ip4/127.0.0.1/tcp/61181"
               className="mt-1"
               disabled={inputsDisabled}
             />
             {!isValidNetworkAddress(networkAddress) && networkAddress && (
               <p className="text-red-600 text-sm">
-                Invalid Network Address format (e.g., 192.168.1.100:3000).
+                Invalid Network Address format (e.g., /ip4/127.0.0.1/tcp/61181).
               </p>
             )}
           </div>

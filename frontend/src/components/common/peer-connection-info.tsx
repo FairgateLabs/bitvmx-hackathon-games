@@ -7,17 +7,19 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import usePubkey from "@/hooks/usePubkey";
 
 export function PeerConnectionInfo() {
   const [isOpen, setIsOpen] = useState(true);
   const { data: peerConnectionInfo, isLoading, error } = useCommunicationInfo();
+  const { data: operatorKey } = usePubkey();
 
   return (
     <div className="p-4 bg-white border border-gray-200 rounded-lg">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleTrigger asChild>
           <h3 className="font-semibold mb-3 text-gray-800 cursor-pointer hover:text-gray-900">
-            🔌 Your Connection Information
+            🔌 Your Setup Data
           </h3>
         </CollapsibleTrigger>
         <CollapsibleContent>
@@ -27,6 +29,19 @@ export function PeerConnectionInfo() {
           </p>
 
           <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-gray-800">Public Key:</Label>
+                <p className="font-mono text-sm bg-gray-100 p-2 rounded overflow-hidden text-ellipsis whitespace-nowrap max-w-[500px]">
+                  {operatorKey?.pub_key || "Loading..."}
+                </p>
+              </div>
+              <CopyButton
+                text={operatorKey?.pub_key ?? ""}
+                size="sm"
+                variant="outline"
+              />
+            </div>
             <div className="flex items-center justify-between">
               <div>
                 <Label className="text-gray-800">Your Network Address:</Label>

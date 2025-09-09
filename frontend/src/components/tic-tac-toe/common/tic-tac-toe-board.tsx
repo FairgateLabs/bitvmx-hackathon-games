@@ -7,7 +7,6 @@ import { Player, PlayerRole } from "@/types/game";
 import { useGameRole } from "@/hooks/useGameRole";
 import { useMockTicTacToeMoves } from "@/hooks/useTicTacToeMoves";
 import { TimeRemaining, TimeRemainingRef } from "../../ui/time-remaining"; // Import the timer component
-import { useGame } from "@/hooks/useGame";
 
 export enum PlayerSymbol {
   X = "X",
@@ -46,10 +45,9 @@ export function TicTacToeBoard({ onGameEnd }: TicTacToeBoardProps) {
   const [movesLog, setMovesLog] = useState<MoveLog[]>([]);
   const { data: playerRole } = useGameRole();
   const timerRef = useRef<TimeRemainingRef>(null);
-  const { data: gameId } = useGame();
 
   const { data: opponentMove, isLoading: isLoadingMoves } =
-    useMockTicTacToeMoves(gameId);
+    useMockTicTacToeMoves();
 
   // Check for winner after each move
   useEffect(() => {

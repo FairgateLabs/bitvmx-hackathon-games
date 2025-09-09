@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useNextGameState } from "@/hooks/useGameState";
 import { useSaveGameRole } from "@/hooks/useGameRole";
 import { GameState, PlayerRole } from "@/types/game";
+import { useEffect, useState } from "react";
 
 interface GameRoleSelectorProps {
   title: string;
@@ -23,11 +24,22 @@ export function ChooseRole({
 }: GameRoleSelectorProps) {
   const { mutate: nextState } = useNextGameState();
   const { mutate: saveRole } = useSaveGameRole();
+  const [currentPort, setCurrentPort] = useState<number | null>(null);
+
+  useEffect(() => {
+    // Get the current port from window.location.port or environment
+    const port = window.location.port ? parseInt(window.location.port) : 3000;
+    setCurrentPort(port);
+  }, []);
 
   const handleRoleSelect = (role: PlayerRole) => {
     saveRole(role);
     nextState(GameState.ChooseNetwork);
   };
+
+  // Determine which role should be enabled based on port
+  const isPlayer1Enabled = currentPort === 3000;
+  const isPlayer2Enabled = currentPort === 3001;
 
   return (
     <div className="container mx-auto p-6 max-w-2xl">
@@ -48,6 +60,7 @@ export function ChooseRole({
               onClick={() => handleRoleSelect(PlayerRole.Player1)}
               className="h-24 text-lg"
               variant="outline"
+              disabled={!isPlayer1Enabled}
             >
               ➕ Player 1<br />
               <span className="text-sm font-normal">Create the game</span>
@@ -57,6 +70,7 @@ export function ChooseRole({
               onClick={() => handleRoleSelect(PlayerRole.Player2)}
               className="h-24 text-lg"
               variant="outline"
+              disabled={!isPlayer2Enabled}
             >
               🤝 Player 2<br />
               <span className="text-sm font-normal">Join the game</span>
