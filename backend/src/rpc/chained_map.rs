@@ -26,10 +26,7 @@ where
     pub fn insert(&mut self, key: K, value: V) {
         let idx = self.global.len(); // index of this element
         self.global.push_back((key.clone(), value));
-        self.map
-            .entry(key)
-            .or_default()
-            .push_back(idx);
+        self.map.entry(key).or_default().push_back(idx);
     }
 
     /// Remove and return the first value for a given key

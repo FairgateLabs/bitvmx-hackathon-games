@@ -1,9 +1,9 @@
-use serde::{Deserialize, Serialize};
-use ts_rs::TS;
-use utoipa::ToSchema;
 use bitvmx_client::bitcoin::Txid;
 use bitvmx_client::program::variables::PartialUtxo;
+use serde::{Deserialize, Serialize};
 use std::str::FromStr;
+use ts_rs::TS;
+use utoipa::ToSchema;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
@@ -45,7 +45,6 @@ pub struct AggregatedKeyResponse {
     pub aggregated_key: String,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
 pub struct WalletBalance {
@@ -67,7 +66,7 @@ pub struct SendFundsRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema)]
-    #[ts(export)]
+#[ts(export)]
 pub struct Utxo {
     /// The transaction ID of the sent funds
     pub txid: String,
@@ -83,15 +82,14 @@ impl From<Utxo> for PartialUtxo {
     fn from(utxo: Utxo) -> Self {
         // Parse the txid string into a Txid
         let txid = Txid::from_str(&utxo.txid).expect("Invalid txid format");
-        
+
         // Convert the output_type from serde_json::Value to OutputType
-        let output_type = serde_json::from_value(utxo.output_type).expect("Invalid output type format");
-        
+        let output_type =
+            serde_json::from_value(utxo.output_type).expect("Invalid output type format");
+
         (txid, utxo.vout, Some(utxo.amount), output_type)
     }
 }
-
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
@@ -106,7 +104,6 @@ pub struct TransactionResponse {
     pub block_height: u32,
     /// The block hash
     pub block_hash: String,
-
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema)]
@@ -123,7 +120,6 @@ pub struct ProgramSetupRequest {
     /// The prover win utxo
     pub prover_win_utxo: Utxo,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]

@@ -26,7 +26,10 @@ impl AppState {
         Self {
             config: Arc::new(config.clone()),
             add_numbers_service: Arc::new(RwLock::new(AddNumbersService::new())),
-            bitvmx_service: Arc::new(RwLock::new(BitVMXService::new(rpc_client.clone(), config.bitcoin.clone()))),
+            bitvmx_service: Arc::new(RwLock::new(BitVMXService::new(
+                rpc_client.clone(),
+                config.bitcoin.clone(),
+            ))),
             rpc_client,
         }
     }

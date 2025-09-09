@@ -1,5 +1,7 @@
 use crate::models::{
-    AggregatedKeyRequest, AggregatedKeyResponse, ErrorResponse, OperatorKeys, P2PAddress, ProgramSetupRequest, ProgramSetupResponse, ProtocolCostResponse, SendFundsRequest, TransactionResponse, Utxo, WalletBalance
+    AggregatedKeyRequest, AggregatedKeyResponse, ErrorResponse, OperatorKeys, P2PAddress,
+    ProgramSetupRequest, ProgramSetupResponse, ProtocolCostResponse, SendFundsRequest,
+    TransactionResponse, Utxo, WalletBalance,
 };
 use crate::state::AppState;
 use crate::utils::{bitcoin, http_errors};
@@ -10,8 +12,8 @@ use axum::{
     Json, Router,
 };
 use bitvmx_client::bitcoin::{Amount, PublicKey};
-use bitvmx_client::program::participant::P2PAddress as BitVMXP2PAddress;
 use bitvmx_client::p2p_handler::PeerId;
+use bitvmx_client::program::participant::P2PAddress as BitVMXP2PAddress;
 use bitvmx_client::program::protocols::dispute::{TIMELOCK_BLOCKS, TIMELOCK_BLOCKS_KEY};
 use bitvmx_client::program::variables::VariableTypes;
 use bitvmx_client::protocol_builder::scripts;
@@ -140,7 +142,8 @@ pub async fn submit_aggregated_key(
         );
     }
 
-    let participants: Vec<BitVMXP2PAddress> = aggregated_key_request.p2p_addresses
+    let participants: Vec<BitVMXP2PAddress> = aggregated_key_request
+        .p2p_addresses
         .iter()
         .map(|p2p| BitVMXP2PAddress {
             address: p2p.address.clone(),
@@ -192,27 +195,29 @@ pub async fn submit_aggregated_key(
     let initial_utxo = service_guard
         .send_funds(p2tr_address.to_string(), amount, None)
         .await
-        .map_err(|e| {
-            http_errors::internal_server_error(&format!("Failed to send funds: {e:?}"))
-        })?;
-    debug!("Funds {amount} satoshis sent to cover protocol fees to the aggregated key txid: {:?}", initial_utxo.0);
+        .map_err(|e| http_errors::internal_server_error(&format!("Failed to send funds: {e:?}")))?;
+    debug!(
+        "Funds {amount} satoshis sent to cover protocol fees to the aggregated key txid: {:?}",
+        initial_utxo.0
+    );
 
     // Send the amount that the players will bet to the aggregated key
-    let amount = Amount::from_btc(1.0).map_err(|e| {
-        http_errors::internal_server_error(&format!("Failed to convert amount: {e:?}"))
-    })?.to_sat();
+    let amount = Amount::from_btc(1.0)
+        .map_err(|e| {
+            http_errors::internal_server_error(&format!("Failed to convert amount: {e:?}"))
+        })?
+        .to_sat();
     let prover_win_utxo = service_guard
         .send_funds(p2tr_address.to_string(), amount, None)
         .await
-        .map_err(|e| {
-            http_errors::internal_server_error(&format!("Failed to send funds: {e:?}"))
-        })?;
-    debug!("Funds {amount} satoshis sent to the aggregated key to cover the players bet txid: {:?}", prover_win_utxo.0);
+        .map_err(|e| http_errors::internal_server_error(&format!("Failed to send funds: {e:?}")))?;
+    debug!(
+        "Funds {amount} satoshis sent to the aggregated key to cover the players bet txid: {:?}",
+        prover_win_utxo.0
+    );
 
-        
     Ok(Json((aggregated_key_response, p2tr_address.to_string())))
 }
-
 
 /// Submit BitVMX aggregated key
 #[utoipa::path(
@@ -242,9 +247,9 @@ pub async fn program_setup(
     let program_id = Uuid::parse_str(&program_setup_request.program_id)
         .map_err(|_| http_errors::bad_request("Invalid program_id"))?;
 
-
     // Validate the participants
-    let participants: Vec<BitVMXP2PAddress> = program_setup_request.participants
+    let participants: Vec<BitVMXP2PAddress> = program_setup_request
+        .participants
         .iter()
         .map(|p2p| BitVMXP2PAddress {
             address: p2p.address.clone(),
@@ -253,9 +258,12 @@ pub async fn program_setup(
         .collect();
 
     // Validate the aggregated key
-    let aggregated_key = PublicKey::from_str(&program_setup_request.aggregated_key).map_err(|e| {
-        http_errors::internal_server_error(&format!("Failed to convert aggregated key to public key: {e:?}"))
-    })?;
+    let aggregated_key =
+        PublicKey::from_str(&program_setup_request.aggregated_key).map_err(|e| {
+            http_errors::internal_server_error(&format!(
+                "Failed to convert aggregated key to public key: {e:?}"
+            ))
+        })?;
 
     // Validate the initial utxo
     let initial_utxo = program_setup_request.initial_utxo;
@@ -266,7 +274,11 @@ pub async fn program_setup(
     // Set variables in BitVMX
     let service_guard = app_state.bitvmx_service.read().await;
     service_guard
-        .set_variable(program_id, "aggregated", VariableTypes::PubKey(aggregated_key))
+        .set_variable(
+            program_id,
+            "aggregated",
+            VariableTypes::PubKey(aggregated_key),
+        )
         .await
         .map_err(|e| {
             http_errors::internal_server_error(&format!("Failed to set variable: {e:?}"))
@@ -278,9 +290,13 @@ pub async fn program_setup(
         .map_err(|e| {
             http_errors::internal_server_error(&format!("Failed to set variable: {e:?}"))
         })?;
-    
+
     service_guard
-        .set_variable(program_id, "utxo_prover_win_action", VariableTypes::Utxo(prover_win_utxo.into()))
+        .set_variable(
+            program_id,
+            "utxo_prover_win_action",
+            VariableTypes::Utxo(prover_win_utxo.into()),
+        )
         .await
         .map_err(|e| {
             http_errors::internal_server_error(&format!("Failed to set variable: {e:?}"))
@@ -289,15 +305,23 @@ pub async fn program_setup(
     // Set program definition, it should be the relative path from the bitvmx-client to the program definition file
     let program_path = "./verifiers/add-test-with-const-pre.yaml";
     service_guard
-        .set_variable(program_id, "program_definition", VariableTypes::String(program_path.to_string()))
+        .set_variable(
+            program_id,
+            "program_definition",
+            VariableTypes::String(program_path.to_string()),
+        )
         .await
         .map_err(|e| {
             http_errors::internal_server_error(&format!("Failed to set variable: {e:?}"))
         })?;
-    
+
     // Set timelock blocks
     service_guard
-        .set_variable(program_id, TIMELOCK_BLOCKS_KEY, VariableTypes::Number(TIMELOCK_BLOCKS.into()))
+        .set_variable(
+            program_id,
+            TIMELOCK_BLOCKS_KEY,
+            VariableTypes::Number(TIMELOCK_BLOCKS.into()),
+        )
         .await
         .map_err(|e| {
             http_errors::internal_server_error(&format!("Failed to set variable: {e:?}"))
@@ -311,9 +335,10 @@ pub async fn program_setup(
             http_errors::internal_server_error(&format!("Failed to set variable: {e:?}"))
         })?;
 
-
     // Return the program ID
-    Ok(Json(ProgramSetupResponse { program_id: program_id.to_string() }))
+    Ok(Json(ProgramSetupResponse {
+        program_id: program_id.to_string(),
+    }))
 }
 
 /// Get BitVMX aggregated key
@@ -379,12 +404,19 @@ pub async fn send_funds(
 ) -> Result<Json<Utxo>, (StatusCode, Json<ErrorResponse>)> {
     let service_guard = app_state.bitvmx_service.read().await;
     let utxo = service_guard
-        .send_funds(send_funds_request.destination, send_funds_request.amount, send_funds_request.scripts)
+        .send_funds(
+            send_funds_request.destination,
+            send_funds_request.amount,
+            send_funds_request.scripts,
+        )
         .await
-        .map_err(|e| {
-            http_errors::internal_server_error(&format!("Failed to send funds: {e:?}"))
-        })?;
-    Ok(Json(Utxo { txid: utxo.0.to_string(), vout: utxo.1, amount: utxo.2.unwrap(), output_type: serde_json::to_value(utxo.3.unwrap()).unwrap() }))
+        .map_err(|e| http_errors::internal_server_error(&format!("Failed to send funds: {e:?}")))?;
+    Ok(Json(Utxo {
+        txid: utxo.0.to_string(),
+        vout: utxo.1,
+        amount: utxo.2.unwrap(),
+        output_type: serde_json::to_value(utxo.3.unwrap()).unwrap(),
+    }))
 }
 
 /// Get Bitcoin transaction dispatched by BitVMX
@@ -432,13 +464,11 @@ pub async fn get_transaction(
     tag = "BitVMX"
 )]
 #[instrument(skip(app_state))]
-pub async fn get_protocol_cost (
+pub async fn get_protocol_cost(
     State(app_state): State<AppState>,
 ) -> Result<Json<ProtocolCostResponse>, (StatusCode, Json<ErrorResponse>)> {
     let service_guard = app_state.bitvmx_service.read().await;
     let protocol_cost = service_guard.protocol_cost();
 
-    Ok(Json(ProtocolCostResponse{
-        protocol_cost,
-    }))
+    Ok(Json(ProtocolCostResponse { protocol_cost }))
 }

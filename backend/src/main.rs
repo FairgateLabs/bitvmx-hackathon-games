@@ -84,7 +84,10 @@ async fn main() -> anyhow::Result<()> {
     let setup_task = tokio::task::spawn(
         async move {
             // Wait for the RPC client to be ready
-            app_state_setup.rpc_client.wait_for_ready(shutdown_rx_setup).await;
+            app_state_setup
+                .rpc_client
+                .wait_for_ready(shutdown_rx_setup)
+                .await;
 
             // Now perform the setup
             {
