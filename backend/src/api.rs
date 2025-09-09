@@ -24,7 +24,9 @@ use crate::state::AppState;
         routes::bitvmx::get_aggregated_key,
         routes::bitvmx::wallet_balance,
         routes::bitvmx::send_funds,
-        routes::bitvmx::get_transaction
+        routes::bitvmx::get_transaction,
+        routes::bitvmx::program_setup,
+        routes::bitvmx::get_protocol_cost,
     ),
     components(
         schemas(
@@ -39,8 +41,11 @@ use crate::state::AppState;
             crate::models::AggregatedKeyResponse,
             crate::models::WalletBalance,
             crate::models::SendFundsRequest,
-            crate::models::SendFundsResponse,
+            crate::models::Utxo,
             crate::models::TransactionResponse,
+            crate::models::ProgramSetupRequest,
+            crate::models::ProgramSetupResponse,
+            crate::models::ProtocolCostResponse,
         )
     ),
     tags(

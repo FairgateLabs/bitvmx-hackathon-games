@@ -56,6 +56,6 @@ docker run  --name $EXPLORER_NAME -d \
 # Wait for the container to start
 sleep 3
 
-# Start auto mine blocks one per second
+# Start auto mine 1 block per 5 seconds
 docker exec -it $BITCOIND_NAME sh -c \
-'bitcoin-cli -regtest -rpcuser=foo -rpcpassword=rpcpassword createwallet "default" && ADDRESS=$(bitcoin-cli -regtest -rpcuser=foo -rpcpassword=rpcpassword getnewaddress) && while true; do bitcoin-cli -regtest -rpcuser=foo -rpcpassword=rpcpassword generatetoaddress 1 $ADDRESS && echo "⛏️  Bloque minado" && sleep 1; done'
+'bitcoin-cli -regtest -rpcuser=foo -rpcpassword=rpcpassword createwallet "default" && ADDRESS=$(bitcoin-cli -regtest -rpcuser=foo -rpcpassword=rpcpassword getnewaddress) && while true; do bitcoin-cli -regtest -rpcuser=foo -rpcpassword=rpcpassword generatetoaddress 1 $ADDRESS && echo "⛏️  Bloque minado" && sleep 5; done'

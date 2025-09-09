@@ -189,7 +189,7 @@ cargo test --test bitvmx     # Run BitVMX integration tests
 The Bitcoin node is configured with the following settings:
 
 - **btc-rpc-explorer**: Runs on port 4000 for [blockchain exploration and transaction monitoring](https://github.com/janoside/btc-rpc-explorer)
-- **Auto mining**: Set to mine 1 block per second for development and testing purposes at [start-bitcoin.sh](./start-bitcoin.sh)
+- **Auto mining**: Set to mine 1 block per 5 seconds for development and testing purposes at [start-bitcoin.sh](./start-bitcoin.sh)
 
 ### Building
 

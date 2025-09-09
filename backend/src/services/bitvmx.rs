@@ -213,6 +213,10 @@ impl BitVMXService {
         Ok(())
     }
 
+    pub fn protocol_cost(&self) -> u64 {
+        bitvmx_client::program::protocols::dispute::protocol_cost()
+    }
+
 
     // ----- Start internal methods -----
 
