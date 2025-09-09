@@ -1,10 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Play } from "lucide-react";
-import { useNextGameState } from "@/hooks/useGameState";
+// import { useNextGameState } from "@/hooks/useGameState";
 import { GameState } from "@/types/game";
 
 export function StartGame() {
-  const { mutate: nextGameState } = useNextGameState();
+  // const { mutate: nextGameState } = useNextGameState();
 
   return (
     <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -38,7 +38,9 @@ export function StartGame() {
         </ul>
       </div>
       <Button
-        onClick={() => nextGameState(GameState.WaitingAnswer)}
+        onClick={() => {
+          /* nextGameState(GameState.WaitingAnswer) */
+        }}
         className="w-full bg-blue-600 hover:bg-blue-700"
       >
         <Play className="h-4 w-4 mr-2" />

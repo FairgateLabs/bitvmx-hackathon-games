@@ -2,17 +2,17 @@ import { Shield } from "lucide-react";
 import { useGameRole } from "@/hooks/useGameRole";
 import { TimeRemaining } from "../ui/time-remaining";
 import { GameState, PlayerRole } from "@/types/game";
-import { useNextGameState } from "@/hooks/useGameState";
+// import { useNextGameState } from "@/hooks/useGameState";
 
 export function ChallengeAnswer() {
   const { data: role } = useGameRole();
   let whoDecidedChallenge = role === PlayerRole.Player1 ? "You" : "Player 1";
   let whoIsChallenged = role === PlayerRole.Player1 ? "Player 2" : "Your";
 
-  const { mutate: nextGameState } = useNextGameState();
+  // const { mutate: nextGameState } = useNextGameState();
 
   const handleTimeout = () => {
-    nextGameState(GameState.GameCompleteYouLoseByTimeout);
+    // nextGameState(GameState.GameCompleteYouLoseByTimeout);
   };
 
   return (

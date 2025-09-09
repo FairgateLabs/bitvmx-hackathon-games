@@ -1,13 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Play } from "lucide-react";
-import { useNextGameState } from "@/hooks/useGameState";
+// import { useNextGameState } from "@/hooks/useGameState";
 import { GameState } from "@/types/game";
 import { useState } from "react";
 import { GameEndResult, TicTacToeBoard } from "./tic-tac-toe-board";
 import { ChooseAction } from "./choose-actions";
 
 export function StartGame() {
-  const { mutate: nextGameState } = useNextGameState();
+  // const { mutate: nextGameState } = useNextGameState();
   let [gameResult, setGameResult] = useState<GameEndResult | null>(null);
   return (
     <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">

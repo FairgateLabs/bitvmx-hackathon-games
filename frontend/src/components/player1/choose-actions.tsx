@@ -1,25 +1,25 @@
 import { Button } from "@/components/ui/button";
-import { useGameState, useNextGameState } from "@/hooks/useGameState";
+// import { useGameState, useNextGameState } from "@/hooks/useGameState";
 import { GameState } from "@/types/game";
 import { TimeRemaining } from "@/components/ui/time-remaining";
 
 export function ChooseAction() {
-  const { mutate: nextGameState } = useNextGameState();
+  // const { mutate: nextGameState } = useNextGameState();
 
   const handleAccept = () => {
     // Logic for accepting the answer and transferring funds
-    nextGameState(GameState.GameCompleteYouLoseByAccept);
+    // nextGameState(GameState.GameCompleteYouLoseByAccept);
   };
 
   const handleChallenge = () => {
     // Logic for challenging the answer and initiating a dispute
-    nextGameState(GameState.ChallengeAnswer);
+    // nextGameState(GameState.ChallengeAnswer);
   };
 
   let answer = "8";
 
   const handleTimeout = () => {
-    nextGameState(GameState.GameCompleteYouLoseByTimeout);
+    // nextGameState(GameState.GameCompleteYouLoseByTimeout);
   };
 
   return (

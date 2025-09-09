@@ -1,12 +1,12 @@
 import { TimeRemaining } from "@/components/ui/time-remaining";
-import { useNextGameState } from "@/hooks/useGameState";
+// import { useNextGameState } from "@/hooks/useGameState";
 import { GameState } from "@/types/game";
 
 export function WaitingForAnswer() {
-  const { mutate: nextGameState } = useNextGameState();
+  // const { mutate: nextGameState } = useNextGameState();
   const handleTimeout = () => {
     console.log("handleTimeout");
-    nextGameState(GameState.GameCompleteYouWinByChallenge);
+    // nextGameState(GameState.GameCompleteYouWinByChallenge);
   };
   return (
     <div className="space-y-4 border border-gray-200 rounded-lg p-4 bg-blue-50">

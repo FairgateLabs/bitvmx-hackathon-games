@@ -9,8 +9,8 @@ import {
 } from "@/components/ui/collapsible";
 import { CopyButton } from "../ui/copy-button";
 import { GameNumbersToAdd, GameState } from "@/types/game";
-import { useNextGameState } from "@/hooks/useGameState";
-import { useNetwork } from "@/hooks/useNetwork";
+// import { useNextGameState } from "@/hooks/useGameState";
+import { useNetworkQuery } from "@/hooks/useNetwork";
 import { NetworkType } from "@/types/network";
 
 export function SetupGame() {
@@ -19,8 +19,8 @@ export function SetupGame() {
   const [inputsDisabled, setInputsDisabled] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
-  const { mutate: nextGameState } = useNextGameState();
-  const { data: network } = useNetwork();
+  // const { mutate: nextGameState } = useNextGameState();
+  const { data: network } = useNetworkQuery();
 
   const generateProgram = () => {
     // Placeholder for the actual generate program logic
@@ -30,7 +30,7 @@ export function SetupGame() {
       setInputsDisabled(true);
       setIsSuccess(true);
     }, 2000);
-    nextGameState(GameState.StartGame);
+    // nextGameState(GameState.StartGame);
   };
 
   const handleNumberChange = (key: string, value: string) => {
@@ -77,7 +77,7 @@ export function SetupGame() {
                 <div className="flex-1">
                   <p className="text-sm text-gray-700 mb-1">Game UUID:</p>
                   <p className="font-mono text-sm bg-gray-100 p-3 rounded break-all">
-                    {gameUUID || "Generating..."}
+                    {gameUUID || "Loading..."}
                   </p>
                 </div>
                 <div className="flex gap-2 ml-3 mt-5">

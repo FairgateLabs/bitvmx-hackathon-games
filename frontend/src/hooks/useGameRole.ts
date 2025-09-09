@@ -3,16 +3,15 @@ import { PlayerRole } from "@/types/game";
 
 // Hook for getting the current role
 const useGameRole = () => {
-  async function fetchGameRole() {
+  async function fetchGameRole(): Promise<PlayerRole | null> {
     const queryClient = useQueryClient();
     const current = queryClient.getQueryData<PlayerRole>(["role"]);
-    return current || PlayerRole.Player1;
+    return current || null;
   }
 
   return useQuery<PlayerRole | null>({
     queryKey: ["role"],
     queryFn: fetchGameRole,
-    initialData: PlayerRole.Player1,
   });
 };
 

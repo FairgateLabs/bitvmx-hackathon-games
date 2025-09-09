@@ -3,7 +3,7 @@ export enum GameState {
   ChooseNetwork = "SetupNetwork",
   ChooseRole = "ChooseRole",
   // SetupFunding = "SetupFunding", This is only in testnet
-  SetupConnection = "SetupConnection",
+  SetupParticipants = "SetupParticipants",
   SetupProgram = "SetupProgram",
   StartGame = "StartGame",
   WaitingAnswer = "WaitingAnswer",

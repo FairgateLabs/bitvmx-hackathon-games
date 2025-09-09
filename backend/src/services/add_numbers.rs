@@ -43,7 +43,7 @@ impl AddNumbersService {
         let game = self.games.get_mut(&id).ok_or("Game not found")?;
 
         // Validate game status
-        if game.status != AddNumbersGameStatus::SubmitGuess {
+        if game.status != AddNumbersGameStatus::SubmitSum {
             return Err("Game is not in waiting for guess state".to_string());
         }
 
@@ -54,7 +54,7 @@ impl AddNumbersService {
             .unwrap()
             .as_secs();
 
-        game.status = AddNumbersGameStatus::SubmitGuess;
+        game.status = AddNumbersGameStatus::SubmitSum;
 
         Ok(game.clone())
     }

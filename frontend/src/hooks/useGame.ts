@@ -2,6 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { getApiBaseUrl } from "../config/backend";
 import { AddNumbersRequest } from "../../../backend/bindings/AddNumbersRequest";
 import { AddNumbersGame } from "../../../backend/bindings/AddNumbersGame";
+import { AddNumbersGameStatus } from "../../../backend/bindings/AddNumbersGameStatus";
 
 function useGameById(id: string) {
   async function fetchGameById(id: string) {
@@ -67,14 +68,21 @@ function useCurrentGame() {
       return null;
     }
     const data = await response.json();
-    console.log("data", data);
     return data || null;
   }
 
-  return useQuery({
+  const query = useQuery({
     queryKey: ["currentGameId"],
     queryFn: fetchCurrentGame,
   });
+
+  // Return the game status directly from the backend
+  const gameStatus = query.data?.status || "WaitingForNumbers";
+
+  return {
+    ...query,
+    gameStatus,
+  };
 }
 
 export { useGameById, useCreateGame, useAnswerAddNumber, useCurrentGame };

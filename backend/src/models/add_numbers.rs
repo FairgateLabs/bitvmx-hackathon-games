@@ -8,14 +8,34 @@ use uuid::Uuid;
 pub enum AddNumbersGameStatus {
     SetupParticipants,
     SetupFunding,
-    CreateProgram,   // Participant 1
-    AddNumbers,      // Here we send the numbers to sum
-    SubmitGuess, // Participant 2 (Here we send the guess, whenever detect the news then we move to ComputeProgram)
-    WaitingForGuess, // Participant 1 (Here we wait for the guess)
-    ComputeProgram, // This should change
-    Chanllenge,
+    CreateProgram,        // (Player1) Create the program
+    BindNumbersToProgram, // (Player1) Here we send the numbers to sum
+    SubmitSum, // Participant 2 (Here we send the sum, whenever detect the news then we move to ComputeProgram)
+    WaitForSum, // Participant 1 (Here we wait for the sum)
+    ProgramDecision, // This should change
+    Challenge,
+    GameComplete {
+        outcome: GameOutcome,
+        reason: GameReason,
+    },
     TransferBetFunds,
     Finished,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, PartialEq)]
+#[ts(export)]
+pub enum GameOutcome {
+    Win,
+    Lose,
+    Draw,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, PartialEq)]
+#[ts(export)]
+pub enum GameReason {
+    Challenge,
+    Timeout,
+    Accept,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema)]

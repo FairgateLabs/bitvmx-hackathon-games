@@ -6,7 +6,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useNextGameState } from "@/hooks/useGameState";
+// import { useNextGameState } from "@/hooks/useGameState";
 import { useSaveGameRole } from "@/hooks/useGameRole";
 import { GameState, PlayerRole } from "@/types/game";
 import { useEffect, useState } from "react";
@@ -22,7 +22,7 @@ export function ChooseRole({
   description,
   subtitle,
 }: GameRoleSelectorProps) {
-  const { mutate: nextState } = useNextGameState();
+  // const { mutate: nextState } = useNextGameState();
   const { mutate: saveRole } = useSaveGameRole();
   const [currentPort, setCurrentPort] = useState<number | null>(null);
 
@@ -34,7 +34,7 @@ export function ChooseRole({
 
   const handleRoleSelect = (role: PlayerRole) => {
     saveRole(role);
-    nextState(GameState.ChooseNetwork);
+    // nextState(GameState.ChooseNetwork);
   };
 
   // Determine which role should be enabled based on port

@@ -8,8 +8,8 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { GameNumbersToAdd, GameState } from "@/types/game";
-import { useNextGameState } from "@/hooks/useGameState";
-import { useNetwork } from "@/hooks/useNetwork";
+// import { useNextGameState } from "@/hooks/useGameState";
+import { useNetworkQuery } from "@/hooks/useNetwork";
 import { NetworkType } from "@/types/network";
 
 export function SetupGame() {
@@ -19,8 +19,8 @@ export function SetupGame() {
   const [gameUUID, setGameUUID] = useState<string>("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isOpen, setIsOpen] = useState(true);
-  const { mutate: nextGameState } = useNextGameState();
-  const { data: network } = useNetwork();
+  // const { mutate: nextGameState } = useNextGameState();
+  const { data: network } = useNetworkQuery();
 
   const generateProgram = () => {
     // Placeholder for the actual generate program logic
@@ -33,7 +33,7 @@ export function SetupGame() {
       );
       console.log("Program generated with numbers:", numbers);
     }, 2000);
-    nextGameState(GameState.StartGame);
+    // nextGameState(GameState.StartGame);
   };
 
   const handleNumberChange = (key: string, value: string) => {

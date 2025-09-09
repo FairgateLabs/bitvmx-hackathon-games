@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { useGameState, useNextGameState } from "@/hooks/useGameState";
+// import { useGameState, useNextGameState } from "@/hooks/useGameState";
 import { GameState } from "@/types/game";
 import { TimeRemaining } from "@/components/ui/time-remaining";
 import { useGameRole } from "@/hooks/useGameRole";
@@ -8,7 +8,7 @@ import { GameEndResult } from "./tic-tac-toe-board";
 import { useState } from "react";
 
 export function ChooseAction({ winner, isTimeout }: GameEndResult) {
-  const { mutate: nextGameState } = useNextGameState();
+  // const { mutate: // nextGameState } = useNextGameState();
   const { data: currentPlayer } = useGameRole();
   const [buttonsDisabled, setButtonsDisabled] = useState(false);
 
@@ -21,25 +21,25 @@ export function ChooseAction({ winner, isTimeout }: GameEndResult) {
     if (isTimeout) {
       // Timeout scenario - winner is determined by timeout
       if (winner === currentPlayer) {
-        nextGameState(GameState.GameCompleteYouWinByTimeout);
+        // nextGameState(GameState.GameCompleteYouWinByTimeout);
       } else {
-        nextGameState(GameState.GameCompleteYouLoseByTimeout);
+        // nextGameState(GameState.GameCompleteYouLoseByTimeout);
       }
     } else if (winner === currentPlayer) {
       // Player won normally - accept victory
-      nextGameState(GameState.GameCompleteYouWinByAccept);
+      // nextGameState(GameState.GameCompleteYouWinByAccept);
     } else if (winner === null) {
       // Draw - accept draw (using accept state for now)
-      nextGameState(GameState.GameCompleteYouWinByAccept);
+      // nextGameState(GameState.GameCompleteYouWinByAccept);
     } else {
       // Player lost normally - accept loss
-      nextGameState(GameState.GameCompleteYouLoseByAccept);
+      // nextGameState(GameState.GameCompleteYouLoseByAccept);
     }
   };
 
   const handleChallenge = () => {
     // Any result can be challenged
-    nextGameState(GameState.ChallengeAnswer);
+    // nextGameState(GameState.ChallengeAnswer);
   };
 
   const handleTimeout = () => {
@@ -48,11 +48,11 @@ export function ChooseAction({ winner, isTimeout }: GameEndResult) {
 
     // This handles the timeout for the action selection phase
     if (winner === currentPlayer) {
-      nextGameState(GameState.GameCompleteYouWinByTimeout);
+      // nextGameState(GameState.GameCompleteYouWinByTimeout);
     } else if (winner === null) {
-      nextGameState(GameState.GameCompleteYouWinByAccept);
+      // nextGameState(GameState.GameCompleteYouWinByAccept);
     } else {
-      nextGameState(GameState.GameCompleteYouLoseByTimeout);
+      // nextGameState(GameState.GameCompleteYouLoseByTimeout);
     }
   };
 

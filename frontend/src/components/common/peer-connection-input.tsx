@@ -2,13 +2,13 @@ import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useSavePeerConnection } from "@/hooks/useSavePeerConnection";
+import { useSaveParticipantInfo } from "@/hooks/useParticipantInfo";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { useNextGameState } from "@/hooks/useGameState";
+// import { useNextGameState } from "@/hooks/useGameState";
 import { GameState } from "@/types/game";
 import { useCommunicationInfo } from "@/hooks/useCommunicationInfo";
 import usePubkey from "@/hooks/usePubkey";
@@ -20,8 +20,8 @@ export function PeerConnectionInput() {
   const [isOpen, setIsOpen] = useState(true);
   const [inputsDisabled, setInputsDisabled] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
-  const { mutate: savePeerConnection } = useSavePeerConnection();
-  const { mutate: nextState } = useNextGameState();
+  const { mutate: savePeerConnection } = useSaveParticipantInfo();
+  // const { mutate: nextState } = useNextGameState();
   const { data: peerConnectionInfo } = useCommunicationInfo();
   const { data: operatorKey } = usePubkey();
 
@@ -57,7 +57,7 @@ export function PeerConnectionInput() {
     });
     setInputsDisabled(true);
     setSuccessMessage("Connection successfully established!");
-    nextState(GameState.SetupProgram);
+    // nextState(GameState.SetupProgram);
   };
 
   return (

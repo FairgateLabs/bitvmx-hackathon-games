@@ -9,14 +9,14 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { useNetwork } from "@/hooks/useNetwork";
+import { useNetworkQuery } from "@/hooks/useNetwork";
 
 export function WalletSection() {
   const [transactionId, setTransactionId] = useState("");
   const [outputIndex, setOutputIndex] = useState("");
   const [isOpen, setIsOpen] = useState(true);
   const { data: addressData, isLoading, error } = useWalletBalance();
-  const { data: network } = useNetwork();
+  const { data: network } = useNetworkQuery();
 
   return (
     <div className="p-4 bg-white border border-gray-200 rounded-lg">

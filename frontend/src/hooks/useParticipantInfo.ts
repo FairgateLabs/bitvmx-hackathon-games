@@ -1,10 +1,9 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { getApiBaseUrl } from "../config/backend";
 import { AggregatedKeySubmission } from "../../../backend/bindings/AggregatedKeySubmission";
 import { P2PAddress } from "../../../backend/bindings/P2PAddress";
 
-export const useSavePeerConnection = () => {
-  // Send IP and Port to backend using react-query
+const useSaveParticipantInfo = () => {
   return useMutation({
     mutationFn: async ({
       p2p_addresses,
@@ -36,3 +35,29 @@ export const useSavePeerConnection = () => {
     },
   });
 };
+
+const useGetParticipantInfo = (uuid: string) => {
+  return useQuery({
+    queryKey: ["participantInfo", uuid],
+    queryFn: async () => {
+      const baseUrl = getApiBaseUrl();
+      const response = await fetch(
+        `${baseUrl}/api/bitvmx/aggregated-key/${uuid}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch participant info");
+      }
+
+      return response.json();
+    },
+  });
+};
+
+export { useSaveParticipantInfo, useGetParticipantInfo };
