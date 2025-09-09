@@ -1,23 +1,22 @@
 import { useMutation } from "@tanstack/react-query";
 import { getApiBaseUrl } from "../config/backend";
 import { AggregatedKeySubmission } from "../../../backend/bindings/AggregatedKeySubmission";
+import { P2PAddress } from "../../../backend/bindings/P2PAddress";
 
 export const useSavePeerConnection = () => {
   // Send IP and Port to backend using react-query
   return useMutation({
     mutationFn: async ({
-      address,
-      peer_id,
+      p2p_addresses,
       operator_keys,
     }: {
-      address: string;
-      peer_id: string;
+      p2p_addresses: P2PAddress[];
       operator_keys: string[];
     }) => {
       let uuid = crypto.randomUUID();
       let data: AggregatedKeySubmission = {
         uuid,
-        p2p_addresses: [{ address, peer_id }],
+        p2p_addresses: p2p_addresses,
         operator_keys: operator_keys,
         leader_idx: 0,
       };

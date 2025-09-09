@@ -31,6 +31,7 @@ function useCreateGame(data: AddNumbersRequest) {
         },
         body: JSON.stringify(data),
       });
+
       if (!response.ok) {
         throw new Error("Failed to create game");
       }

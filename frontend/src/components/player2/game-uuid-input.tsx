@@ -11,21 +11,21 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { GameNumbersToAdd } from "@/types/game";
+import { useCurrentGame } from "@/hooks/useGame";
 
 interface GameUUIDInputProps {
   isExpanded?: boolean;
 }
 
 export function GameUUIDInput({ isExpanded = true }: GameUUIDInputProps) {
-  const [gameUUID, setGameUUID] = useState("");
   const [isValid, setIsValid] = useState(false);
   const [isOpen, setIsOpen] = useState(isExpanded);
   const [numbers, setNumbers] = useState<GameNumbersToAdd>({});
   const [isSuccess, setIsSuccess] = useState(false);
   const { mutate: saveProgram } = useProgramMutation();
+  const { data: game } = useCurrentGame();
 
   const handleUUIDChange = (value: string) => {
-    setGameUUID(value);
     // Basic UUID validation (8-4-4-4-12 format)
     const uuidRegex =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -44,11 +44,10 @@ export function GameUUIDInput({ isExpanded = true }: GameUUIDInputProps) {
   const handleSubmit = () => {
     if (
       isValid &&
-      gameUUID &&
       numbers.number1 !== undefined &&
       numbers.number2 !== undefined
     ) {
-      saveProgram(gameUUID);
+      saveProgram(game!.id);
       setIsSuccess(true);
     }
   };
@@ -74,17 +73,17 @@ export function GameUUIDInput({ isExpanded = true }: GameUUIDInputProps) {
               <div className="flex gap-2 mt-1">
                 <Input
                   id="gameUUID"
-                  value={gameUUID}
+                  value={game!.id}
                   onChange={(e) => handleUUIDChange(e.target.value)}
                   placeholder="e.g., 123e4567-e89b-12d3-a456-426614174000"
                   className={`flex-1 ${
-                    gameUUID && !isValid ? "border-gray-300" : ""
+                    game!.id && !isValid ? "border-gray-300" : ""
                   }`}
                 />
 
                 <CopyButton text="" size="sm" variant="outline" />
               </div>
-              {gameUUID && !isValid && (
+              {game!.id && !isValid && (
                 <p className="text-xs text-red-600 mt-1">
                   Please enter a valid UUID format
                 </p>
@@ -134,7 +133,7 @@ export function GameUUIDInput({ isExpanded = true }: GameUUIDInputProps) {
               onClick={handleSubmit}
               disabled={
                 !isValid ||
-                !gameUUID ||
+                !game!.id ||
                 numbers.number1 === undefined ||
                 numbers.number2 === undefined
               }

@@ -10,9 +10,11 @@ import {
 } from "@/components/ui/collapsible";
 import { useNextGameState } from "@/hooks/useGameState";
 import { GameState } from "@/types/game";
+import { useCommunicationInfo } from "@/hooks/useCommunicationInfo";
+import usePubkey from "@/hooks/usePubkey";
 
 export function PeerConnectionInput() {
-  const [networkAddress, setPeerIP] = useState("");
+  const [address, setAddress] = useState("");
   const [peerId, setPeerId] = useState("");
   const [pubKey, setPubKey] = useState("");
   const [isOpen, setIsOpen] = useState(true);
@@ -20,6 +22,8 @@ export function PeerConnectionInput() {
   const [successMessage, setSuccessMessage] = useState("");
   const { mutate: savePeerConnection } = useSavePeerConnection();
   const { mutate: nextState } = useNextGameState();
+  const { data: peerConnectionInfo } = useCommunicationInfo();
+  const { data: operatorKey } = usePubkey();
 
   const isValidNetworkAddress = (networkAddress: string) => {
     const regex =
@@ -42,9 +46,14 @@ export function PeerConnectionInput() {
 
   const handleSetConnection = () => {
     savePeerConnection({
-      address: networkAddress,
-      peer_id: peerId,
-      operator_keys: [pubKey],
+      p2p_addresses: [
+        {
+          address: peerConnectionInfo?.address ?? "",
+          peer_id: peerConnectionInfo?.peer_id ?? "",
+        },
+        { address, peer_id: peerId },
+      ],
+      operator_keys: [operatorKey?.pub_key ?? "", pubKey],
     });
     setInputsDisabled(true);
     setSuccessMessage("Connection successfully established!");
@@ -89,13 +98,13 @@ export function PeerConnectionInput() {
             </Label>
             <Input
               id="peerIP"
-              value={networkAddress}
-              onChange={(e) => setPeerIP(e.target.value)}
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
               placeholder="e.g., /ip4/127.0.0.1/tcp/61181"
               className="mt-1"
               disabled={inputsDisabled}
             />
-            {!isValidNetworkAddress(networkAddress) && networkAddress && (
+            {!isValidNetworkAddress(address) && address && (
               <p className="text-red-600 text-sm">
                 Invalid Network Address format (e.g., /ip4/127.0.0.1/tcp/61181).
               </p>
@@ -121,10 +130,10 @@ export function PeerConnectionInput() {
 
           <Button
             onClick={handleSetConnection}
-            disabled={!isValidNetworkAddress(networkAddress) || inputsDisabled}
+            disabled={!isValidNetworkAddress(address) || inputsDisabled}
             className="w-full bg-gray-600 hover:bg-gray-700"
           >
-            🔗 Set Connection
+            🔗 Setup Data
           </Button>
 
           {successMessage && (
@@ -142,8 +151,8 @@ export function PeerConnectionInput() {
                 ⚠️ Connection Setup Required
               </h3>
               <p className="text-sm text-yellow-700">
-                Please complete the connection setup by entering the other
-                player's IP address and port above.
+                Ensure you enter the other player's Network Address, Peer ID and
+                Public Key to finalize the connection setup.
               </p>
             </div>
           )}

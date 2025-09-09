@@ -1,8 +1,9 @@
-use crate::utils::{http_errors, bitcoin};
 use crate::models::{
-    AggregatedKeyRequest, AggregatedKeyResponse, ErrorResponse, OperatorKeys, P2PAddress, SendFundsRequest, SendFundsResponse, TransactionResponse, WalletBalance
+    AggregatedKeyRequest, AggregatedKeyResponse, ErrorResponse, OperatorKeys, P2PAddress,
+    SendFundsRequest, SendFundsResponse, TransactionResponse, WalletBalance,
 };
 use crate::state::AppState;
+use crate::utils::{bitcoin, http_errors};
 use axum::{
     extract::Path,
     extract::State,
@@ -22,7 +23,7 @@ pub fn router() -> Router<AppState> {
         .route("/comm-info", get(comm_info))
         .route("/operator-keys", get(operator_keys))
         .route("/aggregated-key", post(submit_aggregated_key))
-        .route("/aggregated-key", get(get_aggregated_key))
+        .route("/aggregated-key/{uuid}", get(get_aggregated_key))
         .route("/wallet-balance", get(wallet_balance))
         .route("/send-funds", post(send_funds))
         .route("/transaction/{txid}", get(get_transaction))
@@ -153,7 +154,9 @@ pub async fn submit_aggregated_key(
     };
     // TODO this should go in a separated method in the future
     let x_only_pubkey = bitcoin::pub_key_to_xonly(&aggregated_key).map_err(|e| {
-        http_errors::internal_server_error(&format!("Failed to convert aggregated key to x only pubkey: {e:?}"))
+        http_errors::internal_server_error(&format!(
+            "Failed to convert aggregated key to x only pubkey: {e:?}"
+        ))
     })?;
     // Todo check if this tap leaves are correct
     let tap_leaves = vec![
@@ -161,9 +164,14 @@ pub async fn submit_aggregated_key(
         scripts::check_aggregated_signature(&aggregated_key, scripts::SignMode::Aggregate),
     ];
     let p2tr_address = bitcoin::pub_key_to_p2tr(&x_only_pubkey, &tap_leaves).map_err(|e| {
-        http_errors::internal_server_error(&format!("Failed to convert aggregated key to p2tr address: {e:?}"))
+        http_errors::internal_server_error(&format!(
+            "Failed to convert aggregated key to p2tr address: {e:?}"
+        ))
     })?;
-    debug!("Aggregated key created: {:?} taproot address: {:?}", aggregated_key, p2tr_address);
+    debug!(
+        "Aggregated key created: {:?} taproot address: {:?}",
+        aggregated_key, p2tr_address
+    );
 
     // Send funds to the aggregated key
     let amount = Amount::from_btc(1.0).map_err(|e| {
@@ -172,19 +180,21 @@ pub async fn submit_aggregated_key(
     let txid = service_guard
         .send_funds(p2tr_address.to_string(), amount.to_sat(), None)
         .await
-        .map_err(|e| {
-            http_errors::internal_server_error(&format!("Failed to send funds: {e:?}"))
-        })?;
+        .map_err(|e| http_errors::internal_server_error(&format!("Failed to send funds: {e:?}")))?;
 
     debug!("Funds sent to the aggregated key txid: {:?}", txid);
 
-    Ok(Json((aggregated_key_response, p2tr_address.to_string(), txid.to_string())))
+    Ok(Json((
+        aggregated_key_response,
+        p2tr_address.to_string(),
+        txid.to_string(),
+    )))
 }
 
 /// Get BitVMX aggregated key
 #[utoipa::path(
     get,
-    path = "/api/bitvmx/aggregated-key",
+    path = "/api/bitvmx/aggregated-key/{uuid}",
     responses(
         (status = 200, description = "Aggregated key", body = AggregatedKeyResponse),
         (status = 404, description = "Aggregated key not found", body = ErrorResponse)
@@ -218,12 +228,9 @@ pub async fn wallet_balance(
     State(app_state): State<AppState>,
 ) -> Result<Json<WalletBalance>, (StatusCode, Json<ErrorResponse>)> {
     let service_guard = app_state.bitvmx_service.read().await;
-    let wallet_balance = service_guard
-        .wallet_balance()
-        .await
-        .map_err(|e| {
-            http_errors::internal_server_error(&format!("Failed to get wallet balance: {e:?}"))
-        })?;
+    let wallet_balance = service_guard.wallet_balance().await.map_err(|e| {
+        http_errors::internal_server_error(&format!("Failed to get wallet balance: {e:?}"))
+    })?;
     Ok(Json(wallet_balance))
 }
 
@@ -247,12 +254,16 @@ pub async fn send_funds(
 ) -> Result<Json<SendFundsResponse>, (StatusCode, Json<ErrorResponse>)> {
     let service_guard = app_state.bitvmx_service.read().await;
     let txid = service_guard
-        .send_funds(send_funds_request.destination, send_funds_request.amount, send_funds_request.scripts)
+        .send_funds(
+            send_funds_request.destination,
+            send_funds_request.amount,
+            send_funds_request.scripts,
+        )
         .await
-        .map_err(|e| {
-            http_errors::internal_server_error(&format!("Failed to send funds: {e:?}"))
-        })?;
-    Ok(Json(SendFundsResponse { txid: txid.to_string() }))
+        .map_err(|e| http_errors::internal_server_error(&format!("Failed to send funds: {e:?}")))?;
+    Ok(Json(SendFundsResponse {
+        txid: txid.to_string(),
+    }))
 }
 
 /// Get Bitcoin transaction dispatched by BitVMX
@@ -281,7 +292,7 @@ pub async fn get_transaction(
         block_hash = block_info.hash.to_string();
     }
 
-    Ok(Json(TransactionResponse{
+    Ok(Json(TransactionResponse {
         txid: transaction.tx_id.to_string(),
         status: format!("{:?}", transaction.status),
         confirmations: transaction.confirmations,

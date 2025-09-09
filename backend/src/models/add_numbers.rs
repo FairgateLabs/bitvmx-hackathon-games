@@ -6,9 +6,15 @@ use uuid::Uuid;
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
 pub enum AddNumbersGameStatus {
-    WaitingForNumbers,
-    WaitingForGuess,
-    Guessed,
+    SetupParticipants,
+    SetupFunding,
+    CreateProgram,   // Participant 1
+    AddNumbers,      // Here we send the numbers to sum
+    SubmitGuess, // Participant 2 (Here we send the guess, whenever detect the news then we move to ComputeProgram)
+    WaitingForGuess, // Participant 1 (Here we wait for the guess)
+    ComputeProgram, // This should change
+    Chanllenge,
+    TransferBetFunds,
     Finished,
 }
 

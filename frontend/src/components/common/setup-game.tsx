@@ -20,7 +20,7 @@ export function SetupGame() {
   const [isLoading, setIsLoading] = useState(false);
   const [gameId, setGameId] = useState<string>("");
   const [inputsDisabled, setInputsDisabled] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
+  const [isSuccess, setIsSuccess] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
   const { mutate: nextGameState } = useNextGameState();
   const { data: network } = useNetwork();
@@ -34,14 +34,10 @@ export function SetupGame() {
       number2: numbers.number2 || 0,
     };
     useCreateGame(data);
-    setTimeout(() => {
-      setIsLoading(false);
-      setInputsDisabled(true);
-      setSuccessMessage(
-        "Program generated successfully with the provided numbers."
-      );
-      console.log("Program generated with numbers:", numbers);
-    }, 2000);
+    setIsLoading(false);
+    setInputsDisabled(true);
+    setIsSuccess(true);
+    console.log("Program generated with numbers:", numbers);
     nextGameState(GameState.StartGame);
   };
 
@@ -150,7 +146,7 @@ export function SetupGame() {
                 {isLoading ? "Generating..." : "🚀 Generate Program"}
               </Button>
 
-              {!successMessage && (
+              {!isSuccess && (
                 <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <h3 className="font-semibold mb-2 text-yellow-800">
                     ⚠️ Choose the numbers to start the program
@@ -162,12 +158,14 @@ export function SetupGame() {
                 </div>
               )}
 
-              {successMessage && (
+              {isSuccess && (
                 <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                   <h3 className="font-semibold mb-2 text-green-800">
                     ✅ UUID Generation Successful
                   </h3>
-                  <p className="text-sm text-green-700">{successMessage}</p>
+                  <p className="text-sm text-green-700">
+                    Program generated successfully with the provided numbers.
+                  </p>
                 </div>
               )}
             </div>
