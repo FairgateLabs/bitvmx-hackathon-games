@@ -1,6 +1,7 @@
-use crate::models::{AddNumbersGame, AddNumbersGameStatus, BitVMXProgramProperties};
+use crate::models::{AddNumbersGame, AddNumbersGameStatus, BitVMXProgramProperties, P2PAddress};
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
+use bitvmx_client::bitcoin::PublicKey;
 use uuid::Uuid;
 
 #[derive(Debug)]
@@ -15,34 +16,32 @@ impl AddNumbersService {
         }
     }
 
-    pub fn create_game(&mut self, id: Uuid, number1: i32, number2: i32) -> AddNumbersGame {
+    pub fn setup_game(&mut self, program_id: Uuid, aggregated_id: Uuid, participants_addresses: Vec<P2PAddress>, participants_keys: Vec<String>, aggregated_key: PublicKey) -> AddNumbersGame {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs();
 
         let game = AddNumbersGame {
-            id,
-            number1,
-            number2,
+            program_id,
+            number1: None,
+            number2: None,
             guess: None,
-            status: AddNumbersGameStatus::CreateProgram,
+            status: AddNumbersGameStatus::SetupParticipants,
             created_at: now,
             updated_at: now,
             bitvmx_program_properties: BitVMXProgramProperties {
-                aggregated_key: None,
-                aggregated_key_uuid: Uuid::default(),
-                participants: vec![],
-                participants_keys: vec![],
-                leader_idx: 0,
-                my_idx: 0,
+                aggregated_key,
+                aggregated_id,
+                participants_addresses,
+                participants_keys,
                 initial_utxo: None,
                 player1_bet_utxo: None,
                 player2_bet_utxo: None,
             },
         };
 
-        self.games.insert(id, game.clone());
+        self.games.insert(program_id, game.clone());
         game
     }
 

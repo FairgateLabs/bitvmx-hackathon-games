@@ -25,20 +25,22 @@ pub struct OperatorKeys {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
-pub struct AggregatedKeyRequest {
-    /// The UUID of the aggregated key
-    pub uuid: String,
+pub struct SetupParticipantsRequest {
+    /// The program ID
+    pub program_id: String,
+    /// The UUID of the aggregated key, must be the same for all participants
+    pub agregated_id: String,
     /// The P2P addresses of the bitvmx nodes in the aggregated key
-    pub p2p_addresses: Vec<P2PAddress>,
+    pub participants_addresses: Vec<P2PAddress>,
     /// The operator keys in hex format
-    pub operator_keys: Option<Vec<String>>,
+    pub participants_keys: Vec<String>,
     /// The leader index of the aggregated key
     pub leader_idx: u16,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
-pub struct AggregatedKeyResponse {
+pub struct SetupParticipantsResponse {
     /// The UUID of the aggregated key
     pub uuid: String,
     /// The aggregated public key in hex format

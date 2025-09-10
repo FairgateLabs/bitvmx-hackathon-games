@@ -1,5 +1,5 @@
 use crate::config::BitcoinConfig;
-use crate::models::{AggregatedKeyResponse, P2PAddress, WalletBalance};
+use crate::models::{SetupParticipantsResponse, P2PAddress, WalletBalance};
 use crate::rpc::rpc_client::RpcClient;
 use crate::utils;
 use bitvmx_bitcoin_rpc::bitcoin_client::BitcoinClient;
@@ -189,7 +189,7 @@ impl BitVMXService {
     }
 
     /// Get aggregated key
-    pub async fn aggregated_key(&self, uuid: Uuid) -> Result<AggregatedKeyResponse, anyhow::Error> {
+    pub async fn aggregated_key(&self, uuid: Uuid) -> Result<SetupParticipantsResponse, anyhow::Error> {
         trace!("Get aggregated key from BitVMX");
         let response = self
             .rpc_client
@@ -197,7 +197,7 @@ impl BitVMXService {
             .await?;
         if let OutgoingBitVMXApiMessages::AggregatedPubkey(uuid, aggregated_pubkey) = response {
             trace!("Obtained aggregated key: {:?}", aggregated_pubkey);
-            Ok(AggregatedKeyResponse {
+            Ok(SetupParticipantsResponse {
                 uuid: uuid.to_string(),
                 aggregated_key: aggregated_pubkey.to_string(),
             })
