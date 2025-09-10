@@ -99,6 +99,8 @@ pub async fn setup_participants(
 
     let mut service = app_state.add_numbers_service.write().await;
 
+    debug!("🎉 Setup game with program id: {:?} 🎉", program_id);
+
     service.setup_game(
         program_id,
         agregated_id,
@@ -273,7 +275,7 @@ pub async fn place_bet(
 
 #[utoipa::path(
     get,
-    path = "/api/add-numbers/my_participant_utxo/{id}",
+    path = "/api/add-numbers/fundings_utxos/{id}",
     responses(
         (status = 200, description = "My participant UTXO", body = FundingUtxosResponse),
         (status = 404, description = "My participant UTXO not found", body = ErrorResponse)

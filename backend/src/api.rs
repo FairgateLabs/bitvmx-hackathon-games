@@ -19,6 +19,8 @@ use crate::state::AppState;
         routes::add_numbers::get_game,
         routes::add_numbers::make_guess,
         routes::add_numbers::setup_participants,
+        routes::add_numbers::setup_funding_utxo,
+        routes::add_numbers::get_fundings_utxos,
         routes::bitvmx::comm_info,
         routes::bitvmx::operator_keys,
         routes::bitvmx::submit_aggregated_key,
@@ -47,6 +49,8 @@ use crate::state::AppState;
             crate::models::ProgramSetupRequest,
             crate::models::ProgramSetupResponse,
             crate::models::ProtocolCostResponse,
+            crate::models::MyFundingUtxoResponse,
+            crate::models::OtherParticipantFundingUtxoRequest,
         )
     ),
     tags(

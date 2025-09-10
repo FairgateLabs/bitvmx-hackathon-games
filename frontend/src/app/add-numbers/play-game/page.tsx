@@ -47,15 +47,11 @@ export default function AddNumbersPage() {
 
   useEffect(() => {
     if (!role || !!currentGame?.program_id) return;
-    console.log("HOLLAAAA");
     if (!currentGame?.program_id) {
-      console.log(role);
       if (role === PlayerRole.Player1) {
-        console.log("Player 1");
         const aggregatedId = crypto.randomUUID();
         setAggregatedId(aggregatedId);
       } else {
-        console.log("Player 2");
         setAggregatedId("");
       }
     } else {

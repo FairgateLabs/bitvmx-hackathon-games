@@ -1,13 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getApiBaseUrl } from "../config/backend";
 import { Utxo } from "../../../backend/bindings/Utxo";
-import { SendFundsRequest } from "../../../backend/bindings/SendFundsRequest";
+import { FundingUtxosResponse } from "../../../backend/bindings/FundingUtxosResponse";
 
 // Function to fetch my funding UTXO
-const fetchMyFundingUtxo = async (uuid: string): Promise<Utxo> => {
+const fetchFundingUtxos = async (
+  uuid: string
+): Promise<FundingUtxosResponse> => {
   const baseUrl = getApiBaseUrl();
   const response = await fetch(
-    `${baseUrl}/api/bitvmx/my-participant_funding_utxo/${uuid}`,
+    `${baseUrl}/api/add-numbers/fundings_utxos/${uuid}`,
     {
       method: "GET",
       headers: {
@@ -20,39 +22,37 @@ const fetchMyFundingUtxo = async (uuid: string): Promise<Utxo> => {
     throw new Error("Failed to fetch my funding UTXO");
   }
 
-  const data = await response.json();
+  const data: FundingUtxosResponse = await response.json();
   console.log(data);
-  return data.utxo; // Extract utxo from MyFundingUtxoResponse
+  return data; // Extract utxo from FundingUtxosResponse
 };
 
 // Hook for getting my funding UTXO
-export const useMyFundingUtxo = (uuid: string) => {
+export const useFundingUtxos = (uuid: string) => {
   return useQuery({
-    queryKey: ["myFundingUtxo", uuid],
-    queryFn: () => fetchMyFundingUtxo(uuid),
+    queryKey: ["fundingUtxos", uuid],
+    queryFn: () => fetchFundingUtxos(uuid),
     enabled: !!uuid, // Only run query if uuid is provided
   });
 };
 
 // Function to send other participant's UTXO
-const sendOtherParticipantUtxo = async ({
+const saveFundingUtxos = async ({
   uuid,
   otherUtxo,
 }: {
   uuid: string;
+
   otherUtxo: Utxo;
 }): Promise<void> => {
   const baseUrl = getApiBaseUrl();
-  const response = await fetch(
-    `${baseUrl}/api/bitvmx/other_participant_funding_utxo/${uuid}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(otherUtxo),
-    }
-  );
+  const response = await fetch(`${baseUrl}/api/add-numbers/fundings_utxos`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ otherUtxo }),
+  });
 
   if (!response.ok) {
     throw new Error("Failed to send other participant's UTXO");
@@ -62,11 +62,11 @@ const sendOtherParticipantUtxo = async ({
 };
 
 // Hook for sending other participant's UTXO
-export const useSendOtherUtxo = () => {
+export const useSaveFundingUtxos = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: sendOtherParticipantUtxo,
+    mutationFn: saveFundingUtxos,
     onSuccess: () => {
       // Invalidate any relevant queries
       queryClient.invalidateQueries({ queryKey: ["utxoExchange"] });

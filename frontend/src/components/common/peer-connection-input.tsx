@@ -134,15 +134,31 @@ export function PeerConnectionInput({
     )
       return;
 
+    let operator_keys =
+      role === PlayerRole.Player1
+        ? [operatorKey?.pub_key ?? "", parsedData.publicKey]
+        : [parsedData.publicKey, operatorKey?.pub_key ?? ""];
+
+    let participants_addresses =
+      role === PlayerRole.Player1
+        ? [
+            {
+              address: peerConnectionInfo?.address ?? "",
+              peer_id: peerConnectionInfo?.peer_id ?? "",
+            },
+            { address: parsedData.networkAddress, peer_id: parsedData.peerId },
+          ]
+        : [
+            { address: parsedData.networkAddress, peer_id: parsedData.peerId },
+            {
+              address: peerConnectionInfo?.address ?? "",
+              peer_id: peerConnectionInfo?.peer_id ?? "",
+            },
+          ];
+
     savePeerConnection({
-      p2p_addresses: [
-        {
-          address: peerConnectionInfo?.address ?? "",
-          peer_id: peerConnectionInfo?.peer_id ?? "",
-        },
-        { address: parsedData.networkAddress, peer_id: parsedData.peerId },
-      ],
-      operator_keys: [operatorKey?.pub_key ?? "", parsedData.publicKey],
+      participants_addresses,
+      operator_keys,
       aggregated_id:
         role === PlayerRole.Player1
           ? aggregatedId

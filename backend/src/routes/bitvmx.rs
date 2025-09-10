@@ -1,7 +1,7 @@
 use crate::models::{
-    ErrorResponse, OperatorKeys, P2PAddress, ProgramSetupRequest, ProgramSetupResponse,
-    ProtocolCostResponse, SendFundsRequest, SetupParticipantsRequest, SetupParticipantsResponse,
-    TransactionResponse, Utxo, WalletBalance,
+    ErrorResponse, MyFundingUtxoResponse, OperatorKeys, OtherParticipantFundingUtxoRequest,
+    P2PAddress, ProgramSetupRequest, ProgramSetupResponse, ProtocolCostResponse, SendFundsRequest,
+    SetupParticipantsRequest, SetupParticipantsResponse, TransactionResponse, Utxo, WalletBalance,
 };
 use crate::state::AppState;
 use crate::utils::{bitcoin, http_errors};

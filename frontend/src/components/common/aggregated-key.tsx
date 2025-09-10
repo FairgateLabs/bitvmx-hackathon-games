@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { CopyButton } from "@/components/ui/copy-button";
-import { useGetParticipantInfo } from "@/hooks/useParticipantInfo";
-import { useCurrentGame } from "@/hooks/useGame";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { useCurrentGame } from "@/hooks/useGame";
 
 export function AggregatedKey() {
   const [isOpen, setIsOpen] = useState(true);
@@ -17,13 +16,7 @@ export function AggregatedKey() {
     error: gameError,
   } = useCurrentGame();
 
-  const {
-    data: aggregatedKey,
-    isLoading: isKeyLoading,
-    error: keyError,
-  } = useGetParticipantInfo(currentGame?.program_id.toString() ?? null);
-
-  if (isGameLoading || isKeyLoading) {
+  if (isGameLoading || isGameLoading) {
     return (
       <div className="p-4 bg-white border border-gray-200 rounded-lg">
         <p className="text-sm text-gray-600">Loading aggregated key...</p>
@@ -31,12 +24,12 @@ export function AggregatedKey() {
     );
   }
 
-  if (gameError || keyError) {
+  if (gameError || gameError) {
     return (
       <div className="p-4 bg-white border border-red-200 rounded-lg">
         <p className="text-sm text-red-600">
           Error loading aggregated key:{" "}
-          {gameError?.message || keyError?.message}
+          {gameError?.message || gameError?.message}
         </p>
       </div>
     );
@@ -63,11 +56,14 @@ export function AggregatedKey() {
               <div className="flex-1">
                 <Label className="text-gray-800">Aggregated Key:</Label>
                 <p className="font-mono text-sm bg-gray-100 p-2 rounded overflow-hidden text-ellipsis whitespace-nowrap max-w-[500px]">
-                  {aggregatedKey?.aggregated_key || "N/A"}
+                  {currentGame?.bitvmx_program_properties.aggregated_key ||
+                    "N/A"}
                 </p>
               </div>
               <CopyButton
-                text={aggregatedKey?.aggregated_key ?? ""}
+                text={
+                  currentGame?.bitvmx_program_properties.aggregated_key ?? ""
+                }
                 size="sm"
                 variant="outline"
               />

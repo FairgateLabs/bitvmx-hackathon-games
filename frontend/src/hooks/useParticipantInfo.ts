@@ -6,11 +6,11 @@ import { SetupParticipantsRequest } from "../../../backend/bindings/SetupPartici
 const useSaveParticipantInfo = () => {
   return useMutation({
     mutationFn: async ({
-      p2p_addresses: participants_addresses,
+      participants_addresses,
       operator_keys,
       aggregated_id,
     }: {
-      p2p_addresses: P2PAddress[];
+      participants_addresses: P2PAddress[];
       operator_keys: string[];
       aggregated_id: string;
     }) => {
@@ -40,33 +40,4 @@ const useSaveParticipantInfo = () => {
   });
 };
 
-const useGetParticipantInfo = (uuid: string | null) => {
-  return useQuery({
-    queryKey: ["participantInfo", uuid],
-    queryFn: async () => {
-      if (!uuid) {
-        throw new Error("UUID is required to fetch participant info");
-      }
-      console.log("Fetching participant info for UUID:", uuid);
-      const baseUrl = getApiBaseUrl();
-      const response = await fetch(
-        `${baseUrl}/api/bitvmx/aggregated-key/${uuid}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch participant info");
-      }
-
-      return response.json();
-    },
-    enabled: !!uuid,
-  });
-};
-
-export { useSaveParticipantInfo, useGetParticipantInfo };
+export { useSaveParticipantInfo };
