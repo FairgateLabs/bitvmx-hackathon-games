@@ -15,9 +15,10 @@ use crate::state::AppState;
 #[openapi(
     paths(
         routes::health::health_check,
-        routes::add_numbers::create_game,
+        // routes::add_numbers::create_game,
         routes::add_numbers::get_game,
         routes::add_numbers::make_guess,
+        routes::add_numbers::setup_participants,
         routes::bitvmx::comm_info,
         routes::bitvmx::operator_keys,
         routes::bitvmx::submit_aggregated_key,

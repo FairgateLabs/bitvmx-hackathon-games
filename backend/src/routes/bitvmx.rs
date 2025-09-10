@@ -1,8 +1,7 @@
 use crate::models::{
-    SetupParticipantsRequest, SetupParticipantsResponse, ErrorResponse, MyFundingUtxoResponse,
-    OperatorKeys, OtherParticipantFundingUtxoRequest, P2PAddress, ProgramSetupRequest,
-    ProgramSetupResponse, ProtocolCostResponse, SendFundsRequest, TransactionResponse, Utxo,
-    WalletBalance,
+    ErrorResponse, MyFundingUtxoResponse, OperatorKeys, OtherParticipantFundingUtxoRequest,
+    P2PAddress, ProgramSetupRequest, ProgramSetupResponse, ProtocolCostResponse, SendFundsRequest,
+    SetupParticipantsRequest, SetupParticipantsResponse, TransactionResponse, Utxo, WalletBalance,
 };
 use crate::state::AppState;
 use crate::utils::{bitcoin, http_errors};
@@ -129,27 +128,22 @@ pub async fn submit_aggregated_key(
     }
 
     // Validate the operator keys
-    if let Some(operator_keys) = &aggregated_key_request.participants_keys {
-        for operator_key in operator_keys {
-            if operator_key.is_empty() {
-                return Err(http_errors::bad_request("Operator key cannot be empty"));
-            }
+    for operator_key in &aggregated_key_request.participants_keys {
+        if operator_key.is_empty() {
+            return Err(http_errors::bad_request("Operator key cannot be empty"));
         }
     }
 
     let uuid = Uuid::parse_str(&aggregated_key_request.agregated_id)
         .map_err(|_| http_errors::bad_request("Invalid UUID"))?;
-    let mut participants_keys = None;
-    if let Some(keys) = aggregated_key_request.participants_keys {
-        participants_keys = Some(
-            keys.iter()
-                .map(|key| {
-                    PublicKey::from_str(key)
-                        .map_err(|_| http_errors::bad_request("Invalid operator key"))
-                })
-                .collect::<Result<Vec<PublicKey>, (StatusCode, Json<ErrorResponse>)>>()?,
-        );
-    }
+
+    let participants_keys = aggregated_key_request
+        .participants_keys
+        .iter()
+        .map(|key| {
+            PublicKey::from_str(key).map_err(|_| http_errors::bad_request("Invalid operator key"))
+        })
+        .collect::<Result<Vec<PublicKey>, (StatusCode, Json<ErrorResponse>)>>()?;
 
     let participants: Vec<BitVMXP2PAddress> = aggregated_key_request
         .participants_addresses
@@ -166,7 +160,7 @@ pub async fn submit_aggregated_key(
         .create_agregated_key(
             uuid,
             participants.clone(),
-            participants_keys,
+            Some(participants_keys),
             aggregated_key_request.leader_idx,
         )
         .await
@@ -502,7 +496,7 @@ pub async fn get_protocol_cost(
 )]
 #[instrument(skip(app_state))]
 pub async fn send_other_participant_funding_utxo(
-    State(app_state): State<AppState>,
+    State(_app_state): State<AppState>,
     Path(uuid): Path<Uuid>,
     Json(request): Json<OtherParticipantFundingUtxoRequest>,
 ) -> Result<Json<()>, (StatusCode, Json<ErrorResponse>)> {
@@ -553,112 +547,112 @@ pub async fn get_my_funding_utxo(
     }))
 }
 
-/// Submit aggregated key request asynchronously - non-blocking version
-/// This endpoint immediately returns a success response and processes the request in the background
-#[utoipa::path(
-    post,
-    path = "/api/bitvmx/aggregated-key-async",
-    request_body = SetupParticipantsRequest,
-    responses(
-        (status = 202, description = "Request accepted and will be processed asynchronously"),
-        (status = 400, description = "Bad request", body = ErrorResponse)
-    ),
-    tag = "BitVMX"
-)]
-#[instrument(skip(app_state))]
-pub async fn submit_aggregated_key_async(
-    State(app_state): State<AppState>,
-    Json(aggregated_key_request): Json<SetupParticipantsRequest>,
-) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
-    // Validate the id
-    if aggregated_key_request.agregated_id.is_empty() {
-        return Err(http_errors::bad_request(
-            "Aggregated key ID cannot be empty",
-        ));
-    }
+// /// Submit aggregated key request asynchronously - non-blocking version
+// /// This endpoint immediately returns a success response and processes the request in the background
+// #[utoipa::path(
+//     post,
+//     path = "/api/bitvmx/aggregated-key-async",
+//     request_body = SetupParticipantsRequest,
+//     responses(
+//         (status = 202, description = "Request accepted and will be processed asynchronously"),
+//         (status = 400, description = "Bad request", body = ErrorResponse)
+//     ),
+//     tag = "BitVMX"
+// )]
+// #[instrument(skip(app_state))]
+// pub async fn submit_aggregated_key_async(
+//     State(app_state): State<AppState>,
+//     Json(aggregated_key_request): Json<SetupParticipantsRequest>,
+// ) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+//     // Validate the id
+//     if aggregated_key_request.agregated_id.is_empty() {
+//         return Err(http_errors::bad_request(
+//             "Aggregated key ID cannot be empty",
+//         ));
+//     }
 
-    // Validate the p2p addresses
-    if aggregated_key_request.participants_addresses.is_empty() {
-        return Err(http_errors::bad_request(
-            "At least one P2P address is required",
-        ));
-    }
+//     // Validate the p2p addresses
+//     if aggregated_key_request.participants_addresses.is_empty() {
+//         return Err(http_errors::bad_request(
+//             "At least one P2P address is required",
+//         ));
+//     }
 
-    // Validate the operator keys
-    if let Some(operator_keys) = &aggregated_key_request.participants_keys {
-        for operator_key in operator_keys {
-            if operator_key.is_empty() {
-                return Err(http_errors::bad_request("Operator key cannot be empty"));
-            }
-        }
-    }
+//     // Validate the operator keys
+//     if let Some(operator_keys) = &aggregated_key_request.participants_keys {
+//         for operator_key in operator_keys {
+//             if operator_key.is_empty() {
+//                 return Err(http_errors::bad_request("Operator key cannot be empty"));
+//             }
+//         }
+//     }
 
-    let uuid = Uuid::parse_str(&aggregated_key_request.agregated_id)
-        .map_err(|_| http_errors::bad_request("Invalid UUID"))?;
-    let mut participants_keys = None;
-    if let Some(keys) = aggregated_key_request.participants_keys {
-        participants_keys = Some(
-            keys.iter()
-                .map(|key| {
-                    PublicKey::from_str(key)
-                        .map_err(|_| http_errors::bad_request("Invalid operator key"))
-                })
-                .collect::<Result<Vec<PublicKey>, (StatusCode, Json<ErrorResponse>)>>()?,
-        );
-    }
+//     let uuid = Uuid::parse_str(&aggregated_key_request.agregated_id)
+//         .map_err(|_| http_errors::bad_request("Invalid UUID"))?;
+//     let mut participants_keys = None;
+//     if let Some(keys) = aggregated_key_request.participants_keys {
+//         participants_keys = Some(
+//             keys.iter()
+//                 .map(|key| {
+//                     PublicKey::from_str(key)
+//                         .map_err(|_| http_errors::bad_request("Invalid operator key"))
+//                 })
+//                 .collect::<Result<Vec<PublicKey>, (StatusCode, Json<ErrorResponse>)>>()?,
+//         );
+//     }
 
-    let participants: Vec<BitVMXP2PAddress> = aggregated_key_request
-        .participants_addresses
-        .iter()
-        .map(|p2p| BitVMXP2PAddress {
-            address: p2p.address.clone(),
-            peer_id: PeerId(p2p.peer_id.clone()),
-        })
-        .collect();
+//     let participants: Vec<BitVMXP2PAddress> = aggregated_key_request
+//         .participants_addresses
+//         .iter()
+//         .map(|p2p| BitVMXP2PAddress {
+//             address: p2p.address.clone(),
+//             peer_id: PeerId(p2p.peer_id.clone()),
+//         })
+//         .collect();
 
-    // Send the request asynchronously with a callback
-    let service_guard = app_state.bitvmx_service.read().await;
-    service_guard
-        .create_agregated_key_with_callback(
-            uuid,
-            participants,
-            participants_keys,
-            aggregated_key_request.leader_idx,
-            move |result| async move {
-                // Business logic for aggregated key creation result:
-                // - Store the result in a database
-                // - Send a notification to the client via WebSocket
-                // - Update some internal state
-                // - Trigger follow-up actions
-                // - Send email/SMS notifications
-                // - Update cache
-                // - Log to external monitoring systems
-                // - Send notifications to administrators
-                // - Update error state in database
-                // - Trigger retry mechanisms
-                // - Send user notifications
-                // - etc.
-                
-                // Handle the result - any errors in this callback will be caught by map_err
-                if let Ok(_aggregated_key) = result {
-                    // Handle successful aggregated key creation
-                    // Example: store_in_database(_aggregated_key).await?;
-                    // Example: send_websocket_notification(_aggregated_key).await?;
-                }
-                // If result is Err, we just ignore it since it's already logged at service level
-            },
-        )
-        .await
-        .map_err(|e| {
-            http_errors::internal_server_error(&format!(
-                "Failed to submit aggregated key request: {e:?}"
-            ))
-        })?;
+//     // Send the request asynchronously with a callback
+//     let service_guard = app_state.bitvmx_service.read().await;
+//     service_guard
+//         .create_agregated_key_with_callback(
+//             uuid,
+//             participants,
+//             participants_keys,
+//             aggregated_key_request.leader_idx,
+//             move |result| async move {
+//                 // Business logic for aggregated key creation result:
+//                 // - Store the result in a database
+//                 // - Send a notification to the client via WebSocket
+//                 // - Update some internal state
+//                 // - Trigger follow-up actions
+//                 // - Send email/SMS notifications
+//                 // - Update cache
+//                 // - Log to external monitoring systems
+//                 // - Send notifications to administrators
+//                 // - Update error state in database
+//                 // - Trigger retry mechanisms
+//                 // - Send user notifications
+//                 // - etc.
 
-    // Return immediately with a 202 Accepted status
-    Ok(Json(serde_json::json!({
-        "status": "accepted",
-        "message": "Request submitted successfully and will be processed asynchronously",
-        "uuid": uuid.to_string()
-    })))
-}
+//                 // Handle the result - any errors in this callback will be caught by map_err
+//                 if let Ok(_aggregated_key) = result {
+//                     // Handle successful aggregated key creation
+//                     // Example: store_in_database(_aggregated_key).await?;
+//                     // Example: send_websocket_notification(_aggregated_key).await?;
+//                 }
+//                 // If result is Err, we just ignore it since it's already logged at service level
+//             },
+//         )
+//         .await
+//         .map_err(|e| {
+//             http_errors::internal_server_error(&format!(
+//                 "Failed to submit aggregated key request: {e:?}"
+//             ))
+//         })?;
+
+//     // Return immediately with a 202 Accepted status
+//     Ok(Json(serde_json::json!({
+//         "status": "accepted",
+//         "message": "Request submitted successfully and will be processed asynchronously",
+//         "uuid": uuid.to_string()
+//     })))
+// }

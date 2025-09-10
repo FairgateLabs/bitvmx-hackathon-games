@@ -10,10 +10,10 @@ use crate::models::{P2PAddress, Utxo};
 #[ts(export)]
 pub enum AddNumbersGameStatus {
     // Crear Ids del programa y compartirlos al otro jugador
-    SetupParticipants, // it stores program id and creates the aggregated key and stores participants 
-    PlaceBet, // It sends funds to the agregated address and returns the utxo
-    SetupFunding, // Add other participants utxos
-    CreateProgram,        // Create the program, uses the aggregated key and participants
+    SetupParticipants, // it stores program id and creates the aggregated key and stores participants
+    PlaceBet,          // It sends funds to the agregated address and returns the utxo
+    SetupFunding,      // Add other participants utxos
+    CreateProgram,     // Create the program, uses the aggregated key and participants
     BindNumbersToProgram, // (Player1) Here we send the numbers to sum
     SubmitSum, // Participant 2 (Here we send the sum, whenever detect the news then we move to ComputeProgram)
     WaitForSum, // Participant 1 (Here we wait for the sum)
@@ -59,6 +59,12 @@ pub struct AddNumbersGame {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
+pub struct PlaceBetRequest {
+    pub program_id: String,
+    pub amount: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
 pub struct BitVMXProgramProperties {
     #[ts(type = "string")]
@@ -71,11 +77,9 @@ pub struct BitVMXProgramProperties {
     #[ts(type = "array")]
     #[schema(value_type = Vec<String>)]
     pub participants_keys: Vec<String>,
-    pub initial_utxo: Option<Utxo>,
-    pub player1_bet_utxo: Option<Utxo>,
-    pub player2_bet_utxo: Option<Utxo>,
+    pub funding_protocol_utxo: Option<Utxo>,
+    pub funding_bet_utxo: Option<Utxo>,
 }
-
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
@@ -98,4 +102,19 @@ pub struct AddNumbersResponse {
 pub struct MakeGuessRequest {
     pub id: String,
     pub guess: i32,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
+#[ts(export)]
+pub struct FundingUtxoRequest {
+    pub program_id: String,
+    pub funding_protocol_utxo: Utxo,
+    pub funding_bet_utxo: Utxo,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
+#[ts(export)]
+pub struct FundingUtxosResponse {
+    pub funding_protocol_utxo: Utxo,
+    pub funding_bet_utxo: Utxo,
 }

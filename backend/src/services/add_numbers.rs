@@ -1,7 +1,9 @@
-use crate::models::{AddNumbersGame, AddNumbersGameStatus, BitVMXProgramProperties, P2PAddress};
+use crate::models::{
+    AddNumbersGame, AddNumbersGameStatus, BitVMXProgramProperties, P2PAddress, Utxo,
+};
+use bitvmx_client::bitcoin::PublicKey;
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
-use bitvmx_client::bitcoin::PublicKey;
 use uuid::Uuid;
 
 #[derive(Debug)]
@@ -16,7 +18,14 @@ impl AddNumbersService {
         }
     }
 
-    pub fn setup_game(&mut self, program_id: Uuid, aggregated_id: Uuid, participants_addresses: Vec<P2PAddress>, participants_keys: Vec<String>, aggregated_key: PublicKey) -> AddNumbersGame {
+    pub fn setup_game(
+        &mut self,
+        program_id: Uuid,
+        aggregated_id: Uuid,
+        participants_addresses: Vec<P2PAddress>,
+        participants_keys: Vec<String>,
+        aggregated_key: PublicKey,
+    ) -> AddNumbersGame {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
@@ -35,9 +44,8 @@ impl AddNumbersService {
                 aggregated_id,
                 participants_addresses,
                 participants_keys,
-                initial_utxo: None,
-                player1_bet_utxo: None,
-                player2_bet_utxo: None,
+                funding_protocol_utxo: None,
+                funding_bet_utxo: None, // TODO PEDRO: My funding va aca, funding utxo when is mined.
             },
         };
 
@@ -74,6 +82,21 @@ impl AddNumbersService {
             .iter()
             .find(|(_, game)| game.status != AddNumbersGameStatus::Finished)
             .map(|(_, game)| game.clone())
+    }
+
+    pub fn save_fundings_utxos(
+        &mut self,
+        program_id: Uuid,
+        funding_protocol_utxo: Utxo,
+        funding_bet_utxo: Utxo,
+    ) -> Result<(), String> {
+        let game = self.games.get_mut(&program_id).ok_or("Game not found")?;
+
+        // Save the funding bet UTXO
+        game.bitvmx_program_properties.funding_bet_utxo = Some(funding_bet_utxo);
+        game.bitvmx_program_properties.funding_protocol_utxo = Some(funding_protocol_utxo);
+
+        Ok(())
     }
 }
 
