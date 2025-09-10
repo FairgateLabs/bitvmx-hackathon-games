@@ -8,20 +8,21 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-// import { useNextGameState } from "@/hooks/useGameState";
-import { GameState } from "@/types/game";
+import { PlayerRole } from "@/types/game";
 import { useCommunicationInfo } from "@/hooks/useCommunicationInfo";
 import usePubkey from "@/hooks/usePubkey";
+import { useGameRole } from "@/hooks/useGameRole";
 
-export function PeerConnectionInput() {
+export function PeerConnectionInput({ gameId }: { gameId: string | null }) {
   const [address, setAddress] = useState("");
   const [peerId, setPeerId] = useState("");
   const [pubKey, setPubKey] = useState("");
+  const [gameUUID, setGameUUID] = useState<string | null>(gameId);
+  const { data: role } = useGameRole();
   const [isOpen, setIsOpen] = useState(true);
   const [inputsDisabled, setInputsDisabled] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const { mutate: savePeerConnection } = useSaveParticipantInfo();
-  // const { mutate: nextState } = useNextGameState();
   const { data: peerConnectionInfo } = useCommunicationInfo();
   const { data: operatorKey } = usePubkey();
 
@@ -44,7 +45,17 @@ export function PeerConnectionInput() {
     return hexRegex.test(key) && key.length === 66;
   };
 
+  const isUUIDValid = (uuid: string) => {
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
+  };
+
   const handleSetConnection = () => {
+    if (!gameUUID) {
+      return;
+    }
+
     savePeerConnection({
       p2p_addresses: [
         {
@@ -54,6 +65,7 @@ export function PeerConnectionInput() {
         { address, peer_id: peerId },
       ],
       operator_keys: [operatorKey?.pub_key ?? "", pubKey],
+      uuid: gameUUID,
     });
     setInputsDisabled(true);
     setSuccessMessage("Connection successfully established!");
@@ -69,11 +81,44 @@ export function PeerConnectionInput() {
           </h3>
         </CollapsibleTrigger>
         <CollapsibleContent className="flex flex-col gap-3">
-          <p className="text-sm text-gray-700 mb-4">
-            Enter the public key, Network Address and Peer ID of the other
-            player to connect to their game and allow bitvmx client to connect
-            to it.
+          <p className="text-sm text-gray-700">
+            {role === PlayerRole.Player1
+              ? "Enter the Public Key, Network Address and Peer ID of the other player to connect to your game."
+              : "Enter the Game UUID, Public Key, Network Address and Peer ID of the other player to join their game."}
           </p>
+
+          <p className="text-sm text-gray-700 mb-4">
+            BitVMX will use all this information to connect to the other client
+            and start computing the program.
+          </p>
+
+          {role === PlayerRole.Player1 ? (
+            <div>
+              <Label htmlFor="gameUUID" className="text-gray-800">
+                Game UUID:
+              </Label>
+              <p className="font-mono text-sm bg-gray-100 p-2 rounded overflow-hidden text-ellipsis whitespace-nowrap max-w-[500px]">
+                {gameId ?? "No game active"}
+              </p>
+            </div>
+          ) : (
+            <div>
+              <Label htmlFor="gameUUID" className="text-gray-800">
+                Game UUID:
+              </Label>
+              <Input
+                id="gameUUID"
+                value={gameUUID ?? ""}
+                onChange={(e) => setGameUUID(e.target.value)}
+                placeholder="e.g., 123e4567-e89b-12d3-a456-426614174000"
+                className="mt-1"
+                disabled={inputsDisabled}
+              />
+              {gameUUID && !isUUIDValid(gameUUID) && (
+                <p className="text-red-600 text-sm">Invalid UUID format.</p>
+              )}
+            </div>
+          )}
 
           <div>
             <Label htmlFor="pubKey" className="text-gray-800 ">
@@ -130,7 +175,13 @@ export function PeerConnectionInput() {
 
           <Button
             onClick={handleSetConnection}
-            disabled={!isValidNetworkAddress(address) || inputsDisabled}
+            disabled={
+              !isValidNetworkAddress(address) ||
+              !isValidPubKey(pubKey) ||
+              !isValidPeeId(peerId) ||
+              !isUUIDValid(gameUUID ?? "") ||
+              inputsDisabled
+            }
             className="w-full bg-gray-600 hover:bg-gray-700"
           >
             🔗 Setup Data

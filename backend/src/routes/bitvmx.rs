@@ -345,6 +345,9 @@ pub async fn program_setup(
 #[utoipa::path(
     get,
     path = "/api/bitvmx/aggregated-key/{uuid}",
+    params(
+        ("uuid" = String, Path, description = "Aggregated key UUID")
+    ),
     responses(
         (status = 200, description = "Aggregated key", body = AggregatedKeyResponse),
         (status = 404, description = "Aggregated key not found", body = ErrorResponse)

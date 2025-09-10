@@ -10,8 +10,7 @@ import {
 } from "@/components/ui/card";
 import { ChooseRole } from "@/components/common/game-role-selector";
 import { WalletSection } from "@/components/common/wallet-section";
-import { SetupGame as SetupGamePlayer1 } from "@/components/player1/setup-game";
-import { SetupGame as SetupGamePlayer2 } from "@/components/player2/setup-game";
+import { SetupGame } from "@/components/common/setup-game";
 import { ChooseAction } from "@/components/player1/choose-actions";
 import { NetworkInfo } from "@/components/common/network-info";
 import { PeerConnectionInfo } from "@/components/common/peer-connection-info";
@@ -36,6 +35,7 @@ import { AcceptWinGame } from "@/components/player2/accept-win-game";
 import { WaitingStartGame } from "@/components/player2/waiting-start-game";
 import { useCurrentGame } from "@/hooks/useGame";
 import { useNetworkQuery } from "@/hooks/useNetwork";
+import { AggregatedKey } from "@/components/common/aggregated-key";
 
 export default function AddNumbersPage() {
   const { data: role } = useGameRole();
@@ -45,6 +45,11 @@ export default function AddNumbersPage() {
     isLoading: isGameLoading,
     gameStatus,
   } = useCurrentGame();
+  const gameUUID = currentGame
+    ? currentGame.id
+    : role === PlayerRole.Player2
+    ? null
+    : crypto.randomUUID();
 
   if (isGameLoading) {
     return (
@@ -89,13 +94,13 @@ export default function AddNumbersPage() {
         <CardContent className="space-y-6">
           <NetworkInfo />
           <WalletSection />
-          <PeerConnectionInfo />
-          <PeerConnectionInput />
+          <PeerConnectionInfo gameId={gameUUID} />
+          <PeerConnectionInput gameId={gameUUID} />
+          {gameStatus === "CreateProgram" && <SetupGame />}
+          <AggregatedKey />
+
           {role === PlayerRole.Player1 && (
             <>
-              {gameStatus === "SetupParticipants" && <SetupGamePlayer1 />}
-              {gameStatus === "CreateProgram" && <SetupGamePlayer1 />}
-              {gameStatus === "BindNumbersToProgram" && <SetupGamePlayer1 />}
               {gameStatus === "WaitForSum" && <StartGame />}
               {gameStatus === "SubmitSum" && <WaitingAnswer />}
               {gameStatus === "ProgramDecision" && <ChooseAction />}
@@ -118,9 +123,6 @@ export default function AddNumbersPage() {
 
           {role === PlayerRole.Player2 && (
             <>
-              {gameStatus === "SetupParticipants" && <SetupGamePlayer2 />}
-              {gameStatus === "CreateProgram" && <WaitingStartGame />}
-              {gameStatus === "BindNumbersToProgram" && <WaitingStartGame />}
               {gameStatus === "WaitForSum" && <AnswerGame />}
               {gameStatus === "SubmitSum" && <WaitingForAnswer />}
               {gameStatus === "ProgramDecision" && <WaitingForAnswer />}

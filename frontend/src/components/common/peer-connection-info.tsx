@@ -8,11 +8,14 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import usePubkey from "@/hooks/usePubkey";
+import { useGameRole } from "@/hooks/useGameRole";
+import { PlayerRole } from "@/types/game";
 
-export function PeerConnectionInfo() {
+export function PeerConnectionInfo({ gameId }: { gameId: string | null }) {
   const [isOpen, setIsOpen] = useState(true);
   const { data: peerConnectionInfo, isLoading, error } = useCommunicationInfo();
   const { data: operatorKey } = usePubkey();
+  const { data: role } = useGameRole();
 
   return (
     <div className="p-4 bg-white border border-gray-200 rounded-lg">
@@ -23,12 +26,31 @@ export function PeerConnectionInfo() {
           </h3>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <p className="text-sm text-gray-700 mb-4">
-            Share this information with other players to enable them to connect
-            to your game.
-          </p>
+          {role === PlayerRole.Player1 && (
+            <p className="text-sm text-gray-700 mb-4">
+              Share this information with Player 2 to enable them to connect
+              with you and join your game.
+            </p>
+          )}
+          {role === PlayerRole.Player2 && (
+            <p className="text-sm text-gray-700 mb-4">
+              Share this information with Player 1 to enable them to connect
+              with you.
+            </p>
+          )}
 
           <div className="space-y-3">
+            {gameId && (
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-gray-800">Game UUID:</Label>
+                  <p className="font-mono text-sm bg-gray-100 p-2 rounded overflow-hidden text-ellipsis whitespace-nowrap max-w-[500px]">
+                    {gameId}
+                  </p>
+                </div>
+                <CopyButton text={gameId} size="sm" variant="outline" />
+              </div>
+            )}
             <div className="flex items-center justify-between">
               <div>
                 <Label className="text-gray-800">Public Key:</Label>

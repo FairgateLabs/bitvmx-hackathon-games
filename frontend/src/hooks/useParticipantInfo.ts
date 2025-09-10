@@ -2,17 +2,19 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { getApiBaseUrl } from "../config/backend";
 import { AggregatedKeySubmission } from "../../../backend/bindings/AggregatedKeySubmission";
 import { P2PAddress } from "../../../backend/bindings/P2PAddress";
+import { UUID } from "crypto";
 
 const useSaveParticipantInfo = () => {
   return useMutation({
     mutationFn: async ({
       p2p_addresses,
       operator_keys,
+      uuid,
     }: {
       p2p_addresses: P2PAddress[];
       operator_keys: string[];
+      uuid: string;
     }) => {
-      let uuid = crypto.randomUUID();
       let data: AggregatedKeySubmission = {
         uuid,
         p2p_addresses: p2p_addresses,
@@ -36,10 +38,14 @@ const useSaveParticipantInfo = () => {
   });
 };
 
-const useGetParticipantInfo = (uuid: string) => {
+const useGetParticipantInfo = (uuid: string | null) => {
   return useQuery({
     queryKey: ["participantInfo", uuid],
     queryFn: async () => {
+      if (!uuid) {
+        throw new Error("UUID is required to fetch participant info");
+      }
+      console.log("Fetching participant info for UUID:", uuid);
       const baseUrl = getApiBaseUrl();
       const response = await fetch(
         `${baseUrl}/api/bitvmx/aggregated-key/${uuid}`,
@@ -57,6 +63,7 @@ const useGetParticipantInfo = (uuid: string) => {
 
       return response.json();
     },
+    enabled: !!uuid,
   });
 };
 

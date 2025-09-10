@@ -18,10 +18,10 @@ export function AggregatedKey() {
   } = useCurrentGame();
 
   const {
-    data: aggregatedKeyData,
+    data: aggregatedKey,
     isLoading: isKeyLoading,
     error: keyError,
-  } = useGetParticipantInfo(currentGame?.id ?? "");
+  } = useGetParticipantInfo(currentGame?.id ?? null);
 
   if (isGameLoading || isKeyLoading) {
     return (
@@ -53,9 +53,8 @@ export function AggregatedKey() {
         <CollapsibleContent>
           <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-800 font-medium">
-              BitVMX has generated an aggregated key between both participants
-              (Player 1 and Player 2). This aggregated key will sign the whole
-              protocol.
+              BitVMX has generated an aggregated key between all participants.
+              This aggregated key is used to sign the protocol transactions.
             </p>
           </div>
 
@@ -64,11 +63,11 @@ export function AggregatedKey() {
               <div className="flex-1">
                 <Label className="text-gray-800">Aggregated Key:</Label>
                 <p className="font-mono text-sm bg-gray-100 p-2 rounded overflow-hidden text-ellipsis whitespace-nowrap max-w-[500px]">
-                  {aggregatedKeyData?.aggregated_key || "N/A"}
+                  {aggregatedKey?.aggregated_key || "N/A"}
                 </p>
               </div>
               <CopyButton
-                text={aggregatedKeyData?.aggregated_key ?? ""}
+                text={aggregatedKey?.aggregated_key ?? ""}
                 size="sm"
                 variant="outline"
               />
