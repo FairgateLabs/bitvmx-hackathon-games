@@ -37,20 +37,33 @@ import { WaitingStartGame } from "@/components/player2/waiting-start-game";
 import { useCurrentGame } from "@/hooks/useGame";
 import { useNetworkQuery } from "@/hooks/useNetwork";
 import { AggregatedKey } from "@/components/common/aggregated-key";
+import { useEffect, useState } from "react";
 
 export default function AddNumbersPage() {
   const { data: role } = useGameRole();
   const { data: network } = useNetworkQuery();
-  const {
-    data: currentGame,
-    isLoading: isGameLoading,
-    gameStatus,
-  } = useCurrentGame();
-  const gameUUID = currentGame
-    ? currentGame.id
-    : role === PlayerRole.Player2
-    ? null
-    : crypto.randomUUID();
+  const [aggregatedId, setAggregatedId] = useState<string>("");
+  const { data: currentGame, isLoading: isGameLoading } = useCurrentGame();
+
+  useEffect(() => {
+    if (!role || !!currentGame?.program_id) return;
+    console.log("HOLLAAAA");
+    if (!currentGame?.program_id) {
+      console.log(role);
+      if (role === PlayerRole.Player1) {
+        console.log("Player 1");
+        const aggregatedId = crypto.randomUUID();
+        setAggregatedId(aggregatedId);
+      } else {
+        console.log("Player 2");
+        setAggregatedId("");
+      }
+    } else {
+      setAggregatedId(
+        currentGame?.bitvmx_program_properties.aggregated_id ?? ""
+      );
+    }
+  }, [currentGame, role]);
 
   if (isGameLoading) {
     return (
@@ -62,11 +75,11 @@ export default function AddNumbersPage() {
     );
   }
 
-  if (!currentGame && !network) {
+  if (!currentGame?.program_id && !network) {
     return <ChooseNetwork />;
   }
 
-  if (!currentGame && !role) {
+  if (!currentGame?.program_id && !role) {
     return (
       <ChooseRole
         title="🎮 Add Numbers Game"
@@ -95,53 +108,57 @@ export default function AddNumbersPage() {
         <CardContent className="space-y-6">
           <NetworkInfo />
           <WalletSection />
-          <PeerConnectionInfo gameId={gameUUID} />
-          <PeerConnectionInput gameId={gameUUID} />
-          <UtxoExchange gameId={currentGame?.id || null} />
-          {gameStatus === "CreateProgram" && <SetupGame />}
+          <PeerConnectionInfo aggregatedId={aggregatedId} />
+          <PeerConnectionInput aggregatedId={aggregatedId} />
+          <UtxoExchange />
+          {currentGame?.status === "CreateProgram" && <SetupGame />}
           <AggregatedKey />
 
           {role === PlayerRole.Player1 && (
             <>
-              {gameStatus === "WaitForSum" && <StartGame />}
-              {gameStatus === "SubmitSum" && <WaitingAnswer />}
-              {gameStatus === "ProgramDecision" && <ChooseAction />}
-              {gameStatus === "Challenge" && <ChallengeAnswer />}
-              {typeof gameStatus === "object" &&
-                "GameComplete" in gameStatus &&
-                (gameStatus.GameComplete.outcome === "Lose" ? (
+              {currentGame?.status === "WaitForSum" && <StartGame />}
+              {currentGame?.status === "SubmitSum" && <WaitingAnswer />}
+              {currentGame?.status === "ProgramDecision" && <ChooseAction />}
+              {currentGame?.status === "Challenge" && <ChallengeAnswer />}
+              {typeof currentGame?.status === "object" &&
+                "GameComplete" in currentGame?.status &&
+                (currentGame?.status.GameComplete.outcome === "Lose" ? (
                   <AcceptLoseGame />
-                ) : gameStatus.GameComplete.outcome === "Win" ? (
+                ) : currentGame?.status.GameComplete.outcome === "Win" ? (
                   <div>Game Complete - You Win!</div>
                 ) : (
                   <div>Game Complete - Draw!</div>
                 ))}
-              {gameStatus === "TransferBetFunds" && (
+              {currentGame?.status === "TransferBetFunds" && (
                 <div>Transferring funds...</div>
               )}
-              {gameStatus === "Finished" && <div>Game Finished - You Win!</div>}
+              {currentGame?.status === "Finished" && (
+                <div>Game Finished - You Win!</div>
+              )}
             </>
           )}
 
           {role === PlayerRole.Player2 && (
             <>
-              {gameStatus === "WaitForSum" && <AnswerGame />}
-              {gameStatus === "SubmitSum" && <WaitingForAnswer />}
-              {gameStatus === "ProgramDecision" && <WaitingForAnswer />}
-              {gameStatus === "Challenge" && <ChallengeAnswer />}
-              {typeof gameStatus === "object" &&
-                "GameComplete" in gameStatus &&
-                (gameStatus.GameComplete.outcome === "Win" ? (
+              {currentGame?.status === "WaitForSum" && <AnswerGame />}
+              {currentGame?.status === "SubmitSum" && <WaitingForAnswer />}
+              {currentGame?.status === "ProgramDecision" && (
+                <WaitingForAnswer />
+              )}
+              {currentGame?.status === "Challenge" && <ChallengeAnswer />}
+              {typeof currentGame?.status === "object" &&
+                "GameComplete" in currentGame?.status &&
+                (currentGame?.status.GameComplete.outcome === "Win" ? (
                   <AcceptWinGame />
-                ) : gameStatus.GameComplete.outcome === "Lose" ? (
+                ) : currentGame?.status.GameComplete.outcome === "Lose" ? (
                   <div>Game Complete - You Lose!</div>
                 ) : (
                   <div>Game Complete - Draw!</div>
                 ))}
-              {gameStatus === "TransferBetFunds" && (
+              {currentGame?.status === "TransferBetFunds" && (
                 <div>Transferring funds...</div>
               )}
-              {gameStatus === "Finished" && (
+              {currentGame?.status === "Finished" && (
                 <div>Game Finished - You Lose!</div>
               )}
             </>

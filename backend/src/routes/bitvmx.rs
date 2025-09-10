@@ -106,7 +106,7 @@ pub async fn submit_aggregated_key(
     Json(aggregated_key_request): Json<SetupParticipantsRequest>,
 ) -> Result<Json<(SetupParticipantsResponse, String)>, (StatusCode, Json<ErrorResponse>)> {
     // Validate the id
-    if aggregated_key_request.agregated_id.is_empty() {
+    if aggregated_key_request.aggregated_id.is_empty() {
         return Err(http_errors::bad_request(
             "Aggregated key ID cannot be empty",
         ));
@@ -126,7 +126,7 @@ pub async fn submit_aggregated_key(
         }
     }
 
-    let uuid = Uuid::parse_str(&aggregated_key_request.agregated_id)
+    let uuid = Uuid::parse_str(&aggregated_key_request.aggregated_id)
         .map_err(|_| http_errors::bad_request("Invalid UUID"))?;
 
     let participants_keys = aggregated_key_request

@@ -12,12 +12,13 @@ import { useMyFundingUtxo, useSendOtherUtxo } from "@/hooks/useUtxo";
 import { useGameRole } from "@/hooks/useGameRole";
 import { PlayerRole } from "@/types/game";
 import { Utxo } from "../../../../backend/bindings/Utxo";
+import { useCurrentGame } from "@/hooks/useGame";
 
 interface UtxoExchangeProps {
   gameId: string | null;
 }
 
-export function UtxoExchange({ gameId }: UtxoExchangeProps) {
+export function UtxoExchange() {
   const [isOpen, setIsOpen] = useState(true);
   const [otherUtxo, setOtherUtxo] = useState<Partial<Utxo>>({
     txid: "",
@@ -28,12 +29,13 @@ export function UtxoExchange({ gameId }: UtxoExchangeProps) {
   const [successMessage, setSuccessMessage] = useState("");
   const [jsonError, setJsonError] = useState("");
 
+  const { data: currentGame, isLoading: isGameLoading } = useCurrentGame();
   const { data: role } = useGameRole();
   const {
     data: myUtxo,
     isLoading: isMyUtxoLoading,
     error: myUtxoError,
-  } = useMyFundingUtxo(gameId || "");
+  } = useMyFundingUtxo(currentGame?.program_id || "");
   const { mutate: sendOtherUtxo, isPending: isSendingUtxo } =
     useSendOtherUtxo();
 
@@ -85,9 +87,9 @@ export function UtxoExchange({ gameId }: UtxoExchangeProps) {
   };
 
   const handleSendOtherUtxo = () => {
-    if (isOtherUtxoValid() && gameId) {
+    if (isOtherUtxoValid() && currentGame?.program_id) {
       sendOtherUtxo(
-        { uuid: gameId, otherUtxo: otherUtxo as Utxo },
+        { uuid: currentGame.program_id, otherUtxo: otherUtxo as Utxo },
         {
           onSuccess: () => {
             setSuccessMessage("Other participant's UTXO sent successfully!");

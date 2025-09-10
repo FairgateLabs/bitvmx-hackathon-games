@@ -26,10 +26,8 @@ pub struct OperatorKeys {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
 pub struct SetupParticipantsRequest {
-    /// The program ID
-    pub program_id: String,
     /// The UUID of the aggregated key, must be the same for all participants
-    pub agregated_id: String,
+    pub aggregated_id: String,
     /// The P2P addresses of the bitvmx nodes in the aggregated key
     pub participants_addresses: Vec<P2PAddress>,
     /// The operator keys in hex format

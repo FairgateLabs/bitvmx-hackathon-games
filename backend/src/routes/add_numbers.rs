@@ -48,7 +48,7 @@ pub async fn setup_participants(
     Json(request): Json<SetupParticipantsRequest>,
 ) -> Result<Json<()>, (StatusCode, Json<ErrorResponse>)> {
     // Validate the id
-    if request.agregated_id.is_empty() {
+    if request.aggregated_id.is_empty() {
         return Err(http_errors::bad_request(
             "Aggregated key ID cannot be empty",
         ));
@@ -68,7 +68,7 @@ pub async fn setup_participants(
         }
     }
 
-    let agregated_id = Uuid::parse_str(&request.agregated_id)
+    let agregated_id = Uuid::parse_str(&request.aggregated_id)
         .map_err(|_| http_errors::bad_request("Invalid UUID"))?;
     let participants_keys = request
         .participants_keys
@@ -95,8 +95,8 @@ pub async fn setup_participants(
             http_errors::internal_server_error(&format!("Failed to create aggregated key: {e:?}"))
         })?;
 
-    let program_id = Uuid::parse_str(&request.program_id)
-        .map_err(|_| http_errors::bad_request("Invalid program ID"))?;
+    let program_id = Uuid::new_v5(&Uuid::NAMESPACE_OID, request.aggregated_id.as_bytes());
+
     let mut service = app_state.add_numbers_service.write().await;
 
     service.setup_game(

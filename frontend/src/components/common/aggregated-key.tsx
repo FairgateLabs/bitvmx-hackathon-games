@@ -21,7 +21,7 @@ export function AggregatedKey() {
     data: aggregatedKey,
     isLoading: isKeyLoading,
     error: keyError,
-  } = useGetParticipantInfo(currentGame?.id ?? null);
+  } = useGetParticipantInfo(currentGame?.program_id.toString() ?? null);
 
   if (isGameLoading || isKeyLoading) {
     return (

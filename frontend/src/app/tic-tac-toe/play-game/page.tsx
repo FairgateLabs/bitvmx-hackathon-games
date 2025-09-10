@@ -83,9 +83,9 @@ export default function TicTacToePage() {
         <CardContent className="space-y-6">
           <NetworkInfo />
           <WalletSection />
-          <PeerConnectionInfo gameId={currentGame?.id || null} />
-          <PeerConnectionInput gameId={currentGame?.id || null} />
-          <UtxoExchange gameId={currentGame?.id || null} />
+          {/* <PeerConnectionInfo aggregatedId={} />
+          <PeerConnectionInput aggregatedId={currentGame?.bitvmx_program_properties.aggregated_id || ""} /> */}
+          <UtxoExchange gameId={currentGame?.program_id.toString() || null} />
           {role === PlayerRole.Player1 && (
             <>
               {gameStatus === "SetupParticipants" && <SetupGamePlayer1 />}

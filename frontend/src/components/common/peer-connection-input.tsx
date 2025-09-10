@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useSaveParticipantInfo } from "@/hooks/useParticipantInfo";
 import {
@@ -12,12 +11,23 @@ import { PlayerRole } from "@/types/game";
 import { useCommunicationInfo } from "@/hooks/useCommunicationInfo";
 import usePubkey from "@/hooks/usePubkey";
 import { useGameRole } from "@/hooks/useGameRole";
+import { Textarea } from "@/components/ui/textarea";
 
-export function PeerConnectionInput({ gameId }: { gameId: string | null }) {
-  const [address, setAddress] = useState("");
-  const [peerId, setPeerId] = useState("");
-  const [pubKey, setPubKey] = useState("");
-  const [gameUUID, setGameUUID] = useState<string | null>(gameId);
+interface PeerConnectionData {
+  publicKey: string;
+  networkAddress: string;
+  peerId: string;
+  aggregatedId?: string; // Make aggregatedId optional
+}
+
+export function PeerConnectionInput({
+  aggregatedId,
+}: {
+  aggregatedId: string;
+}) {
+  const [jsonInput, setJsonInput] = useState("");
+  const [parsedData, setParsedData] = useState<PeerConnectionData | null>(null);
+  const [jsonError, setJsonError] = useState("");
   const { data: role } = useGameRole();
   const [isOpen, setIsOpen] = useState(true);
   const [inputsDisabled, setInputsDisabled] = useState(false);
@@ -45,16 +55,84 @@ export function PeerConnectionInput({ gameId }: { gameId: string | null }) {
     return hexRegex.test(key) && key.length === 66;
   };
 
-  const isUUIDValid = (uuid: string) => {
+  const isValidAggregatedUUID = (uuid: string) => {
     const uuidRegex =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     return uuidRegex.test(uuid);
   };
 
-  const handleSetConnection = () => {
-    if (!gameUUID) {
+  const validateJsonInput = (jsonString: string) => {
+    setJsonError("");
+    setParsedData(null);
+
+    if (!jsonString.trim()) {
       return;
     }
+
+    try {
+      const parsed = JSON.parse(jsonString);
+
+      // Check if all required fields are present
+      if (
+        !parsed.publicKey ||
+        !parsed.networkAddress ||
+        !parsed.peerId ||
+        (role !== PlayerRole.Player1 && !parsed.aggregatedId)
+      ) {
+        setJsonError(
+          "Missing required fields. Expected: publicKey, networkAddress, peerId" +
+            (role !== PlayerRole.Player1 ? ", aggregatedId" : "")
+        );
+        return;
+      }
+
+      // Validate each field
+      const errors: string[] = [];
+
+      if (
+        role !== PlayerRole.Player1 &&
+        !isValidAggregatedUUID(parsed.aggregatedId)
+      ) {
+        errors.push("Invalid aggregatedId format (must be a valid UUID)");
+      }
+
+      if (!isValidPubKey(parsed.publicKey)) {
+        errors.push("Invalid publicKey format (must be 66 hex characters)");
+      }
+
+      if (!isValidNetworkAddress(parsed.networkAddress)) {
+        errors.push(
+          "Invalid networkAddress format (e.g., /ip4/127.0.0.1/tcp/61181)"
+        );
+      }
+
+      if (!isValidPeeId(parsed.peerId)) {
+        errors.push("Invalid peerId format (must be hex characters)");
+      }
+
+      if (errors.length > 0) {
+        setJsonError(errors.join(". "));
+        return;
+      }
+
+      setParsedData(parsed);
+    } catch (error) {
+      setJsonError("Invalid JSON format");
+    }
+  };
+
+  const handleJsonChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setJsonInput(value);
+    validateJsonInput(value);
+  };
+
+  const handleSetConnection = () => {
+    if (
+      !parsedData ||
+      (!parsedData.aggregatedId && role !== PlayerRole.Player1)
+    )
+      return;
 
     savePeerConnection({
       p2p_addresses: [
@@ -62,29 +140,42 @@ export function PeerConnectionInput({ gameId }: { gameId: string | null }) {
           address: peerConnectionInfo?.address ?? "",
           peer_id: peerConnectionInfo?.peer_id ?? "",
         },
-        { address, peer_id: peerId },
+        { address: parsedData.networkAddress, peer_id: parsedData.peerId },
       ],
-      operator_keys: [operatorKey?.pub_key ?? "", pubKey],
-      uuid: gameUUID,
+      operator_keys: [operatorKey?.pub_key ?? "", parsedData.publicKey],
+      aggregated_id:
+        role === PlayerRole.Player1
+          ? aggregatedId
+          : parsedData.aggregatedId ?? "",
     });
     setInputsDisabled(true);
     setSuccessMessage("Connection successfully established!");
-    // nextState(GameState.SetupProgram);
   };
+
+  let aggregatedIdPlaceholder = "";
+  if (role !== PlayerRole.Player1) {
+    aggregatedIdPlaceholder = `,\n "aggregatedId": "7d305b69-947e-4c90-a152-60365e47dc00"`;
+  }
+
+  const jsonPlaceholder = `{
+  "publicKey": "0206b7b...87d31b7d",
+  "networkAddress": "/ip4/127.0.0.1/tcp/61180",
+  "peerId": "3082012....203010001${aggregatedIdPlaceholder}"
+}`;
 
   return (
     <div className="p-4 bg-white border border-gray-200 rounded-lg">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleTrigger asChild>
           <h3 className="font-semibold mb-3 text-gray-800 cursor-pointer hover:text-gray-900">
-            🔗 Other Player's Setup Data
+            🔗 Other Player's Participant Data
           </h3>
         </CollapsibleTrigger>
         <CollapsibleContent className="flex flex-col gap-3">
           <p className="text-sm text-gray-700">
             {role === PlayerRole.Player1
-              ? "Enter the Public Key, Network Address and Peer ID of the other player to connect to your game."
-              : "Enter the Game UUID, Public Key, Network Address and Peer ID of the other player to join their game."}
+              ? "Paste the JSON data containing the Public Key, Network Address and Peer ID of the other player to connect to your game."
+              : "Paste the JSON data containing the Aggregated UUID, Public Key, Network Address and Peer ID of the other player to join their game."}
           </p>
 
           <p className="text-sm text-gray-700 mb-4">
@@ -92,96 +183,27 @@ export function PeerConnectionInput({ gameId }: { gameId: string | null }) {
             and start computing the program.
           </p>
 
-          {role === PlayerRole.Player1 ? (
-            <div>
-              <Label htmlFor="gameUUID" className="text-gray-800">
-                Game UUID:
-              </Label>
-              <p className="font-mono text-sm bg-gray-100 p-2 rounded overflow-hidden text-ellipsis whitespace-nowrap max-w-[500px]">
-                {gameId ?? "No game active"}
-              </p>
-            </div>
-          ) : (
-            <div>
-              <Label htmlFor="gameUUID" className="text-gray-800">
-                Game UUID:
-              </Label>
-              <Input
-                id="gameUUID"
-                value={gameUUID ?? ""}
-                onChange={(e) => setGameUUID(e.target.value)}
-                placeholder="e.g., 123e4567-e89b-12d3-a456-426614174000"
-                className="mt-1"
-                disabled={inputsDisabled}
-              />
-              {gameUUID && !isUUIDValid(gameUUID) && (
-                <p className="text-red-600 text-sm">Invalid UUID format.</p>
-              )}
-            </div>
-          )}
-
           <div>
-            <Label htmlFor="pubKey" className="text-gray-800 ">
-              Public Key:
+            <Label htmlFor="jsonInput" className="text-gray-800">
+              Other Player's Connection Data (JSON):
             </Label>
-            <Input
-              id="pubKey"
-              value={pubKey}
-              onChange={(e) => setPubKey(e.target.value)}
-              placeholder="e.g., 04bfcab2c3a3f..."
-              className="mt-1"
+            <Textarea
+              id="jsonInput"
+              value={jsonInput}
+              onChange={handleJsonChange}
+              placeholder={jsonPlaceholder}
+              className="mt-1 font-mono text-sm min-h-[200px] resize-vertical"
+              rows={8}
               disabled={inputsDisabled}
             />
-            {!isValidPubKey(pubKey) && pubKey && (
-              <p className="text-red-600 text-sm">Invalid public key format.</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="peerIP" className="text-gray-800">
-              Network Address:
-            </Label>
-            <Input
-              id="peerIP"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="e.g., /ip4/127.0.0.1/tcp/61181"
-              className="mt-1"
-              disabled={inputsDisabled}
-            />
-            {!isValidNetworkAddress(address) && address && (
-              <p className="text-red-600 text-sm">
-                Invalid Network Address format (e.g., /ip4/127.0.0.1/tcp/61181).
-              </p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="peerId" className="text-gray-800">
-              Peer ID:
-            </Label>
-            <Input
-              id="peerId"
-              value={peerId}
-              onChange={(e) => setPeerId(e.target.value)}
-              placeholder="e.g., 30820122300d06092a864886f70d010101050003820b..."
-              className="mt-1"
-              disabled={inputsDisabled}
-            />
-            {!isValidPeeId(peerId) && peerId && (
-              <p className="text-red-600 text-sm">Invalid peer ID format.</p>
+            {jsonError && (
+              <p className="text-red-600 text-sm mt-1">{jsonError}</p>
             )}
           </div>
 
           <Button
             onClick={handleSetConnection}
-            disabled={
-              !isValidNetworkAddress(address) ||
-              !isValidPubKey(pubKey) ||
-              !isValidPeeId(peerId) ||
-              !isUUIDValid(gameUUID ?? "") ||
-              inputsDisabled
-            }
+            disabled={!parsedData || !!jsonError || inputsDisabled}
             className="w-full bg-gray-600 hover:bg-gray-700"
           >
             🔗 Setup Data
@@ -202,8 +224,8 @@ export function PeerConnectionInput({ gameId }: { gameId: string | null }) {
                 ⚠️ Connection Setup Required
               </h3>
               <p className="text-sm text-yellow-700">
-                Ensure you enter the other player's Network Address, Peer ID and
-                Public Key to finalize the connection setup.
+                Paste the JSON data containing the other player's connection
+                information to finalize the connection setup.
               </p>
             </div>
           )}

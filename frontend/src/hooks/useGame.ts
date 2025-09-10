@@ -76,12 +76,8 @@ function useCurrentGame() {
     queryFn: fetchCurrentGame,
   });
 
-  // Return the game status directly from the backend
-  const gameStatus = query.data?.status || "WaitingForNumbers";
-
   return {
     ...query,
-    gameStatus,
   };
 }
 
