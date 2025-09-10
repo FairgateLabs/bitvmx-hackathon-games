@@ -1,4 +1,4 @@
-use crate::models::{AddNumbersGame, AddNumbersGameStatus};
+use crate::models::{AddNumbersGame, AddNumbersGameStatus, BitVMXProgramProperties};
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
@@ -29,6 +29,17 @@ impl AddNumbersService {
             status: AddNumbersGameStatus::CreateProgram,
             created_at: now,
             updated_at: now,
+            bitvmx_program_properties: BitVMXProgramProperties {
+                aggregated_key: None,
+                aggregated_key_uuid: Uuid::default(),
+                participants: vec![],
+                participants_keys: vec![],
+                leader_idx: 0,
+                my_idx: 0,
+                initial_utxo: None,
+                player1_bet_utxo: None,
+                player2_bet_utxo: None,
+            },
         };
 
         self.games.insert(id, game.clone());

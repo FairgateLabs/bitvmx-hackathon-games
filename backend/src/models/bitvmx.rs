@@ -23,7 +23,7 @@ pub struct OperatorKeys {
     pub funding_key: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
 pub struct AggregatedKeyRequest {
     /// The UUID of the aggregated key
@@ -36,7 +36,7 @@ pub struct AggregatedKeyRequest {
     pub leader_idx: u16,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
 pub struct AggregatedKeyResponse {
     /// The UUID of the aggregated key
@@ -45,7 +45,7 @@ pub struct AggregatedKeyResponse {
     pub aggregated_key: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
 pub struct WalletBalance {
     /// The address of the wallet
@@ -54,7 +54,7 @@ pub struct WalletBalance {
     pub balance: u64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
 pub struct SendFundsRequest {
     /// The destination hex public key or address to send funds to
@@ -65,7 +65,7 @@ pub struct SendFundsRequest {
     pub amount: u64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
 pub struct Utxo {
     /// The transaction ID of the sent funds
@@ -91,7 +91,7 @@ impl From<Utxo> for PartialUtxo {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
 pub struct TransactionResponse {
     /// The transaction ID
@@ -106,7 +106,7 @@ pub struct TransactionResponse {
     pub block_hash: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
 pub struct ProgramSetupRequest {
     /// The program ID
@@ -121,14 +121,14 @@ pub struct ProgramSetupRequest {
     pub prover_win_utxo: Utxo,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
 pub struct ProgramSetupResponse {
     /// The program ID
     pub program_id: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
 pub struct ProtocolCostResponse {
     /// The program ID

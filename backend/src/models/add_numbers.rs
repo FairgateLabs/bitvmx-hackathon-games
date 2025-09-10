@@ -1,7 +1,10 @@
+use bitvmx_client::bitcoin::secp256k1::PublicKey;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 use utoipa::ToSchema;
 use uuid::Uuid;
+
+use crate::models::{P2PAddress, Utxo};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
@@ -38,7 +41,7 @@ pub enum GameReason {
     Accept,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
 pub struct AddNumbersGame {
     #[ts(type = "string")]
@@ -50,20 +53,31 @@ pub struct AddNumbersGame {
     pub status: AddNumbersGameStatus,
     pub created_at: u64,
     pub updated_at: u64,
+    pub bitvmx_program_properties: BitVMXProgramProperties,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct AddNumbersGameSchema {
-    pub id: String,
-    pub number1: i32,
-    pub number2: i32,
-    pub guess: Option<i32>,
-    pub status: AddNumbersGameStatus,
-    pub created_at: u64,
-    pub updated_at: u64,
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
+#[ts(export)]
+pub struct BitVMXProgramProperties {
+    #[ts(type = "string")]
+    #[schema(value_type = String)]
+    pub aggregated_key: Option<PublicKey>,
+    #[ts(type = "string")]
+    #[schema(value_type = String)]
+    pub aggregated_key_uuid: Uuid,
+    pub participants: Vec<P2PAddress>,
+    #[ts(type = "array")]
+    #[schema(value_type = Vec<String>)]
+    pub participants_keys: Vec<PublicKey>,
+    pub my_idx: u16,
+    pub leader_idx: u16,
+    pub initial_utxo: Option<Utxo>,
+    pub player1_bet_utxo: Option<Utxo>,
+    pub player2_bet_utxo: Option<Utxo>,
 }
 
-#[derive(Debug, Serialize, Deserialize, TS, ToSchema)]
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
 pub struct AddNumbersRequest {
     #[ts(type = "string")]
@@ -73,20 +87,13 @@ pub struct AddNumbersRequest {
     pub number2: i32,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct AddNumbersRequestSchema {
-    pub id: String,
-    pub number1: i32,
-    pub number2: i32,
-}
-
-#[derive(Debug, Serialize, Deserialize, TS, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
 pub struct AddNumbersResponse {
     pub game: AddNumbersGame,
 }
 
-#[derive(Debug, Serialize, Deserialize, TS, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
 pub struct MakeGuessRequest {
     pub id: String,
