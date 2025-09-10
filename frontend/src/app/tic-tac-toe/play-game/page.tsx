@@ -16,6 +16,7 @@ import { ChooseAction } from "@/components/player1/choose-actions";
 import { NetworkInfo } from "@/components/common/network-info";
 import { PeerConnectionInfo } from "@/components/common/peer-connection-info";
 import { PeerConnectionInput } from "@/components/common/peer-connection-input";
+import { UtxoExchange } from "@/components/common/utxo-exchange";
 import { ChooseNetwork } from "@/components/common/choose-network";
 import { PlayerRole } from "@/types/game";
 // import { AddNumbersGameStatus } from "../../../../../backend/bindings/AddNumbersGameStatus";
@@ -82,8 +83,9 @@ export default function TicTacToePage() {
         <CardContent className="space-y-6">
           <NetworkInfo />
           <WalletSection />
-          <PeerConnectionInfo />
-          <PeerConnectionInput />
+          <PeerConnectionInfo gameId={currentGame?.id || null} />
+          <PeerConnectionInput gameId={currentGame?.id || null} />
+          <UtxoExchange gameId={currentGame?.id || null} />
           {role === PlayerRole.Player1 && (
             <>
               {gameStatus === "SetupParticipants" && <SetupGamePlayer1 />}

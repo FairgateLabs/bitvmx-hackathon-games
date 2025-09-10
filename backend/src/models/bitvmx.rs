@@ -134,3 +134,17 @@ pub struct ProtocolCostResponse {
     /// The program ID
     pub protocol_cost: u64,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema)]
+#[ts(export)]
+pub struct MyFundingUtxoResponse {
+    /// The funding UTXO for the current participant
+    pub utxo: Utxo,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema)]
+#[ts(export)]
+pub struct OtherParticipantFundingUtxoRequest {
+    /// The other participant's funding UTXO
+    pub utxo: Utxo,
+}

@@ -15,6 +15,7 @@ import { ChooseAction } from "@/components/player1/choose-actions";
 import { NetworkInfo } from "@/components/common/network-info";
 import { PeerConnectionInfo } from "@/components/common/peer-connection-info";
 import { PeerConnectionInput } from "@/components/common/peer-connection-input";
+import { UtxoExchange } from "@/components/common/utxo-exchange";
 import { ChooseNetwork } from "@/components/common/choose-network";
 import { PlayerRole } from "@/types/game";
 // import { AddNumbersGameStatus } from "../../../../../backend/bindings/AddNumbersGameStatus";
@@ -96,6 +97,7 @@ export default function AddNumbersPage() {
           <WalletSection />
           <PeerConnectionInfo gameId={gameUUID} />
           <PeerConnectionInput gameId={gameUUID} />
+          <UtxoExchange gameId={currentGame?.id || null} />
           {gameStatus === "CreateProgram" && <SetupGame />}
           <AggregatedKey />
 

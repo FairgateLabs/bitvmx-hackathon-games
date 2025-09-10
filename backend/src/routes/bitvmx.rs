@@ -1,7 +1,8 @@
 use crate::models::{
-    AggregatedKeyRequest, AggregatedKeyResponse, ErrorResponse, OperatorKeys, P2PAddress,
-    ProgramSetupRequest, ProgramSetupResponse, ProtocolCostResponse, SendFundsRequest,
-    TransactionResponse, Utxo, WalletBalance,
+    AggregatedKeyRequest, AggregatedKeyResponse, ErrorResponse, MyFundingUtxoResponse,
+    OperatorKeys, OtherParticipantFundingUtxoRequest, P2PAddress, ProgramSetupRequest,
+    ProgramSetupResponse, ProtocolCostResponse, SendFundsRequest, TransactionResponse, Utxo,
+    WalletBalance,
 };
 use crate::state::AppState;
 use crate::utils::{bitcoin, http_errors};
@@ -35,6 +36,14 @@ pub fn router() -> Router<AppState> {
         .route("/transaction/{txid}", get(get_transaction))
         .route("/program-setup", post(program_setup))
         .route("/protocol-cost", get(get_protocol_cost))
+        .route(
+            "/my-participant_funding_utxo/{uuid}",
+            get(get_my_funding_utxo),
+        )
+        .route(
+            "/other_participant_funding_utxo/{uuid}",
+            post(send_other_participant_funding_utxo),
+        )
 }
 
 /// Get BitVMX P2P address information
@@ -474,4 +483,72 @@ pub async fn get_protocol_cost(
     let protocol_cost = service_guard.protocol_cost();
 
     Ok(Json(ProtocolCostResponse { protocol_cost }))
+}
+
+/// Send other participant's funding UTXO for a specific game
+#[utoipa::path(
+    post,
+    path = "/api/bitvmx/other_participant_funding_utxo/{uuid}",
+    params(
+        ("uuid" = String, Path, description = "Game UUID")
+    ),
+    request_body = OtherParticipantFundingUtxoRequest,
+    responses(
+        (status = 200, description = "Other participant's funding UTXO stored successfully"),
+        (status = 400, description = "Invalid UTXO data", body = ErrorResponse),
+        (status = 500, description = "Failed to store UTXO", body = ErrorResponse)
+    ),
+    tag = "BitVMX"
+)]
+#[instrument(skip(app_state))]
+pub async fn send_other_participant_funding_utxo(
+    State(app_state): State<AppState>,
+    Path(uuid): Path<Uuid>,
+    Json(request): Json<OtherParticipantFundingUtxoRequest>,
+) -> Result<Json<()>, (StatusCode, Json<ErrorResponse>)> {
+    // Validate UTXO data
+    if request.utxo.txid.is_empty() {
+        return Err(http_errors::bad_request("Transaction ID cannot be empty"));
+    }
+
+    if request.utxo.amount == 0 {
+        return Err(http_errors::bad_request("Amount must be greater than 0"));
+    }
+
+    // TODO : complete this
+
+    Ok(Json(()))
+}
+
+/// Get my funding UTXO for a specific game
+#[utoipa::path(
+    get,
+    path = "/api/bitvmx/my-participant_funding_utxo/{uuid}",
+    params(
+        ("uuid" = String, Path, description = "Game UUID")
+    ),
+    responses(
+        (status = 200, description = "My funding UTXO", body = MyFundingUtxoResponse),
+        (status = 404, description = "Funding UTXO not found", body = ErrorResponse)
+    ),
+    tag = "BitVMX"
+)]
+#[instrument(skip(app_state))]
+pub async fn get_my_funding_utxo(
+    State(app_state): State<AppState>,
+    Path(uuid): Path<Uuid>,
+) -> Result<Json<MyFundingUtxoResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let hardcoded_utxo = Utxo {
+        txid: "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef".to_string(),
+        vout: 0,
+        amount: 100000, // Amount in satoshis
+        output_type: serde_json::json!({
+            "type": "P2PKH",
+            "address": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
+        }),
+    };
+
+    Ok(Json(MyFundingUtxoResponse {
+        utxo: hardcoded_utxo,
+    }))
 }
