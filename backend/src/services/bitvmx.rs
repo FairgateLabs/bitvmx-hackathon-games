@@ -358,7 +358,6 @@ impl BitVMXService {
 
     /// Update P2P address
     async fn set_wallet_address(&mut self) -> Result<(), anyhow::Error> {
-        // TODO use Wallet from bitvmx once bdk-wallet is merged
         let response = self
             .rpc_client
             .send_request(IncomingBitVMXApiMessages::GetFundingAddress(Uuid::new_v4()))

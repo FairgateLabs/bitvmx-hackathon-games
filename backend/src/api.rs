@@ -15,15 +15,17 @@ use crate::state::AppState;
 #[openapi(
     paths(
         routes::health::health_check,
+        // AddNumbers Program
         // routes::add_numbers::create_game,
         routes::add_numbers::get_game,
         routes::add_numbers::make_guess,
         routes::add_numbers::setup_participants,
-        routes::add_numbers::setup_funding_utxo,
+        routes::add_numbers::place_bet,
         routes::add_numbers::get_fundings_utxos,
+        routes::add_numbers::setup_funding_utxo,
+        //BitVMX
         routes::bitvmx::comm_info,
         routes::bitvmx::operator_keys,
-        routes::bitvmx::submit_aggregated_key,
         routes::bitvmx::get_aggregated_key,
         routes::bitvmx::wallet_balance,
         routes::bitvmx::send_funds,

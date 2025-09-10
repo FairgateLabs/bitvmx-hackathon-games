@@ -28,7 +28,6 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/comm-info", get(comm_info))
         .route("/operator-keys", get(operator_keys))
-        .route("/aggregated-key", post(submit_aggregated_key))
         .route("/aggregated-key/{uuid}", get(get_aggregated_key))
         .route("/wallet-balance", get(wallet_balance))
         .route("/send-funds", post(send_funds))
@@ -86,145 +85,20 @@ pub async fn operator_keys(
     }))
 }
 
-/// Submit BitVMX aggregated key
-#[utoipa::path(
-    post,
-    path = "/api/bitvmx/aggregated-key",
-    request_body = SetupParticipantsRequest,
-    responses(
-        (status = 200, description = "Aggregated key submitted successfully"),
-        (status = 400, description = "Invalid aggregated key", body = ErrorResponse),
-        (status = 400, description = "Invalid operator key", body = ErrorResponse), 
-        (status = 400, description = "Invalid UUID", body = ErrorResponse),
-        (status = 500, description = "Failed to create aggregated key", body = ErrorResponse)
-    ),
-    tag = "BitVMX"
-)]
-#[instrument(skip(app_state))]
-pub async fn submit_aggregated_key(
-    State(app_state): State<AppState>,
-    Json(aggregated_key_request): Json<SetupParticipantsRequest>,
-) -> Result<Json<(SetupParticipantsResponse, String)>, (StatusCode, Json<ErrorResponse>)> {
-    // Validate the id
-    if aggregated_key_request.aggregated_id.is_empty() {
-        return Err(http_errors::bad_request(
-            "Aggregated key ID cannot be empty",
-        ));
-    }
-
-    // Validate the p2p addresses
-    if aggregated_key_request.participants_addresses.is_empty() {
-        return Err(http_errors::bad_request(
-            "At least one P2P address is required",
-        ));
-    }
-
-    // Validate the operator keys
-    for operator_key in &aggregated_key_request.participants_keys {
-        if operator_key.is_empty() {
-            return Err(http_errors::bad_request("Operator key cannot be empty"));
-        }
-    }
-
-    let uuid = Uuid::parse_str(&aggregated_key_request.aggregated_id)
-        .map_err(|_| http_errors::bad_request("Invalid UUID"))?;
-
-    let participants_keys = aggregated_key_request
-        .participants_keys
-        .iter()
-        .map(|key| {
-            PublicKey::from_str(key).map_err(|_| http_errors::bad_request("Invalid operator key"))
-        })
-        .collect::<Result<Vec<PublicKey>, (StatusCode, Json<ErrorResponse>)>>()?;
-
-    let participants: Vec<BitVMXP2PAddress> = aggregated_key_request
-        .participants_addresses
-        .iter()
-        .map(|p2p| BitVMXP2PAddress {
-            address: p2p.address.clone(),
-            peer_id: PeerId(p2p.peer_id.clone()),
-        })
-        .collect();
-
-    // Create aggregated key
-    let service_guard = app_state.bitvmx_service.read().await;
-    let aggregated_key = service_guard
-        .create_agregated_key(
-            uuid,
-            participants.clone(),
-            Some(participants_keys),
-            aggregated_key_request.leader_idx,
-        )
-        .await
-        .map_err(|e| {
-            http_errors::internal_server_error(&format!("Failed to create aggregated key: {e:?}"))
-        })?;
-
-    let aggregated_key_response = SetupParticipantsResponse {
-        uuid: uuid.to_string(),
-        aggregated_key: aggregated_key.to_string(),
-    };
-    // TODO this should go in a separated method in the future
-    let x_only_pubkey = bitcoin::pub_key_to_xonly(&aggregated_key).map_err(|e| {
-        http_errors::internal_server_error(&format!(
-            "Failed to convert aggregated key to x only pubkey: {e:?}"
-        ))
-    })?;
-    // Todo check if this tap leaves are correct
-    let tap_leaves = vec![
-        scripts::check_aggregated_signature(&aggregated_key, scripts::SignMode::Aggregate),
-        scripts::check_aggregated_signature(&aggregated_key, scripts::SignMode::Aggregate),
-    ];
-    let p2tr_address = bitcoin::pub_key_to_p2tr(&x_only_pubkey, &tap_leaves).map_err(|e| {
-        http_errors::internal_server_error(&format!(
-            "Failed to convert aggregated key to p2tr address: {e:?}"
-        ))
-    })?;
-    debug!(
-        "Aggregated key created: {:?} taproot address: {:?}",
-        aggregated_key, p2tr_address
-    );
-
-    // Send funds to cover protocol fees to the aggregated key
-    let amount = service_guard.protocol_cost();
-    let initial_utxo = service_guard
-        .send_funds(p2tr_address.to_string(), amount, None)
-        .await
-        .map_err(|e| http_errors::internal_server_error(&format!("Failed to send funds: {e:?}")))?;
-    debug!(
-        "Funds {amount} satoshis sent to cover protocol fees to the aggregated key txid: {:?}",
-        initial_utxo.0
-    );
-
-    // Send the amount that the players will bet to the aggregated key
-    let amount = Amount::from_btc(1.0)
-        .map_err(|e| {
-            http_errors::internal_server_error(&format!("Failed to convert amount: {e:?}"))
-        })?
-        .to_sat();
-    let prover_win_utxo = service_guard
-        .send_funds(p2tr_address.to_string(), amount, None)
-        .await
-        .map_err(|e| http_errors::internal_server_error(&format!("Failed to send funds: {e:?}")))?;
-    debug!(
-        "Funds {amount} satoshis sent to the aggregated key to cover the players bet txid: {:?}",
-        prover_win_utxo.0
-    );
-
-    Ok(Json((aggregated_key_response, p2tr_address.to_string())))
-}
 
 /// Submit BitVMX aggregated key
 #[utoipa::path(
     post,
-    path = "/api/bitvmx/aggregated-key",
+    path = "/api/bitvmx/program-setup",
     request_body = SetupParticipantsRequest,
     responses(
-        (status = 200, description = "Aggregated key submitted successfully"),
+        (status = 200, description = "Program setup successfully"),
+        (status = 400, description = "Invalid program id", body = ErrorResponse),
+        (status = 400, description = "Invalid participants", body = ErrorResponse), 
         (status = 400, description = "Invalid aggregated key", body = ErrorResponse),
-        (status = 400, description = "Invalid operator key", body = ErrorResponse), 
-        (status = 400, description = "Invalid UUID", body = ErrorResponse),
-        (status = 500, description = "Failed to create aggregated key", body = ErrorResponse)
+        (status = 400, description = "Invalid initial utxo", body = ErrorResponse),
+        (status = 400, description = "Invalid prover win utxo", body = ErrorResponse),
+        (status = 500, description = "Failed to setup program", body = ErrorResponse)
     ),
     tag = "BitVMX"
 )]
@@ -236,7 +110,7 @@ pub async fn program_setup(
     // Validate the id
     if program_setup_request.program_id.is_empty() {
         return Err(http_errors::bad_request(
-            "Aggregated key ID cannot be empty",
+            "Program ID cannot be empty",
         ));
     }
     let program_id = Uuid::parse_str(&program_setup_request.program_id)

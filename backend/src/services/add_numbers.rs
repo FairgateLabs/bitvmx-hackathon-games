@@ -1,7 +1,9 @@
 use crate::models::{
     AddNumbersGame, AddNumbersGameStatus, BitVMXProgramProperties, P2PAddress, Utxo,
 };
-use bitvmx_client::bitcoin::PublicKey;
+use crate::utils::bitcoin;
+use bitvmx_client::bitcoin::{Address, PublicKey};
+use bitvmx_client::protocol_builder::scripts::{self, ProtocolScript};
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
@@ -25,12 +27,14 @@ impl AddNumbersService {
         participants_addresses: Vec<P2PAddress>,
         participants_keys: Vec<String>,
         aggregated_key: PublicKey,
-    ) -> AddNumbersGame {
+    ) -> Result<AddNumbersGame, anyhow::Error> {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs();
 
+        let protocol_address = protocol_address(&aggregated_key)?.to_string();
+        
         let game = AddNumbersGame {
             program_id,
             number1: None,
@@ -42,15 +46,16 @@ impl AddNumbersService {
             bitvmx_program_properties: BitVMXProgramProperties {
                 aggregated_key,
                 aggregated_id,
+                protocol_address,
                 participants_addresses,
                 participants_keys,
                 funding_protocol_utxo: None,
-                funding_bet_utxo: None, // TODO PEDRO: My funding va aca, funding utxo when is mined.
+                funding_bet_utxo: None,
             },
         };
 
         self.games.insert(program_id, game.clone());
-        game
+        Ok(game)
     }
 
     pub fn get_game(&self, id: Uuid) -> Option<&AddNumbersGame> {
@@ -104,4 +109,24 @@ impl Default for AddNumbersService {
     fn default() -> Self {
         Self::new()
     }
+}
+
+pub fn protocol_scripts(aggregated_key: &PublicKey) -> Vec<ProtocolScript> {
+    // Todo check if this tap leaves are correct
+    vec![
+        scripts::check_aggregated_signature(aggregated_key, scripts::SignMode::Aggregate),
+        scripts::check_aggregated_signature(aggregated_key, scripts::SignMode::Aggregate),
+    ]
+}
+
+pub fn protocol_address(aggregated_key: &PublicKey) -> Result<Address, anyhow::Error> {
+    // Todo check if this tap leaves are correct
+    let x_only_pubkey = bitcoin::pub_key_to_xonly(aggregated_key).map_err(|e| {
+        anyhow::anyhow!("Failed to convert aggregated key to x only pubkey: {e:?}")
+    })?;
+    let tap_leaves = protocol_scripts(aggregated_key);
+    let p2tr_address = bitcoin::pub_key_to_p2tr(&x_only_pubkey, &tap_leaves).map_err(|e| {
+        anyhow::anyhow!("Failed to convert aggregated key to p2tr address: {e:?}")
+    })?;
+    Ok(p2tr_address)
 }
