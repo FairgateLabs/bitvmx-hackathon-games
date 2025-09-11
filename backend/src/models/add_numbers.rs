@@ -73,6 +73,7 @@ pub struct BitVMXProgramProperties {
     #[ts(type = "string")]
     #[schema(value_type = String)]
     pub aggregated_id: Uuid,
+    pub protocol_address: String,
     pub participants_addresses: Vec<P2PAddress>,
     #[ts(type = "array")]
     #[schema(value_type = Vec<String>)]
@@ -117,4 +118,24 @@ pub struct FundingUtxoRequest {
 pub struct FundingUtxosResponse {
     pub funding_protocol_utxo: Utxo,
     pub funding_bet_utxo: Utxo,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
+#[ts(export)]
+pub struct SetupParticipantsRequest {
+    /// The UUID of the aggregated key, must be the same for all participants
+    pub aggregated_id: String,
+    /// The P2P addresses of the bitvmx nodes in the aggregated key
+    pub participants_addresses: Vec<P2PAddress>,
+    /// The operator keys in hex format
+    pub participants_keys: Vec<String>,
+    /// The leader index of the aggregated key
+    pub leader_idx: u16,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
+#[ts(export)]
+pub struct SetupParticipantsResponse {
+    /// The generated program ID
+    pub program_id: String,
 }

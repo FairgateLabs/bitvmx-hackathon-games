@@ -103,7 +103,7 @@ impl RpcClient {
     /// Send a request and execute a callback function when the response is received
     /// This method reuses the existing send_request logic but executes it in a background task
     /// so the current endpoint doesn't get blocked waiting for a response
-    /// 
+    ///
     /// The spawned task includes proper error handling, timeout protection, and structured logging
     /// to prevent zombie tasks and enable request tracing
     #[tracing::instrument(skip(self, callback), fields(correlation_id = %self.request_to_correlation_id(&message).unwrap_or_default()))]
@@ -118,65 +118,63 @@ impl RpcClient {
     {
         let correlation_id = self.request_to_correlation_id(&message)?;
         let client = self.clone();
-        
+
         debug!(
             "Spawned background task for RPC callback request with correlation_id: {}",
             correlation_id
         );
-        
+
         // Spawn a background task with proper error handling and timeout protection
-        tokio::spawn(
-            async move {
-                
-                // Add timeout to prevent hanging tasks
-                let timeout_duration = std::time::Duration::from_secs(300); // 5 minutes timeout
-                
-                let result = tokio::time::timeout(timeout_duration, async {
+        tokio::spawn(async move {
+            // Add timeout to prevent hanging tasks
+            let timeout_duration = std::time::Duration::from_secs(300); // 5 minutes timeout
+
+            let result = tokio::time::timeout(timeout_duration, async {
+                trace!(
+                    "Starting background RPC request with callback for correlation_id: {}",
+                    correlation_id
+                );
+
+                let response = client.send_request(message).await;
+
+                trace!(
+                    "RPC request completed for correlation_id: {}, executing callback",
+                    correlation_id
+                );
+
+                response
+            })
+            .await;
+
+            match result {
+                Ok(response) => {
+                    // Execute the callback with the response
+                    callback(response).await;
+
                     trace!(
-                        "Starting background RPC request with callback for correlation_id: {}",
-                        correlation_id
-                    );
-                    
-                    let response = client.send_request(message).await;
-                    
-                    trace!(
-                        "RPC request completed for correlation_id: {}, executing callback",
-                        correlation_id
-                    );
-                    
-                    response
-                }).await;
-                
-                match result {
-                    Ok(response) => {
-                        // Execute the callback with the response
-                        callback(response).await;
-                        
-                        trace!(
                             "Background RPC callback task completed successfully for correlation_id: {}",
                             correlation_id
                         );
-                    }
-                    Err(_timeout) => {
-                        error!(
-                            "Background RPC callback task timed out after {}s for correlation_id: {}",
-                            timeout_duration.as_secs(),
-                            correlation_id
-                        );
-                        
-                        // Execute callback with timeout error
-                        callback(Err(anyhow::anyhow!(
-                            "RPC request timed out after {} seconds",
-                            timeout_duration.as_secs()
-                        ))).await;
-                    }
+                }
+                Err(_timeout) => {
+                    error!(
+                        "Background RPC callback task timed out after {}s for correlation_id: {}",
+                        timeout_duration.as_secs(),
+                        correlation_id
+                    );
+
+                    // Execute callback with timeout error
+                    callback(Err(anyhow::anyhow!(
+                        "RPC request timed out after {} seconds",
+                        timeout_duration.as_secs()
+                    )))
+                    .await;
                 }
             }
-        );
-        
+        });
+
         Ok(())
     }
-
 
     async fn handle_response(&self, resp: String) -> Result<(), anyhow::Error> {
         // Deserialize the response

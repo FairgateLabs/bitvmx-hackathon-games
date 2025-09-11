@@ -1,5 +1,5 @@
 use crate::config::BitcoinConfig;
-use crate::models::{SetupParticipantsResponse, P2PAddress, WalletBalance};
+use crate::models::{P2PAddress, WalletBalance};
 use crate::rpc::rpc_client::RpcClient;
 use crate::utils;
 use bitvmx_bitcoin_rpc::bitcoin_client::BitcoinClient;
@@ -90,7 +90,7 @@ impl BitVMXService {
     /// Create aggregated key with callback - non-blocking version
     /// This method sends the request and executes the callback when the response is received
     /// without blocking the current endpoint
-    /// 
+    ///
     /// Includes proper error handling and structured logging to prevent zombie tasks
     #[tracing::instrument(skip(self, callback), fields(uuid = %uuid, participants_count = participants.len(), leader_idx = leader_idx))]
     pub async fn create_agregated_key_with_callback<F, Fut>(
@@ -107,9 +107,11 @@ impl BitVMXService {
     {
         debug!(
             "Creating aggregated key with callback for UUID: {}, participants: {}, leader_idx: {}",
-            uuid, participants.len(), leader_idx
+            uuid,
+            participants.len(),
+            leader_idx
         );
-        
+
         let message =
             IncomingBitVMXApiMessages::SetupKey(uuid, participants, participants_keys, leader_idx);
 
@@ -139,7 +141,7 @@ impl BitVMXService {
                         Err(e)
                     }
                 };
-                
+
                 // Execute the callback with the parsed result
                 callback(result).await;
             })
@@ -152,14 +154,17 @@ impl BitVMXService {
                 e
             })?;
 
-        debug!("Aggregated key creation request with callback submitted for UUID: {}", uuid);
+        debug!(
+            "Aggregated key creation request with callback submitted for UUID: {}",
+            uuid
+        );
         Ok(())
     }
 
     /// Send any BitVMX message with a callback - generic non-blocking version
     /// This method sends the request and executes the callback when the response is received
     /// without blocking the current endpoint
-    /// 
+    ///
     /// Includes proper error handling and structured logging to prevent zombie tasks
     #[tracing::instrument(skip(self, callback), fields(message_type = %std::any::type_name::<IncomingBitVMXApiMessages>()))]
     pub async fn send_message_with_callback<F, Fut>(
@@ -172,7 +177,7 @@ impl BitVMXService {
         Fut: std::future::Future<Output = ()> + Send + 'static,
     {
         trace!("Sending BitVMX message with callback");
-        
+
         self.rpc_client
             .send_request_with_callback(message, move |response| async move {
                 // Pass the raw response to the callback - let the callback handle parsing
@@ -183,24 +188,23 @@ impl BitVMXService {
                 error!("Failed to send BitVMX message with callback: {:?}", e);
                 e
             })?;
-            
+
         debug!("BitVMX message with callback submitted successfully");
         Ok(())
     }
 
     /// Get aggregated key
-    pub async fn aggregated_key(&self, uuid: Uuid) -> Result<SetupParticipantsResponse, anyhow::Error> {
+    pub async fn aggregated_key(&self, aggregated_id: Uuid) -> Result<PublicKey, anyhow::Error> {
         trace!("Get aggregated key from BitVMX");
         let response = self
             .rpc_client
-            .send_request(IncomingBitVMXApiMessages::GetAggregatedPubkey(uuid))
+            .send_request(IncomingBitVMXApiMessages::GetAggregatedPubkey(
+                aggregated_id,
+            ))
             .await?;
-        if let OutgoingBitVMXApiMessages::AggregatedPubkey(uuid, aggregated_pubkey) = response {
+        if let OutgoingBitVMXApiMessages::AggregatedPubkey(_uuid, aggregated_pubkey) = response {
             trace!("Obtained aggregated key: {:?}", aggregated_pubkey);
-            Ok(SetupParticipantsResponse {
-                uuid: uuid.to_string(),
-                aggregated_key: aggregated_pubkey.to_string(),
-            })
+            Ok(aggregated_pubkey)
         } else if let OutgoingBitVMXApiMessages::AggregatedPubkeyNotReady(uuid) = response {
             Err(anyhow::anyhow!("Aggregated key not ready: {:?}", uuid))
         } else {
@@ -358,7 +362,6 @@ impl BitVMXService {
 
     /// Update P2P address
     async fn set_wallet_address(&mut self) -> Result<(), anyhow::Error> {
-        // TODO use Wallet from bitvmx once bdk-wallet is merged
         let response = self
             .rpc_client
             .send_request(IncomingBitVMXApiMessages::GetFundingAddress(Uuid::new_v4()))
