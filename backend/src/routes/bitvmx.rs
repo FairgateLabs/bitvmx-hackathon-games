@@ -1,15 +1,17 @@
 use crate::models::{
-    AggregatedKeyResponse, ErrorResponse, OperatorKeys, P2PAddress, ProgramSetupRequest, ProgramSetupResponse, ProtocolCostResponse, SendFundsRequest, SetupParticipantsRequest, TransactionResponse, Utxo, WalletBalance
+    AggregatedKeyResponse, ErrorResponse, OperatorKeys, P2PAddress, ProgramSetupRequest,
+    ProgramSetupResponse, ProtocolCostResponse, SendFundsRequest, SetupParticipantsRequest,
+    TransactionResponse, Utxo, WalletBalance,
 };
 use crate::state::AppState;
-use crate::utils::{http_errors};
+use crate::utils::http_errors;
 use axum::{
     extract::Path,
     extract::State,
     routing::{get, post},
     Json, Router,
 };
-use bitvmx_client::bitcoin::{PublicKey};
+use bitvmx_client::bitcoin::PublicKey;
 use bitvmx_client::p2p_handler::PeerId;
 use bitvmx_client::program::participant::P2PAddress as BitVMXP2PAddress;
 use bitvmx_client::program::protocols::dispute::{TIMELOCK_BLOCKS, TIMELOCK_BLOCKS_KEY};
@@ -17,7 +19,7 @@ use bitvmx_client::program::variables::VariableTypes;
 use bitvmx_client::types::PROGRAM_TYPE_DRP;
 use http::StatusCode;
 use std::str::FromStr;
-use tracing::{instrument};
+use tracing::instrument;
 use uuid::Uuid;
 
 pub fn router() -> Router<AppState> {
@@ -82,7 +84,6 @@ pub async fn operator_keys(
     }))
 }
 
-
 /// Submit BitVMX aggregated key
 #[utoipa::path(
     post,
@@ -106,9 +107,7 @@ pub async fn program_setup(
 ) -> Result<Json<ProgramSetupResponse>, (StatusCode, Json<ErrorResponse>)> {
     // Validate the id
     if program_setup_request.program_id.is_empty() {
-        return Err(http_errors::bad_request(
-            "Program ID cannot be empty",
-        ));
+        return Err(http_errors::bad_request("Program ID cannot be empty"));
     }
     let program_id = Uuid::parse_str(&program_setup_request.program_id)
         .map_err(|_| http_errors::bad_request("Invalid program_id"))?;

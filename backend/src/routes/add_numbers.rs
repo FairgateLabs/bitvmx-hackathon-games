@@ -1,7 +1,8 @@
 use std::str::FromStr;
 
 use crate::models::{
-    AddNumbersGame, ErrorResponse, FundingUtxoRequest, FundingUtxosResponse, MakeGuessRequest, PlaceBetRequest, SetupParticipantsResponse, SetupParticipantsRequest, Utxo
+    AddNumbersGame, ErrorResponse, FundingUtxoRequest, FundingUtxosResponse, MakeGuessRequest,
+    PlaceBetRequest, SetupParticipantsRequest, SetupParticipantsResponse, Utxo,
 };
 use crate::state::AppState;
 use crate::utils::http_errors;
@@ -54,15 +55,12 @@ pub async fn setup_participants(
 ) -> Result<Json<SetupParticipantsResponse>, (StatusCode, Json<ErrorResponse>)> {
     // Validate the aggregated ID
     if request.aggregated_id.is_empty() {
-        return Err(http_errors::bad_request(
-            "Aggregated ID cannot be empty",
-        ));
+        return Err(http_errors::bad_request("Aggregated ID cannot be empty"));
     }
     let aggregated_id = Uuid::parse_str(&request.aggregated_id)
-    .map_err(|_| http_errors::bad_request("Invalid Aggregated ID"))?;
-    
-    let leader_idx = request.leader_idx;
+        .map_err(|_| http_errors::bad_request("Invalid Aggregated ID"))?;
 
+    let leader_idx = request.leader_idx;
 
     // Validate the participants addresses
     if request.participants_addresses.is_empty() {
@@ -81,25 +79,33 @@ pub async fn setup_participants(
 
     // Validate the participants keys
     let participants_keys = request
-    .participants_keys
-    .iter()
-    .map(|key| {
-        if key.is_empty() {
-            return Err(http_errors::bad_request("Participants key cannot be empty"));
-        }
-        PublicKey::from_str(key).map_err(|_| http_errors::bad_request("Invalid participants key"))
-    })
-    .collect::<Result<Vec<PublicKey>, (StatusCode, Json<ErrorResponse>)>>()?;
+        .participants_keys
+        .iter()
+        .map(|key| {
+            if key.is_empty() {
+                return Err(http_errors::bad_request("Participants key cannot be empty"));
+            }
+            PublicKey::from_str(key)
+                .map_err(|_| http_errors::bad_request("Invalid participants key"))
+        })
+        .collect::<Result<Vec<PublicKey>, (StatusCode, Json<ErrorResponse>)>>()?;
 
     // Create the aggregated key
     let aggregated_key: PublicKey;
     {
         let service = app_state.bitvmx_service.read().await;
         aggregated_key = service
-            .create_agregated_key(aggregated_id, participants_addresses, Some(participants_keys), leader_idx)
+            .create_agregated_key(
+                aggregated_id,
+                participants_addresses,
+                Some(participants_keys),
+                leader_idx,
+            )
             .await
             .map_err(|e| {
-                http_errors::internal_server_error(&format!("Failed to create aggregated key: {e:?}"))
+                http_errors::internal_server_error(&format!(
+                    "Failed to create aggregated key: {e:?}"
+                ))
             })?;
     }
 
@@ -110,15 +116,17 @@ pub async fn setup_participants(
     {
         let mut service = app_state.add_numbers_service.write().await;
         debug!("🎉 Setting up game with program id: {:?} 🎉", program_id);
-        service.setup_game(
-            program_id,
-            aggregated_id,
-            request.participants_addresses,
-            request.participants_keys,
-            aggregated_key,
-        ).map_err(|e| {
-            http_errors::internal_server_error(&format!("Failed to setup game: {e:?}"))
-        })?;
+        service
+            .setup_game(
+                program_id,
+                aggregated_id,
+                request.participants_addresses,
+                request.participants_keys,
+                aggregated_key,
+            )
+            .map_err(|e| {
+                http_errors::internal_server_error(&format!("Failed to setup game: {e:?}"))
+            })?;
     }
 
     Ok(Json(SetupParticipantsResponse {
@@ -263,13 +271,15 @@ pub async fn place_bet(
         initial_utxo = bitvmx_service
             .send_funds(aggregated_key.to_string(), protocol_amount, None)
             .await
-            .map_err(|e| http_errors::internal_server_error(&format!("Failed to send funds: {e:?}")))?;
-   
+            .map_err(|e| {
+                http_errors::internal_server_error(&format!("Failed to send funds: {e:?}"))
+            })?;
+
         debug!(
             "Funds {protocol_amount} satoshis sent to cover protocol fees to the aggregated key txid: {:?}",
             initial_utxo.0
         );
-   }
+    }
 
     // Send the amount that the players will bet to the aggregated key
     let amount = Amount::from_btc(request.amount as f64)
@@ -284,7 +294,9 @@ pub async fn place_bet(
         let prover_win_utxo = bitvmx_service
             .send_funds(aggregated_key.to_string(), amount, None)
             .await
-            .map_err(|e| http_errors::internal_server_error(&format!("Failed to send funds: {e:?}")))?;
+            .map_err(|e| {
+                http_errors::internal_server_error(&format!("Failed to send funds: {e:?}"))
+            })?;
         debug!(
             "Funds {amount} satoshis sent to the aggregated key to cover the players bet txid: {:?}",
             prover_win_utxo.0

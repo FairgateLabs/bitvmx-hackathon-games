@@ -34,7 +34,7 @@ impl AddNumbersService {
             .as_secs();
 
         let protocol_address = protocol_address(&aggregated_key)?.to_string();
-        
+
         let game = AddNumbersGame {
             program_id,
             number1: None,
@@ -121,12 +121,10 @@ pub fn protocol_scripts(aggregated_key: &PublicKey) -> Vec<ProtocolScript> {
 
 pub fn protocol_address(aggregated_key: &PublicKey) -> Result<Address, anyhow::Error> {
     // Todo check if this tap leaves are correct
-    let x_only_pubkey = bitcoin::pub_key_to_xonly(aggregated_key).map_err(|e| {
-        anyhow::anyhow!("Failed to convert aggregated key to x only pubkey: {e:?}")
-    })?;
+    let x_only_pubkey = bitcoin::pub_key_to_xonly(aggregated_key)
+        .map_err(|e| anyhow::anyhow!("Failed to convert aggregated key to x only pubkey: {e:?}"))?;
     let tap_leaves = protocol_scripts(aggregated_key);
-    let p2tr_address = bitcoin::pub_key_to_p2tr(&x_only_pubkey, &tap_leaves).map_err(|e| {
-        anyhow::anyhow!("Failed to convert aggregated key to p2tr address: {e:?}")
-    })?;
+    let p2tr_address = bitcoin::pub_key_to_p2tr(&x_only_pubkey, &tap_leaves)
+        .map_err(|e| anyhow::anyhow!("Failed to convert aggregated key to p2tr address: {e:?}"))?;
     Ok(p2tr_address)
 }

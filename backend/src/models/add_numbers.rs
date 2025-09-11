@@ -120,7 +120,6 @@ pub struct FundingUtxosResponse {
     pub funding_bet_utxo: Utxo,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
 pub struct SetupParticipantsRequest {
@@ -133,7 +132,6 @@ pub struct SetupParticipantsRequest {
     /// The leader index of the aggregated key
     pub leader_idx: u16,
 }
-
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
