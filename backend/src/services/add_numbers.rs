@@ -33,7 +33,7 @@ impl AddNumbersService {
             .unwrap()
             .as_secs();
 
-        let protocol_address = protocol_address(&aggregated_key)?.to_string();
+        let protocol_address = self.protocol_address(&aggregated_key)?.to_string();
 
         let game = AddNumbersGame {
             program_id,
@@ -103,28 +103,28 @@ impl AddNumbersService {
 
         Ok(())
     }
+
+    pub fn protocol_scripts(&self,aggregated_key: &PublicKey) -> Vec<ProtocolScript> {
+        // Todo check if this tap leaves are correct
+        vec![
+            scripts::check_aggregated_signature(aggregated_key, scripts::SignMode::Aggregate),
+            scripts::check_aggregated_signature(aggregated_key, scripts::SignMode::Aggregate),
+        ]
+    }
+    
+    pub fn protocol_address(&self, aggregated_key: &PublicKey) -> Result<Address, anyhow::Error> {
+        // Todo check if this tap leaves are correct
+        let x_only_pubkey = bitcoin::pub_key_to_xonly(aggregated_key)
+            .map_err(|e| anyhow::anyhow!("Failed to convert aggregated key to x only pubkey: {e:?}"))?;
+        let tap_leaves = self.protocol_scripts(aggregated_key);
+        let p2tr_address = bitcoin::pub_key_to_p2tr(&x_only_pubkey, &tap_leaves)
+            .map_err(|e| anyhow::anyhow!("Failed to convert aggregated key to p2tr address: {e:?}"))?;
+        Ok(p2tr_address)
+    }
 }
 
 impl Default for AddNumbersService {
     fn default() -> Self {
         Self::new()
     }
-}
-
-pub fn protocol_scripts(aggregated_key: &PublicKey) -> Vec<ProtocolScript> {
-    // Todo check if this tap leaves are correct
-    vec![
-        scripts::check_aggregated_signature(aggregated_key, scripts::SignMode::Aggregate),
-        scripts::check_aggregated_signature(aggregated_key, scripts::SignMode::Aggregate),
-    ]
-}
-
-pub fn protocol_address(aggregated_key: &PublicKey) -> Result<Address, anyhow::Error> {
-    // Todo check if this tap leaves are correct
-    let x_only_pubkey = bitcoin::pub_key_to_xonly(aggregated_key)
-        .map_err(|e| anyhow::anyhow!("Failed to convert aggregated key to x only pubkey: {e:?}"))?;
-    let tap_leaves = protocol_scripts(aggregated_key);
-    let p2tr_address = bitcoin::pub_key_to_p2tr(&x_only_pubkey, &tap_leaves)
-        .map_err(|e| anyhow::anyhow!("Failed to convert aggregated key to p2tr address: {e:?}"))?;
-    Ok(p2tr_address)
 }

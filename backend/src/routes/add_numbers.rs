@@ -1,21 +1,20 @@
 use std::str::FromStr;
 
 use crate::models::{
-    AddNumbersGame, ErrorResponse, FundingUtxoRequest, FundingUtxosResponse, MakeGuessRequest,
-    PlaceBetRequest, SetupParticipantsRequest, SetupParticipantsResponse, Utxo,
+    AddNumbersGame, ErrorResponse, FundingUtxoRequest, FundingUtxosResponse, MakeGuessRequest, PlaceBetRequest, PlaceBetResponse, SetupParticipantsRequest, SetupParticipantsResponse, Utxo
 };
 use crate::state::AppState;
-use crate::utils::http_errors;
+use crate::utils::{bitcoin, http_errors};
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     routing::{get, post},
     Json, Router,
 };
-use bitvmx_client::bitcoin::{Amount, PublicKey};
+use bitvmx_client::bitcoin::PublicKey;
 use bitvmx_client::p2p_handler::PeerId;
 use bitvmx_client::program::participant::P2PAddress;
-use bitvmx_client::program::variables::PartialUtxo;
+use bitvmx_client::types::Destination;
 use tracing::debug;
 use uuid::Uuid;
 
@@ -106,10 +105,10 @@ pub async fn setup_participants(
 
     // Create the program id
     let program_id = Uuid::new_v5(&Uuid::NAMESPACE_OID, request.aggregated_id.as_bytes());
+    debug!("🎉 Setting up game with program id: {:?} 🎉", program_id);
 
     // Setup the game
     let mut service = app_state.add_numbers_service.write().await;
-    debug!("🎉 Setting up game with program id: {:?} 🎉", program_id);
     service
         .setup_game(
             program_id,
@@ -164,7 +163,6 @@ pub async fn get_game(
     Path(id): Path<Uuid>,
 ) -> Result<Json<AddNumbersGame>, (StatusCode, Json<ErrorResponse>)> {
     let service = app_state.add_numbers_service.read().await;
-
     let game = service
         .get_game(id)
         .ok_or(http_errors::not_found("Game not found"))?;
@@ -193,7 +191,6 @@ pub async fn make_guess(
     Json(request): Json<MakeGuessRequest>,
 ) -> Result<Json<AddNumbersGame>, (StatusCode, Json<ErrorResponse>)> {
     let mut service = app_state.add_numbers_service.write().await;
-
     let game = service.make_guess(id, request.guess).map_err(|error| {
         http_errors::error_response(StatusCode::BAD_REQUEST, "INVALID_OPERATION", &error)
     })?;
@@ -215,11 +212,7 @@ pub async fn get_current_game_id(
     let service = app_state.add_numbers_service.read().await;
     let game = service.get_current_game_id();
 
-    if let Some(game) = game {
-        Ok(Json(Some(game)))
-    } else {
-        Ok(Json(None))
-    }
+    Ok(Json(game))
 }
 
 #[utoipa::path(
@@ -227,15 +220,19 @@ pub async fn get_current_game_id(
     path = "/api/add-numbers/place-bet",
     request_body = PlaceBetRequest,
     responses(
+        (status = 200, description = "Place bet successfully", body = PlaceBetResponse),
         (status = 400, description = "Invalid request", body = ErrorResponse),
-        (status = 404, description = "Game not found", body = ErrorResponse)
+        (status = 400, description = "Amount cannot be 0", body = ErrorResponse),
+        (status = 404, description = "Game not found", body = ErrorResponse),
+        (status = 500, description = "Failed to send funds", body = ErrorResponse),
     ),
     tag = "AddNumbers"
 )]
 pub async fn place_bet(
     State(app_state): State<AppState>,
     Json(request): Json<PlaceBetRequest>,
-) -> Result<Json<()>, (StatusCode, Json<ErrorResponse>)> {
+) -> Result<Json<PlaceBetResponse>, (StatusCode, Json<ErrorResponse>)> {
+    // Validate the program ID
     let program_id = Uuid::parse_str(&request.program_id)
         .map_err(|_| http_errors::bad_request("Invalid program ID"))?;
 
@@ -244,57 +241,52 @@ pub async fn place_bet(
         return Err(http_errors::bad_request("Amount cannot be 0"));
     }
 
-    let aggregated_key: PublicKey;
-    {
-        let add_numbers_service = app_state.add_numbers_service.read().await;
-        let game = add_numbers_service
-            .get_game(program_id)
-            .ok_or(http_errors::not_found("Game not found"))?;
+    // Get the game
+    let service = app_state.add_numbers_service.read().await;
+    let game = service
+        .get_game(program_id)
+        .ok_or(http_errors::not_found("Game not found"))?;
 
-        aggregated_key = game.bitvmx_program_properties.aggregated_key;
-    }
+    // Get the aggregated key and protocol information
+    let aggregated_key = game.bitvmx_program_properties.aggregated_key;
+    let x_only_pubkey = bitcoin::pub_key_to_xonly(&aggregated_key)
+        .map_err(|e| http_errors::internal_server_error(&format!("Failed to convert aggregated key to x only pubkey: {e:?}")))?;
+    let tap_leaves = service.protocol_scripts(&aggregated_key);
+    let destination = Destination::P2TR(x_only_pubkey, tap_leaves);
+    
+    // Get the protocol fees amount
+    let service = app_state.bitvmx_service.read().await;
+    let protocol_amount = service.protocol_cost();
 
     // Send funds to cover protocol fees to the aggregated key
-    let initial_utxo: PartialUtxo;
-    {
-        let bitvmx_service = app_state.bitvmx_service.read().await;
-        let protocol_amount = bitvmx_service.protocol_cost();
-        initial_utxo = bitvmx_service
-            .send_funds(aggregated_key.to_string(), protocol_amount, None)
-            .await
-            .map_err(|e| {
-                http_errors::internal_server_error(&format!("Failed to send funds: {e:?}"))
-            })?;
+    let initial_utxo = service
+        .send_funds(&destination, protocol_amount)
+        .await
+        .map_err(|e| {
+            http_errors::internal_server_error(&format!("Failed to send funds: {e:?}"))
+        })?;
+    debug!(
+        "Sent {protocol_amount} satoshis to cover protocol fees to the aggregated key txid: {:?}",
+        initial_utxo.0
+    );
 
-        debug!(
-            "Funds {protocol_amount} satoshis sent to cover protocol fees to the aggregated key txid: {:?}",
-            initial_utxo.0
-        );
-    }
 
     // Send the amount that the players will bet to the aggregated key
-    let amount = Amount::from_btc(request.amount as f64)
+    let prover_win_utxo = service
+        .send_funds(&destination, request.amount)
+        .await
         .map_err(|e| {
-            http_errors::internal_server_error(&format!("Failed to convert amount: {e:?}"))
-        })?
-        .to_sat();
+            http_errors::internal_server_error(&format!("Failed to send funds: {e:?}"))
+        })?;
+    debug!(
+        "Funds {} satoshis sent to the aggregated key to cover the players bet txid: {:?}", request.amount,
+        prover_win_utxo.0
+    );
 
-    // TODO PEDRO: Add taproot address in aggregated_key
-    {
-        let bitvmx_service = app_state.bitvmx_service.read().await;
-        let prover_win_utxo = bitvmx_service
-            .send_funds(aggregated_key.to_string(), amount, None)
-            .await
-            .map_err(|e| {
-                http_errors::internal_server_error(&format!("Failed to send funds: {e:?}"))
-            })?;
-        debug!(
-            "Funds {amount} satoshis sent to the aggregated key to cover the players bet txid: {:?}",
-            prover_win_utxo.0
-        );
-    }
-
-    Ok(Json(()))
+    Ok(Json(PlaceBetResponse {
+        funding_protocol_utxo: initial_utxo.into(),
+        funding_bet_utxo: prover_win_utxo.into(),
+    }))
 }
 
 #[utoipa::path(

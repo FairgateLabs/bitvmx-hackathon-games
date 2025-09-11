@@ -6,7 +6,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tokio::sync::broadcast::{Receiver, Sender};
 use tokio::task::JoinHandle;
-use tracing::{debug, error, info, trace, warn, Instrument};
+use tracing::{debug, error, info, trace, Instrument};
 
 use std::time::Duration;
 use tokio::sync::{mpsc, oneshot, Mutex};
@@ -191,8 +191,8 @@ impl RpcClient {
             let mut pending = self.pending.lock().await;
             let optional_tx = pending.remove_first_for_key(&correlation_id)?;
             if optional_tx.is_none() {
-                warn!(
-                    "No response handler found for correlation ID: {}",
+                info!(
+                    "No response handler for correlation ID: {}",
                     correlation_id
                 );
                 return Ok(());

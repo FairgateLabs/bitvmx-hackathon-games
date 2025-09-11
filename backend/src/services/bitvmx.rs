@@ -4,11 +4,10 @@ use crate::rpc::rpc_client::RpcClient;
 use crate::utils;
 use bitvmx_bitcoin_rpc::bitcoin_client::BitcoinClient;
 use bitvmx_bitcoin_rpc::bitcoin_client::BitcoinClientApi;
-use bitvmx_client::bitcoin::{Address, PublicKey, ScriptBuf, Txid, XOnlyPublicKey};
+use bitvmx_client::bitcoin::{Address, PublicKey, Txid};
 use bitvmx_client::bitcoin_coordinator::TransactionStatus;
 use bitvmx_client::program::participant::P2PAddress as BitVMXP2PAddress;
 use bitvmx_client::program::variables::{PartialUtxo, VariableTypes};
-use bitvmx_client::protocol_builder::scripts::{ProtocolScript, SignMode};
 use bitvmx_client::protocol_builder::types::OutputType;
 use bitvmx_client::types::{Destination, IncomingBitVMXApiMessages, OutgoingBitVMXApiMessages};
 use std::str::FromStr;
@@ -237,38 +236,16 @@ impl BitVMXService {
 
     pub async fn send_funds(
         &self,
-        destination: String,
+        destination: &Destination,
         amount: u64,
-        scripts: Option<Vec<String>>,
     ) -> Result<PartialUtxo, anyhow::Error> {
-        let destination = if let Some(scripts) = scripts {
-            let x_only_pubkey = XOnlyPublicKey::from_str(&destination)?;
-            Destination::P2TR(
-                x_only_pubkey,
-                scripts
-                    .iter()
-                    .map(|script| -> Result<ProtocolScript, anyhow::Error> {
-                        let pubkey = utils::bitcoin::xonly_to_pub_key(&x_only_pubkey)?;
-                        Ok(ProtocolScript::new(
-                            ScriptBuf::from_hex(script)?,
-                            &pubkey,
-                            SignMode::Aggregate,
-                        ))
-                    })
-                    .collect::<Result<Vec<_>, _>>()?,
-            )
-        } else if destination.len() < 64 {
-            Destination::Address(destination)
-        } else {
-            Destination::P2WPKH(PublicKey::from_str(&destination)?)
-        };
         let response = self
             .rpc_client
             .send_request(IncomingBitVMXApiMessages::SendFunds(
                 Uuid::new_v4(),
                 destination.clone(),
                 amount,
-                None,
+                None, // fee rate not needed for regtest
             ))
             .await?;
 
