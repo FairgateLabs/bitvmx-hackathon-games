@@ -34,5 +34,8 @@ export const useWalletBalance = () => {
   return useQuery({
     queryKey: ["walletBalance"],
     queryFn: fetchWalletBalance,
+    refetchInterval: 3 * 60 * 1000, // every 3 minutes
+    refetchIntervalInBackground: true, // keep polling even when tab is not focused
+    staleTime: 0, // data becomes stale immediately after fetch
   });
 };

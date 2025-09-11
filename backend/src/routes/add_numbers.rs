@@ -116,6 +116,7 @@ pub async fn setup_participants(
             request.participants_addresses,
             request.participants_keys,
             aggregated_key,
+            request.role,
         )
         .map_err(|e| http_errors::internal_server_error(&format!("Failed to setup game: {e:?}")))?;
 

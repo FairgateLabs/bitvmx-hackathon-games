@@ -16,5 +16,10 @@ export const useCommunicationInfo = () => {
   return useQuery({
     queryKey: ["peerConnectionInfo"],
     queryFn: fetchCommunicationInfo,
+    staleTime: Infinity, // Data is always fresh
+    gcTime: Infinity, // never garbage-collected
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 };

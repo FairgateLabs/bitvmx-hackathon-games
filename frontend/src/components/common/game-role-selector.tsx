@@ -7,23 +7,24 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 // import { useNextGameState } from "@/hooks/useGameState";
-import { useSaveGameRole } from "@/hooks/useGameRole";
-import { GameState, PlayerRole } from "@/types/game";
+import { GameState, EnumPlayerRole } from "@/types/game";
 import { useEffect, useState } from "react";
 
 interface GameRoleSelectorProps {
   title: string;
   description: string;
   subtitle: string;
+  onSelectRole: (role: EnumPlayerRole) => void;
 }
 
 export function ChooseRole({
   title,
   description,
   subtitle,
+  onSelectRole,
 }: GameRoleSelectorProps) {
   // const { mutate: nextState } = useNextGameState();
-  const { mutate: saveRole } = useSaveGameRole();
+  // const { mutate: saveRole } = useSaveGameRole();
   const [currentPort, setCurrentPort] = useState<number | null>(null);
 
   useEffect(() => {
@@ -32,9 +33,8 @@ export function ChooseRole({
     setCurrentPort(port);
   }, []);
 
-  const handleRoleSelect = (role: PlayerRole) => {
-    saveRole(role);
-    // nextState(GameState.ChooseNetwork);
+  const handleRoleSelect = (role: EnumPlayerRole) => {
+    onSelectRole(role);
   };
 
   // Determine which role should be enabled based on port
@@ -57,7 +57,7 @@ export function ChooseRole({
 
           <div className="grid grid-cols-2 gap-4">
             <Button
-              onClick={() => handleRoleSelect(PlayerRole.Player1)}
+              onClick={() => handleRoleSelect(EnumPlayerRole.Player1)}
               className="h-24 text-lg"
               variant="outline"
               disabled={!isPlayer1Enabled}
@@ -67,7 +67,7 @@ export function ChooseRole({
             </Button>
 
             <Button
-              onClick={() => handleRoleSelect(PlayerRole.Player2)}
+              onClick={() => handleRoleSelect(EnumPlayerRole.Player2)}
               className="h-24 text-lg"
               variant="outline"
               disabled={!isPlayer2Enabled}

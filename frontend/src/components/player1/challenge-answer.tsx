@@ -1,13 +1,15 @@
 import { Shield } from "lucide-react";
-import { useGameRole } from "@/hooks/useGameRole";
+import { useCurrentGame } from "@/hooks/useGame";
 import { TimeRemaining } from "../ui/time-remaining";
-import { GameState, PlayerRole } from "@/types/game";
+import { GameState, EnumPlayerRole } from "@/types/game";
 // import { useNextGameState } from "@/hooks/useGameState";
 
 export function ChallengeAnswer() {
-  const { data: role } = useGameRole();
-  let whoDecidedChallenge = role === PlayerRole.Player1 ? "You" : "Player 1";
-  let whoIsChallenged = role === PlayerRole.Player1 ? "Player 2" : "Your";
+  const { data: currentGame } = useCurrentGame();
+  const role = currentGame?.role;
+  let whoDecidedChallenge =
+    role === EnumPlayerRole.Player1 ? "You" : "Player 1";
+  let whoIsChallenged = role === EnumPlayerRole.Player1 ? "Player 2" : "Your";
 
   // const { mutate: nextGameState } = useNextGameState();
 

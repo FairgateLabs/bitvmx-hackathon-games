@@ -18,11 +18,10 @@ import { PeerConnectionInfo } from "@/components/common/peer-connection-info";
 import { PeerConnectionInput } from "@/components/common/peer-connection-input";
 import { UtxoExchange } from "@/components/common/utxo-exchange";
 import { ChooseNetwork } from "@/components/common/choose-network";
-import { PlayerRole } from "@/types/game";
+import { EnumPlayerRole } from "@/types/game";
 // import { AddNumbersGameStatus } from "../../../../../backend/bindings/AddNumbersGameStatus";
 import { StartGame } from "@/components/tic-tac-toe/common/start-game";
 // import { useGameState, useNextGameState } from "@/hooks/useGameState";
-import { useGameRole } from "@/hooks/useGameRole";
 import { AcceptLoseGame } from "@/components/player1/accept-lose-game";
 // import { ChallengeWinGame } from "@/components/player1/challege-win-game";
 // import { ChallengeWinGame as ChallengeWinGamePlayer2 } from "@/components/player2/challenge-win-game";
@@ -41,14 +40,12 @@ import { useNetworkQuery } from "@/hooks/useNetwork";
 
 export default function TicTacToePage() {
   // const { data: gameStatus } = useGameState();
-  const { data: role } = useGameRole();
   const { data: network } = useNetworkQuery();
+  const [role, setRole] = useState<EnumPlayerRole | null>(null);
+
   // const { mutate: nextGameState } = useNextGameState();
-  const {
-    data: currentGame,
-    isLoading: isGameLoading,
-    gameStatus,
-  } = useCurrentGame();
+  const { data: currentGame, isLoading: isGameLoading } = useCurrentGame();
+  const gameStatus = currentGame?.status;
 
   if (!currentGame && !network) {
     return <ChooseNetwork />;
@@ -60,6 +57,7 @@ export default function TicTacToePage() {
         title="⭕ Tic Tac Toe Game"
         description="Choose the role you want to play"
         subtitle="Two players compete by playing Tic Tac Toe. Who are you?"
+        onSelectRole={setRole}
       />
     );
   }
@@ -69,12 +67,12 @@ export default function TicTacToePage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl">
-            {role === PlayerRole.Player1
+            {role === EnumPlayerRole.Player1
               ? "➕ Player 1 - Tic Tac Toe"
               : "🤝 Player 2 - Tic Tac Toe"}
           </CardTitle>
           <CardDescription>
-            {role === PlayerRole.Player1
+            {role === EnumPlayerRole.Player1
               ? "Create the game and choose the numbers to add"
               : "Join the game and answer the sum"}
           </CardDescription>
@@ -85,8 +83,8 @@ export default function TicTacToePage() {
           <WalletSection />
           {/* <PeerConnectionInfo aggregatedId={} />
           <PeerConnectionInput aggregatedId={currentGame?.bitvmx_program_properties.aggregated_id || ""} /> */}
-          <UtxoExchange gameId={currentGame?.program_id.toString() || null} />
-          {role === PlayerRole.Player1 && (
+          <UtxoExchange />
+          {role === EnumPlayerRole.Player1 && (
             <>
               {gameStatus === "SetupParticipants" && <SetupGamePlayer1 />}
               {gameStatus === "CreateProgram" && <SetupGamePlayer1 />}
@@ -111,7 +109,7 @@ export default function TicTacToePage() {
             </>
           )}
 
-          {role === PlayerRole.Player2 && (
+          {role === EnumPlayerRole.Player2 && (
             <>
               {gameStatus === "SetupParticipants" && <SetupGamePlayer2 />}
               {gameStatus === "CreateProgram" && <WaitingStartGame />}

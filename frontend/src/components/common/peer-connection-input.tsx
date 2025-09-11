@@ -7,11 +7,12 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { PlayerRole } from "@/types/game";
+import { EnumPlayerRole } from "@/types/game";
 import { useCommunicationInfo } from "@/hooks/useCommunicationInfo";
 import usePubkey from "@/hooks/usePubkey";
-import { useGameRole } from "@/hooks/useGameRole";
+import { useCurrentGame } from "@/hooks/useGame";
 import { Textarea } from "@/components/ui/textarea";
+import { PlayerRole } from "../../../../backend/bindings/PlayerRole";
 
 interface PeerConnectionData {
   publicKey: string;
@@ -22,13 +23,14 @@ interface PeerConnectionData {
 
 export function PeerConnectionInput({
   aggregatedId,
+  role,
 }: {
+  role: PlayerRole;
   aggregatedId: string;
 }) {
   const [jsonInput, setJsonInput] = useState("");
   const [parsedData, setParsedData] = useState<PeerConnectionData | null>(null);
   const [jsonError, setJsonError] = useState("");
-  const { data: role } = useGameRole();
   const [isOpen, setIsOpen] = useState(true);
   const [inputsDisabled, setInputsDisabled] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
@@ -77,11 +79,11 @@ export function PeerConnectionInput({
         !parsed.publicKey ||
         !parsed.networkAddress ||
         !parsed.peerId ||
-        (role !== PlayerRole.Player1 && !parsed.aggregatedId)
+        (role !== EnumPlayerRole.Player1 && !parsed.aggregatedId)
       ) {
         setJsonError(
           "Missing required fields. Expected: publicKey, networkAddress, peerId" +
-            (role !== PlayerRole.Player1 ? ", aggregatedId" : "")
+            (role !== EnumPlayerRole.Player1 ? ", aggregatedId" : "")
         );
         return;
       }
@@ -90,7 +92,7 @@ export function PeerConnectionInput({
       const errors: string[] = [];
 
       if (
-        role !== PlayerRole.Player1 &&
+        role !== EnumPlayerRole.Player1 &&
         !isValidAggregatedUUID(parsed.aggregatedId)
       ) {
         errors.push("Invalid aggregatedId format (must be a valid UUID)");
@@ -130,17 +132,17 @@ export function PeerConnectionInput({
   const handleSetConnection = () => {
     if (
       !parsedData ||
-      (!parsedData.aggregatedId && role !== PlayerRole.Player1)
+      (!parsedData.aggregatedId && role !== EnumPlayerRole.Player1)
     )
       return;
 
     let operator_keys =
-      role === PlayerRole.Player1
+      role === EnumPlayerRole.Player1
         ? [operatorKey?.pub_key ?? "", parsedData.publicKey]
         : [parsedData.publicKey, operatorKey?.pub_key ?? ""];
 
     let participants_addresses =
-      role === PlayerRole.Player1
+      role === EnumPlayerRole.Player1
         ? [
             {
               address: peerConnectionInfo?.address ?? "",
@@ -157,10 +159,11 @@ export function PeerConnectionInput({
           ];
 
     savePeerConnection({
+      role,
       participants_addresses,
       operator_keys,
       aggregated_id:
-        role === PlayerRole.Player1
+        role === EnumPlayerRole.Player1
           ? aggregatedId
           : parsedData.aggregatedId ?? "",
     });
@@ -169,7 +172,7 @@ export function PeerConnectionInput({
   };
 
   let aggregatedIdPlaceholder = "";
-  if (role !== PlayerRole.Player1) {
+  if (role !== EnumPlayerRole.Player1) {
     aggregatedIdPlaceholder = `,\n "aggregatedId": "7d305b69-947e-4c90-a152-60365e47dc00"`;
   }
 
@@ -189,7 +192,7 @@ export function PeerConnectionInput({
         </CollapsibleTrigger>
         <CollapsibleContent className="flex flex-col gap-3">
           <p className="text-sm text-gray-700">
-            {role === PlayerRole.Player1
+            {role === EnumPlayerRole.Player1
               ? "Paste the JSON data containing the Public Key, Network Address and Peer ID of the other player to connect to your game."
               : "Paste the JSON data containing the Aggregated UUID, Public Key, Network Address and Peer ID of the other player to join their game."}
           </p>

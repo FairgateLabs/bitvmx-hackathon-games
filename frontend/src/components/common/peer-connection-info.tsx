@@ -8,15 +8,20 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import usePubkey from "@/hooks/usePubkey";
-import { useGameRole } from "@/hooks/useGameRole";
-import { PlayerRole } from "@/types/game";
+import { useCurrentGame } from "@/hooks/useGame";
+import { EnumPlayerRole } from "@/types/game";
+import { PlayerRole } from "../../../../backend/bindings/PlayerRole";
 
-export function PeerConnectionInfo({ aggregatedId }: { aggregatedId: string }) {
+export function PeerConnectionInfo({
+  aggregatedId,
+  role,
+}: {
+  aggregatedId: string;
+  role: PlayerRole;
+}) {
   const [isOpen, setIsOpen] = useState(true);
   const { data: peerConnectionInfo, isLoading, error } = useCommunicationInfo();
-
   const { data: operatorKey } = usePubkey();
-  const { data: role } = useGameRole();
 
   const handleCopyAllData = () => {
     if (!operatorKey || !peerConnectionInfo) return;
@@ -43,13 +48,13 @@ export function PeerConnectionInfo({ aggregatedId }: { aggregatedId: string }) {
         </CollapsibleTrigger>
         <CollapsibleContent>
           <div className="flex justify-between items-center">
-            {role === PlayerRole.Player1 && (
+            {role === EnumPlayerRole.Player1 && (
               <p className="text-sm text-gray-700 mb-4">
                 Share this information with Player 2 to enable them to connect
                 with you and join your game.
               </p>
             )}
-            {role === PlayerRole.Player2 && (
+            {role === EnumPlayerRole.Player2 && (
               <p className="text-sm text-gray-700 mb-4">
                 Share this information with Player 1 to enable them to connect
                 with you.

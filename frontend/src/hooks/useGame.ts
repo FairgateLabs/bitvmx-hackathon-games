@@ -3,6 +3,7 @@ import { getApiBaseUrl } from "../config/backend";
 import { AddNumbersRequest } from "../../../backend/bindings/AddNumbersRequest";
 import { AddNumbersGame } from "../../../backend/bindings/AddNumbersGame";
 import { AddNumbersGameStatus } from "../../../backend/bindings/AddNumbersGameStatus";
+import { EnumPlayerRole } from "@/types/game";
 
 function useGameById(id: string) {
   async function fetchGameById(id: string) {
@@ -68,17 +69,17 @@ function useCurrentGame() {
       return null;
     }
     const data = await response.json();
+    if (data.role) {
+      data.role = data.role as EnumPlayerRole;
+    }
+
     return data || null;
   }
 
-  const query = useQuery({
+  return useQuery({
     queryKey: ["currentGameId"],
     queryFn: fetchCurrentGame,
   });
-
-  return {
-    ...query,
-  };
 }
 
 export { useGameById, useCreateGame, useAnswerAddNumber, useCurrentGame };

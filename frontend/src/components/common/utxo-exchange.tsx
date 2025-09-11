@@ -8,8 +8,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { useFundingUtxos, useSaveFundingUtxos } from "@/hooks/useFundingUtxos";
-import { useGameRole } from "@/hooks/useGameRole";
-import { PlayerRole } from "@/types/game";
+import { EnumPlayerRole } from "@/types/game";
 import { Utxo } from "../../../../backend/bindings/Utxo";
 import { useCurrentGame } from "@/hooks/useGame";
 
@@ -25,7 +24,7 @@ export function UtxoExchange() {
   const [jsonError, setJsonError] = useState("");
 
   const { data: currentGame, isLoading: isGameLoading } = useCurrentGame();
-  const { data: role } = useGameRole();
+  const role = currentGame?.role;
   const {
     data: fundingUtxos,
     isLoading: isFundingLoading,
@@ -121,7 +120,7 @@ export function UtxoExchange() {
         </CollapsibleTrigger>
         <CollapsibleContent>
           <p className="text-sm mb-4">
-            {role === PlayerRole.Player1
+            {role === EnumPlayerRole.Player1
               ? "Share your UTXO information with Player 2 and enter their UTXO details."
               : "Share your UTXO information with Player 1 and enter their UTXO details."}
           </p>

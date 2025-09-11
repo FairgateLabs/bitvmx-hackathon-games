@@ -49,6 +49,7 @@ pub struct AddNumbersGame {
     #[ts(type = "string")]
     #[schema(value_type = String)]
     pub program_id: Uuid,
+    pub role: PlayerRole,
     pub number1: Option<i32>,
     pub number2: Option<i32>,
     pub guess: Option<i32>,
@@ -137,6 +138,9 @@ pub struct SetupParticipantsRequest {
     pub participants_keys: Vec<String>,
     /// The leader index of the aggregated key
     pub leader_idx: u16,
+    /// The role of the player. This is used to determine the role in bitvmx program.
+    /// Player 1 is the player that creates the game and player 2 is the player that joins the game.
+    pub role: PlayerRole,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
@@ -144,4 +148,11 @@ pub struct SetupParticipantsRequest {
 pub struct SetupParticipantsResponse {
     /// The generated program ID
     pub program_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
+#[ts(export)]
+pub enum PlayerRole {
+    Player1,
+    Player2,
 }

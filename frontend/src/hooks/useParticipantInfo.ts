@@ -2,19 +2,23 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { getApiBaseUrl } from "../config/backend";
 import { P2PAddress } from "../../../backend/bindings/P2PAddress";
 import { SetupParticipantsRequest } from "../../../backend/bindings/SetupParticipantsRequest";
+import { EnumPlayerRole } from "@/types/game";
 
 const useSaveParticipantInfo = () => {
   return useMutation({
     mutationFn: async ({
+      role,
       participants_addresses,
       operator_keys,
       aggregated_id,
     }: {
+      role: EnumPlayerRole;
       participants_addresses: P2PAddress[];
       operator_keys: string[];
       aggregated_id: string;
     }) => {
       let data: SetupParticipantsRequest = {
+        role,
         aggregated_id,
         participants_addresses: participants_addresses,
         participants_keys: operator_keys,

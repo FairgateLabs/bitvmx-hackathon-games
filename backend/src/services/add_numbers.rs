@@ -1,5 +1,5 @@
 use crate::models::{
-    AddNumbersGame, AddNumbersGameStatus, BitVMXProgramProperties, P2PAddress, Utxo,
+    AddNumbersGame, AddNumbersGameStatus, BitVMXProgramProperties, P2PAddress, PlayerRole, Utxo,
 };
 use crate::utils::bitcoin;
 use bitvmx_client::bitcoin::{Address, PublicKey};
@@ -27,6 +27,7 @@ impl AddNumbersService {
         participants_addresses: Vec<P2PAddress>,
         participants_keys: Vec<String>,
         aggregated_key: PublicKey,
+        role: PlayerRole,
     ) -> Result<AddNumbersGame, anyhow::Error> {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -43,6 +44,7 @@ impl AddNumbersService {
             status: AddNumbersGameStatus::SetupParticipants,
             created_at: now,
             updated_at: now,
+            role,
             bitvmx_program_properties: BitVMXProgramProperties {
                 aggregated_key,
                 aggregated_id,

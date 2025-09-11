@@ -3,10 +3,11 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "../../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
-import { Player, PlayerRole } from "@/types/game";
-import { useGameRole } from "@/hooks/useGameRole";
+import { EnumPlayerRole } from "@/types/game";
+import { useCurrentGame } from "@/hooks/useGame";
 import { useMockTicTacToeMoves } from "@/hooks/useTicTacToeMoves";
 import { TimeRemaining, TimeRemainingRef } from "../../ui/time-remaining"; // Import the timer component
+import { PlayerRole } from "../../../../../backend/bindings/PlayerRole";
 
 export enum PlayerSymbol {
   X = "X",
@@ -16,13 +17,13 @@ export enum PlayerSymbol {
 export type Board = PlayerSymbol[];
 
 export interface GameEndResult {
-  winner: PlayerRole | null; // null means draw
+  winner: EnumPlayerRole | null; // null means draw
   isTimeout: boolean;
 }
 
 export interface MoveLog {
   moveNumber: number;
-  player: PlayerRole;
+  player: EnumPlayerRole;
   position: number;
   symbol: PlayerSymbol;
   timestamp: Date;
@@ -35,15 +36,16 @@ interface TicTacToeBoardProps {
 
 export function TicTacToeBoard({ onGameEnd }: TicTacToeBoardProps) {
   const [board, setBoard] = useState<Board>(Array(9).fill(null));
-  const [winner, setWinner] = useState<Player | null>(null);
+  const [winner, setWinner] = useState<PlayerRole | null>(null);
   const [gameOver, setGameOver] = useState(false);
   const [disabled, setDisabled] = useState(false);
-  const [currentPlayer, setCurrentPlayer] = useState<PlayerRole>(
-    PlayerRole.Player1
+  const [currentPlayer, setCurrentPlayer] = useState<EnumPlayerRole>(
+    EnumPlayerRole.Player1
   );
   const [moveCount, setMoveCount] = useState(0);
   const [movesLog, setMovesLog] = useState<MoveLog[]>([]);
-  const { data: playerRole } = useGameRole();
+  const { data: currentGame } = useCurrentGame();
+  const playerRole = currentGame?.role;
   const timerRef = useRef<TimeRemainingRef>(null);
 
   const { data: opponentMove, isLoading: isLoadingMoves } =
@@ -74,7 +76,7 @@ export function TicTacToeBoard({ onGameEnd }: TicTacToeBoardProps) {
 
     newBoard[opponentMove.index] = opponentMove.playerSymbol;
     setBoard(newBoard);
-    setCurrentPlayer(playerRole as PlayerRole);
+    setCurrentPlayer(playerRole as EnumPlayerRole);
 
     setMoveCount((prev) => Math.min(prev + 1, 9));
 
@@ -82,9 +84,9 @@ export function TicTacToeBoard({ onGameEnd }: TicTacToeBoardProps) {
     const newMove: MoveLog = {
       moveNumber: moveCount + 1,
       player:
-        opponentMove.player === PlayerRole.Player1
-          ? PlayerRole.Player1
-          : PlayerRole.Player2,
+        opponentMove.player === EnumPlayerRole.Player1
+          ? EnumPlayerRole.Player1
+          : EnumPlayerRole.Player2,
       position: opponentMove.index,
       symbol: opponentMove.playerSymbol,
       timestamp: new Date(),
@@ -97,7 +99,7 @@ export function TicTacToeBoard({ onGameEnd }: TicTacToeBoardProps) {
     setDisabled(false);
   }, [opponentMove, gameOver, board, playerRole]);
 
-  const checkWinner = (currentBoard: Board): Player | null => {
+  const checkWinner = (currentBoard: Board): PlayerRole | null => {
     const winningCombinations = [
       [0, 1, 2], // Top row
       [3, 4, 5], // Middle row
@@ -116,8 +118,8 @@ export function TicTacToeBoard({ onGameEnd }: TicTacToeBoardProps) {
         currentBoard[a] === currentBoard[c]
       ) {
         return currentBoard[a] === PlayerSymbol.X
-          ? PlayerRole.Player1
-          : PlayerRole.Player2;
+          ? EnumPlayerRole.Player1
+          : EnumPlayerRole.Player2;
       }
     }
 
@@ -140,19 +142,19 @@ export function TicTacToeBoard({ onGameEnd }: TicTacToeBoardProps) {
     const wasEmpty = !board[index];
 
     let myCurrentSymbol =
-      playerRole === PlayerRole.Player1 ? PlayerSymbol.X : PlayerSymbol.O;
+      playerRole === EnumPlayerRole.Player1 ? PlayerSymbol.X : PlayerSymbol.O;
 
     if (board[index] === myCurrentSymbol) return;
 
     newBoard[index] =
-      playerRole === PlayerRole.Player1 ? PlayerSymbol.X : PlayerSymbol.O;
+      playerRole === EnumPlayerRole.Player1 ? PlayerSymbol.X : PlayerSymbol.O;
     setBoard(newBoard);
     setMoveCount((prev) => Math.min(prev + 1, 9));
 
     // Add move to log
     const newMove: MoveLog = {
       moveNumber: moveCount + 1,
-      player: playerRole as PlayerRole,
+      player: playerRole as EnumPlayerRole,
       position: index,
       symbol: myCurrentSymbol,
       timestamp: new Date(),
@@ -162,9 +164,9 @@ export function TicTacToeBoard({ onGameEnd }: TicTacToeBoardProps) {
     setMovesLog((prev) => [...prev, newMove]);
 
     setCurrentPlayer(
-      playerRole === PlayerRole.Player1
-        ? PlayerRole.Player2
-        : PlayerRole.Player1
+      playerRole === EnumPlayerRole.Player1
+        ? EnumPlayerRole.Player2
+        : EnumPlayerRole.Player1
     );
 
     timerRef.current?.reset();
@@ -234,13 +236,13 @@ export function TicTacToeBoard({ onGameEnd }: TicTacToeBoardProps) {
                   className={`text-xs p-2 rounded border-l-4 ${
                     move.replacedMove
                       ? "bg-orange-50 border-orange-300 text-orange-800"
-                      : move.player === PlayerRole.Player1
+                      : move.player === EnumPlayerRole.Player1
                       ? "bg-blue-50 border-blue-300 text-blue-800"
                       : "bg-red-50 border-red-300 text-red-800"
                   }`}
                 >
                   <div className="font-medium">
-                    {move.player === PlayerRole.Player1
+                    {move.player === EnumPlayerRole.Player1
                       ? "🔵 Player 1"
                       : "🔴 Player 2"}{" "}
                     ({move.symbol}) at position [{move.position}]
@@ -266,9 +268,9 @@ export function TicTacToeBoard({ onGameEnd }: TicTacToeBoardProps) {
               numberBlocks={5} // 30 seconds timeout
               onTimeout={() => {
                 const timeoutWinner =
-                  currentPlayer === PlayerRole.Player1
-                    ? PlayerRole.Player2
-                    : PlayerRole.Player1;
+                  currentPlayer === EnumPlayerRole.Player1
+                    ? EnumPlayerRole.Player2
+                    : EnumPlayerRole.Player1;
 
                 setGameOver(true);
                 setWinner(timeoutWinner);

@@ -25,9 +25,7 @@ export interface GameNumbersToAdd {
   number2?: number;
 }
 
-export enum PlayerRole {
+export enum EnumPlayerRole {
   Player1 = "Player1",
   Player2 = "Player2",
 }
-
-export type Player = PlayerRole.Player1 | PlayerRole.Player2;

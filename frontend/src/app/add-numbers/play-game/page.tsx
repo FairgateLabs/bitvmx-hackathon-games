@@ -17,11 +17,9 @@ import { PeerConnectionInfo } from "@/components/common/peer-connection-info";
 import { PeerConnectionInput } from "@/components/common/peer-connection-input";
 import { UtxoExchange } from "@/components/common/utxo-exchange";
 import { ChooseNetwork } from "@/components/common/choose-network";
-import { PlayerRole } from "@/types/game";
 // import { AddNumbersGameStatus } from "../../../../../backend/bindings/AddNumbersGameStatus";
 import { StartGame } from "@/components/player1/start-game";
 // import { useGameState, useNextGameState } from "@/hooks/useGameState";
-import { useGameRole } from "@/hooks/useGameRole";
 import { AcceptLoseGame } from "@/components/player1/accept-lose-game";
 // import { ChallengeWinGame } from "@/components/player1/challege-win-game";
 // import { ChallengeWinGame as ChallengeWinGamePlayer2 } from "@/components/player2/challenge-win-game";
@@ -38,17 +36,18 @@ import { useCurrentGame } from "@/hooks/useGame";
 import { useNetworkQuery } from "@/hooks/useNetwork";
 import { AggregatedKey } from "@/components/common/aggregated-key";
 import { useEffect, useState } from "react";
+import { PlayerRole } from "../../../../../backend/bindings/PlayerRole";
+import { EnumPlayerRole } from "@/types/game";
 
 export default function AddNumbersPage() {
-  const { data: role } = useGameRole();
   const { data: network } = useNetworkQuery();
   const [aggregatedId, setAggregatedId] = useState<string>("");
   const { data: currentGame, isLoading: isGameLoading } = useCurrentGame();
+  const [role, setRole] = useState<PlayerRole | null>(null);
 
   useEffect(() => {
-    if (!role || !!currentGame?.program_id) return;
-    if (!currentGame?.program_id) {
-      if (role === PlayerRole.Player1) {
+    if (!currentGame) {
+      if (role === EnumPlayerRole.Player1) {
         const aggregatedId = crypto.randomUUID();
         setAggregatedId(aggregatedId);
       } else {
@@ -58,6 +57,7 @@ export default function AddNumbersPage() {
       setAggregatedId(
         currentGame?.bitvmx_program_properties.aggregated_id ?? ""
       );
+      setRole(currentGame?.role);
     }
   }, [currentGame, role]);
 
@@ -65,7 +65,7 @@ export default function AddNumbersPage() {
     return (
       <div className="container mx-auto p-6 max-w-4xl">
         <div className="text-center">
-          <p className="text-lg">Loading game...</p>
+          <p className="text-lg">⏳ Loading game...</p>
         </div>
       </div>
     );
@@ -81,6 +81,7 @@ export default function AddNumbersPage() {
         title="🎮 Add Numbers Game"
         description="Choose the role you want to play"
         subtitle="Two players compete by adding numbers. Who are you?"
+        onSelectRole={setRole}
       />
     );
   }
@@ -90,12 +91,12 @@ export default function AddNumbersPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl">
-            {role === PlayerRole.Player1
+            {role === EnumPlayerRole.Player1
               ? "➕ Player 1 - Add Numbers"
               : "🤝 Player 2 - Add Numbers"}
           </CardTitle>
           <CardDescription>
-            {role === PlayerRole.Player1
+            {role === EnumPlayerRole.Player1
               ? "Create the game and choose the numbers to add"
               : "Join the game and answer the sum"}
           </CardDescription>
@@ -104,13 +105,13 @@ export default function AddNumbersPage() {
         <CardContent className="space-y-6">
           <NetworkInfo />
           <WalletSection />
-          <PeerConnectionInfo aggregatedId={aggregatedId} />
-          <PeerConnectionInput aggregatedId={aggregatedId} />
+          <PeerConnectionInfo aggregatedId={aggregatedId} role={role!} />
+          <PeerConnectionInput aggregatedId={aggregatedId} role={role!} />
           <UtxoExchange />
           {currentGame?.status === "CreateProgram" && <SetupGame />}
           <AggregatedKey />
 
-          {role === PlayerRole.Player1 && (
+          {role === EnumPlayerRole.Player1 && (
             <>
               {currentGame?.status === "WaitForSum" && <StartGame />}
               {currentGame?.status === "SubmitSum" && <WaitingAnswer />}
@@ -134,7 +135,7 @@ export default function AddNumbersPage() {
             </>
           )}
 
-          {role === PlayerRole.Player2 && (
+          {role === EnumPlayerRole.Player2 && (
             <>
               {currentGame?.status === "WaitForSum" && <AnswerGame />}
               {currentGame?.status === "SubmitSum" && <WaitingForAnswer />}

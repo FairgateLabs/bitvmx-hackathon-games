@@ -2,14 +2,15 @@ import { Button } from "@/components/ui/button";
 // import { useGameState, useNextGameState } from "@/hooks/useGameState";
 import { GameState } from "@/types/game";
 import { TimeRemaining } from "@/components/ui/time-remaining";
-import { useGameRole } from "@/hooks/useGameRole";
-import { PlayerRole } from "@/types/game";
+import { useCurrentGame } from "@/hooks/useGame";
+import { EnumPlayerRole } from "@/types/game";
 import { GameEndResult } from "./tic-tac-toe-board";
 import { useState } from "react";
 
 export function ChooseAction({ winner, isTimeout }: GameEndResult) {
   // const { mutate: // nextGameState } = useNextGameState();
-  const { data: currentPlayer } = useGameRole();
+  const { data: currentGame } = useCurrentGame();
+  const currentPlayer = currentGame?.role;
   const [buttonsDisabled, setButtonsDisabled] = useState(false);
 
   // Only show actions when game is finished and player can challenge/accept

@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { getApiBaseUrl } from "../config/backend";
 import { PlayerSymbol } from "@/components/tic-tac-toe/common/tic-tac-toe-board";
-import { PlayerRole } from "@/types/game";
+import { EnumPlayerRole } from "@/types/game";
 
 interface TicTacToeMove {
   index: number;
-  player: PlayerRole;
+  player: EnumPlayerRole;
   playerSymbol: PlayerSymbol;
   gameId: string;
   timestamp: string;
@@ -56,7 +56,7 @@ export function useMockTicTacToeMoves(gameId?: string) {
     queryKey: ["mockTicTacToeMoves", gameId],
     queryFn: async (): Promise<{
       index: number;
-      player: PlayerRole;
+      player: EnumPlayerRole;
       playerSymbol: PlayerSymbol;
     }> => {
       // Simulate random opponent moves for testing
@@ -75,7 +75,7 @@ export function useMockTicTacToeMoves(gameId?: string) {
 
       return {
         index: randomIndex,
-        player: PlayerRole.Player2,
+        player: EnumPlayerRole.Player2,
         playerSymbol: PlayerSymbol.O,
       };
     },
