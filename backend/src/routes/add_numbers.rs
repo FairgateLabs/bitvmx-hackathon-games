@@ -91,43 +91,34 @@ pub async fn setup_participants(
         .collect::<Result<Vec<PublicKey>, (StatusCode, Json<ErrorResponse>)>>()?;
 
     // Create the aggregated key
-    let aggregated_key: PublicKey;
-    {
-        let service = app_state.bitvmx_service.read().await;
-        aggregated_key = service
-            .create_agregated_key(
-                aggregated_id,
-                participants_addresses,
-                Some(participants_keys),
-                leader_idx,
-            )
-            .await
-            .map_err(|e| {
-                http_errors::internal_server_error(&format!(
-                    "Failed to create aggregated key: {e:?}"
-                ))
-            })?;
-    }
+    let service = app_state.bitvmx_service.read().await;
+    let aggregated_key = service
+        .create_agregated_key(
+            aggregated_id,
+            participants_addresses,
+            Some(participants_keys),
+            leader_idx,
+        )
+        .await
+        .map_err(|e| {
+            http_errors::internal_server_error(&format!("Failed to create aggregated key: {e:?}"))
+        })?;
 
     // Create the program id
     let program_id = Uuid::new_v5(&Uuid::NAMESPACE_OID, request.aggregated_id.as_bytes());
 
     // Setup the game
-    {
-        let mut service = app_state.add_numbers_service.write().await;
-        debug!("🎉 Setting up game with program id: {:?} 🎉", program_id);
-        service
-            .setup_game(
-                program_id,
-                aggregated_id,
-                request.participants_addresses,
-                request.participants_keys,
-                aggregated_key,
-            )
-            .map_err(|e| {
-                http_errors::internal_server_error(&format!("Failed to setup game: {e:?}"))
-            })?;
-    }
+    let mut service = app_state.add_numbers_service.write().await;
+    debug!("🎉 Setting up game with program id: {:?} 🎉", program_id);
+    service
+        .setup_game(
+            program_id,
+            aggregated_id,
+            request.participants_addresses,
+            request.participants_keys,
+            aggregated_key,
+        )
+        .map_err(|e| http_errors::internal_server_error(&format!("Failed to setup game: {e:?}")))?;
 
     Ok(Json(SetupParticipantsResponse {
         program_id: program_id.to_string(),
