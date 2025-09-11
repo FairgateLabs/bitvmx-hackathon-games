@@ -1,26 +1,23 @@
 use crate::models::{
-    ErrorResponse, MyFundingUtxoResponse, OperatorKeys, OtherParticipantFundingUtxoRequest,
-    P2PAddress, ProgramSetupRequest, ProgramSetupResponse, ProtocolCostResponse, SendFundsRequest,
-    SetupParticipantsRequest, SetupParticipantsResponse, TransactionResponse, Utxo, WalletBalance,
+    AggregatedKeyResponse, ErrorResponse, OperatorKeys, P2PAddress, ProgramSetupRequest, ProgramSetupResponse, ProtocolCostResponse, SendFundsRequest, SetupParticipantsRequest, TransactionResponse, Utxo, WalletBalance
 };
 use crate::state::AppState;
-use crate::utils::{bitcoin, http_errors};
+use crate::utils::{http_errors};
 use axum::{
     extract::Path,
     extract::State,
     routing::{get, post},
     Json, Router,
 };
-use bitvmx_client::bitcoin::{Amount, PublicKey};
+use bitvmx_client::bitcoin::{PublicKey};
 use bitvmx_client::p2p_handler::PeerId;
 use bitvmx_client::program::participant::P2PAddress as BitVMXP2PAddress;
 use bitvmx_client::program::protocols::dispute::{TIMELOCK_BLOCKS, TIMELOCK_BLOCKS_KEY};
 use bitvmx_client::program::variables::VariableTypes;
-use bitvmx_client::protocol_builder::scripts;
 use bitvmx_client::types::PROGRAM_TYPE_DRP;
 use http::StatusCode;
 use std::str::FromStr;
-use tracing::{debug, instrument};
+use tracing::{instrument};
 use uuid::Uuid;
 
 pub fn router() -> Router<AppState> {
@@ -218,7 +215,7 @@ pub async fn program_setup(
         ("uuid" = String, Path, description = "Aggregated key UUID")
     ),
     responses(
-        (status = 200, description = "Aggregated key", body = SetupParticipantsResponse),
+        (status = 200, description = "Aggregated key", body = AggregatedKeyResponse),
         (status = 404, description = "Aggregated key not found", body = ErrorResponse)
     ),
     tag = "BitVMX"
@@ -227,12 +224,15 @@ pub async fn program_setup(
 pub async fn get_aggregated_key(
     State(app_state): State<AppState>,
     Path(uuid): Path<Uuid>,
-) -> Result<Json<SetupParticipantsResponse>, (StatusCode, Json<ErrorResponse>)> {
+) -> Result<Json<AggregatedKeyResponse>, (StatusCode, Json<ErrorResponse>)> {
     let service_guard = app_state.bitvmx_service.read().await;
     let aggregated_key = service_guard.aggregated_key(uuid).await.map_err(|e| {
         http_errors::internal_server_error(&format!("Failed to get aggregated key: {e:?}"))
     })?;
-    Ok(Json(aggregated_key))
+    Ok(Json(AggregatedKeyResponse {
+        uuid: uuid.to_string(),
+        aggregated_key: aggregated_key.to_string(),
+    }))
 }
 
 /// Get BitVMX Wallet balance

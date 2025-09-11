@@ -1,6 +1,11 @@
 #!/bin/bash
 set -e
 
+# Create a network for the containers
+if ! docker network inspect bitcoin-net >/dev/null 2>&1; then
+  docker network create bitcoin-net
+fi
+
 # stop and remove the bitcoin-regtest container if it exists
 BITCOIND_NAME=bitcoin-regtest
 if [ -n "$(docker ps -a -f name="^$BITCOIND_NAME$" -q)" ]; then
@@ -15,10 +20,6 @@ if [ -n "$(docker ps -a -f name="^$EXPLORER_NAME$" -q)" ]; then
     docker rm -f $EXPLORER_NAME
 fi
 
-# Create a network for the containers
-if ! docker network inspect bitcoin-net >/dev/null 2>&1; then
-  docker network create bitcoin-net
-fi
 
 # Start the Bitcoin Regtest node https://hub.docker.com/r/ruimarinho/bitcoin-core/dockerfile
 docker run --name $BITCOIND_NAME -d \
@@ -58,4 +59,4 @@ sleep 3
 
 # Start auto mine 1 block per 5 seconds
 docker exec -it $BITCOIND_NAME sh -c \
-'bitcoin-cli -regtest -rpcuser=foo -rpcpassword=rpcpassword createwallet "default" && ADDRESS=$(bitcoin-cli -regtest -rpcuser=foo -rpcpassword=rpcpassword getnewaddress) && while true; do bitcoin-cli -regtest -rpcuser=foo -rpcpassword=rpcpassword generatetoaddress 1 $ADDRESS && echo "⛏️  Bloque minado" && sleep 5; done'
+'bitcoin-cli -regtest -rpcuser=foo -rpcpassword=rpcpassword createwallet "default" && ADDRESS=$(bitcoin-cli -regtest -rpcuser=foo -rpcpassword=rpcpassword getnewaddress) && while true; do bitcoin-cli -regtest -rpcuser=foo -rpcpassword=rpcpassword generatetoaddress 1 $ADDRESS && echo "⛏️  Block mined" && sleep 5; done'

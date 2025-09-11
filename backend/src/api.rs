@@ -44,6 +44,7 @@ use crate::state::AppState;
             crate::models::OperatorKeys,
             crate::models::SetupParticipantsRequest,
             crate::models::SetupParticipantsResponse,
+            crate::models::AggregatedKeyResponse,
             crate::models::WalletBalance,
             crate::models::SendFundsRequest,
             crate::models::Utxo,

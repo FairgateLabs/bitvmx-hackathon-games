@@ -1,8 +1,7 @@
 use std::str::FromStr;
 
 use crate::models::{
-    AddNumbersGame, ErrorResponse, FundingUtxoRequest, FundingUtxosResponse, MakeGuessRequest,
-    PlaceBetRequest, SetupParticipantsRequest, SetupParticipantsResponse, Utxo,
+    AddNumbersGame, ErrorResponse, FundingUtxoRequest, FundingUtxosResponse, MakeGuessRequest, PlaceBetRequest, SetupParticipantsResponse, SetupParticipantsRequest, Utxo
 };
 use crate::state::AppState;
 use crate::utils::http_errors;
@@ -36,26 +35,33 @@ pub fn router() -> Router<AppState> {
 /// Create a new add numbers game
 #[utoipa::path(
     post,
-    path = "/api/setup-participants/",
-    request_body = SetupParticipantsResponse,
+    path = "/api/add-numbers/setup-participants",
+    request_body = SetupParticipantsRequest,
     responses(
         (status = 201, description = "Game created successfully", body = SetupParticipantsResponse),
-        (status = 400, description = "Invalid request", body = ErrorResponse)
+        (status = 400, description = "Invalid request", body = ErrorResponse),
+        (status = 400, description = "Invalid aggregated id", body = ErrorResponse),
+        (status = 400, description = "Invalid participants addresses", body = ErrorResponse),
+        (status = 400, description = "Invalid participants keys", body = ErrorResponse),
+        (status = 500, description = "Failed to setup game", body = ErrorResponse),
+        (status = 500, description = "Failed to create aggregated key", body = ErrorResponse),
     ),
     tag = "AddNumbers"
 )]
 pub async fn setup_participants(
     State(app_state): State<AppState>,
     Json(request): Json<SetupParticipantsRequest>,
-) -> Result<Json<()>, (StatusCode, Json<ErrorResponse>)> {
+) -> Result<Json<SetupParticipantsResponse>, (StatusCode, Json<ErrorResponse>)> {
     // Validate the aggregated ID
-    if request.agregated_id.is_empty() {
+    if request.aggregated_id.is_empty() {
         return Err(http_errors::bad_request(
-            "Aggregated key ID cannot be empty",
+            "Aggregated ID cannot be empty",
         ));
     }
-    let agregated_id = Uuid::parse_str(&request.agregated_id)
+    let aggregated_id = Uuid::parse_str(&request.aggregated_id)
     .map_err(|_| http_errors::bad_request("Invalid Aggregated ID"))?;
+    
+    let leader_idx = request.leader_idx;
 
 
     // Validate the participants addresses
@@ -90,7 +96,7 @@ pub async fn setup_participants(
     {
         let service = app_state.bitvmx_service.read().await;
         aggregated_key = service
-            .create_agregated_key(agregated_id, participants_addresses, Some(participants_keys), 0)
+            .create_agregated_key(aggregated_id, participants_addresses, Some(participants_keys), leader_idx)
             .await
             .map_err(|e| {
                 http_errors::internal_server_error(&format!("Failed to create aggregated key: {e:?}"))
@@ -106,7 +112,7 @@ pub async fn setup_participants(
         debug!("🎉 Setting up game with program id: {:?} 🎉", program_id);
         service.setup_game(
             program_id,
-            agregated_id,
+            aggregated_id,
             request.participants_addresses,
             request.participants_keys,
             aggregated_key,
@@ -115,7 +121,9 @@ pub async fn setup_participants(
         })?;
     }
 
-    Ok(Json(()))
+    Ok(Json(SetupParticipantsResponse {
+        program_id: program_id.to_string(),
+    }))
 }
 
 // /// Create a new add numbers game
