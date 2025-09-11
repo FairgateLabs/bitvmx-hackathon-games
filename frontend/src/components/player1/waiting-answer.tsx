@@ -1,13 +1,8 @@
 import { Trophy } from "lucide-react";
 import { TimeRemaining } from "../ui/time-remaining";
-// import { useNextGameState } from "@/hooks/useGameState";
-import { GameState } from "@/types/game";
 
 export function WaitingAnswer() {
-  // const { mutate: nextGameState } = useNextGameState();
-  const handleTimeout = () => {
-    // nextGameState(GameState.ChooseAction);
-  };
+  const handleTimeout = () => {};
 
   return (
     <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">

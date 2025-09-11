@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
 import {
@@ -23,24 +22,15 @@ export function UtxoExchange() {
   const [successMessage, setSuccessMessage] = useState("");
   const [jsonError, setJsonError] = useState("");
 
-  const { data: currentGame, isLoading: isGameLoading } = useCurrentGame();
+  const { data: currentGame } = useCurrentGame();
   const role = currentGame?.role;
-  const {
-    data: fundingUtxos,
-    isLoading: isFundingLoading,
-    error: fundingUtxoError,
-  } = useFundingUtxos(currentGame?.program_id || "");
+  const { data: fundingUtxos } = useFundingUtxos(currentGame?.program_id || "");
   const { mutate: saveFundingUtxos, isPending: isSavingUtxo } =
     useSaveFundingUtxos();
 
   const isValidTxid = (txid: string): boolean => {
     const hexRegex = /^[0-9a-fA-F]{64}$/;
     return hexRegex.test(txid);
-  };
-
-  const isValidVout = (vout: string): boolean => {
-    const num = parseInt(vout, 10);
-    return !isNaN(num) && num >= 0;
   };
 
   const isValidAmount = (amount: bigint): boolean => {
@@ -73,7 +63,7 @@ export function UtxoExchange() {
           "Invalid UTXO format. Missing required fields: txid, vout, amount"
         );
       }
-    } catch (error) {
+    } catch {
       setJsonError("Invalid JSON format");
     }
   };
@@ -84,7 +74,9 @@ export function UtxoExchange() {
         { uuid: currentGame.program_id, otherUtxo: otherUtxo as Utxo },
         {
           onSuccess: () => {
-            setSuccessMessage("Other participant's UTXO sent successfully!");
+            setSuccessMessage(
+              "Other participant&apos;s UTXO sent successfully!"
+            );
           },
           onError: (error) => {
             console.error("Failed to send other UTXO:", error);
@@ -151,10 +143,10 @@ export function UtxoExchange() {
 
           <div className="border-t border-gray-200 my-4" />
 
-          {/* Other Player's UTXO Input */}
+          {/* Other Player&apos;s UTXO Input */}
           <div className="p-4">
             <h4 className="font-semibold mb-3">
-              Other Player's Protocol and Bet UTXO Information
+              Other Player&apos;s Protocol and Bet UTXO Information
             </h4>
 
             <div className="mb-4">
@@ -180,7 +172,7 @@ export function UtxoExchange() {
               disabled={!isOtherUtxoValid() || isSavingUtxo}
               className="w-full"
             >
-              {isSavingUtxo ? "Saving..." : "📤 Send Other Player's UTXO"}
+              {isSavingUtxo ? "Saving..." : "📤 Send Other Player&apos;s UTXO"}
             </Button>
           </div>
 

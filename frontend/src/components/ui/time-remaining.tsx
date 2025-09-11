@@ -12,7 +12,7 @@ export interface TimeRemainingRef {
 }
 
 export const TimeRemaining = forwardRef<TimeRemainingRef, TimeRemainingProps>(
-  ({ numberBlocks, onTimeout, size = "sm" }, ref) => {
+  function TimeRemaining({ numberBlocks, onTimeout, size = "sm" }, ref) {
     const timePerBlock = 2; // Each block is estimated to be 30 seconds in regtest
     const initialTime = numberBlocks * timePerBlock;
     const [timeLeft, setTimeLeft] = useState(initialTime);
@@ -29,13 +29,13 @@ export const TimeRemaining = forwardRef<TimeRemainingRef, TimeRemainingProps>(
     useEffect(() => {
       setTimeLeft(initialTime);
       setBlocksLeft(numberBlocks);
-    }, [initialTime, numberBlocks]);
+    }, [initialTime, numberBlocks, onTimeout]);
 
     useEffect(() => {
       if (timeLeft > 0) {
         const timer = setInterval(() => {
-          setTimeLeft((prev) => {
-            const newTime = prev - 1;
+          setTimeLeft((prevTime) => {
+            const newTime = prevTime - 1;
             if (newTime <= 0) {
               onTimeout();
               return 0;
@@ -43,14 +43,13 @@ export const TimeRemaining = forwardRef<TimeRemainingRef, TimeRemainingProps>(
             return newTime;
           });
 
-          setBlocksLeft((prev) => {
-            const timeElapsed = initialTime - timeLeft;
-            const newBlocks = Math.max(
-              0,
-              numberBlocks - Math.floor(timeElapsed / timePerBlock)
-            );
-            return newBlocks;
-          });
+          const timeElapsed = initialTime - timeLeft;
+          const newBlocks = Math.max(
+            0,
+            numberBlocks - Math.floor(timeElapsed / timePerBlock)
+          );
+
+          setBlocksLeft(newBlocks);
         }, 1000);
         return () => clearInterval(timer);
       } else {

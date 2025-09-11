@@ -2,19 +2,10 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-// import { useNextGameState } from "@/hooks/useGameState";
-import { GameState } from "@/types/game";
-import {
-  useAnswerAddNumber,
-  useCurrentGame,
-  useGameById,
-} from "@/hooks/useGame";
 
 export function AnswerGame() {
   const [answer, setAnswer] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
-  // const { mutate: nextGameState } = useNextGameState();
-  const { data: currentGame } = useCurrentGame();
 
   const isAnswerValid = () => {
     const parsedAnswer = parseInt(answer, 10);
@@ -24,7 +15,6 @@ export function AnswerGame() {
   const handleSubmit = () => {
     if (isAnswerValid()) {
       // useAnswerAddNumber(id, answer);
-      // nextGameState(GameState.ChooseAction);
       setIsSubmitted(true);
     } else {
       setIsSubmitted(false);
@@ -36,7 +26,7 @@ export function AnswerGame() {
       <div className="space-y-4 bg-blue-50 border border-blue-200 rounded-md p-4">
         <h3 className="text-lg font-semibold">🧮 Start Game!</h3>
         <p className="text-sm text-blue-700">
-          Now that you've set up the game, what is the sum?
+          Now that you&apos;ve set up the game, what is the sum?
         </p>
 
         <div>

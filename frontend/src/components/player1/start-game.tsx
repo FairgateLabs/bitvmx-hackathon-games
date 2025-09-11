@@ -1,11 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Play } from "lucide-react";
-// import { useNextGameState } from "@/hooks/useGameState";
-import { GameState } from "@/types/game";
 
 export function StartGame() {
-  // const { mutate: nextGameState } = useNextGameState();
-
   return (
     <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
       <div className="flex items-center gap-3 mb-3">

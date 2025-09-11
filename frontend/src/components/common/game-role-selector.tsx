@@ -6,8 +6,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-// import { useNextGameState } from "@/hooks/useGameState";
-import { GameState, EnumPlayerRole } from "@/types/game";
+import { EnumPlayerRole } from "@/types/game";
 import { useEffect, useState } from "react";
 
 interface GameRoleSelectorProps {
@@ -23,7 +22,6 @@ export function ChooseRole({
   subtitle,
   onSelectRole,
 }: GameRoleSelectorProps) {
-  // const { mutate: nextState } = useNextGameState();
   // const { mutate: saveRole } = useSaveGameRole();
   const [currentPort, setCurrentPort] = useState<number | null>(null);
 

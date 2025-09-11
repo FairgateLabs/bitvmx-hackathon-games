@@ -8,12 +8,10 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { CopyButton } from "../ui/copy-button";
-import { GameNumbersToAdd, GameState } from "@/types/game";
-// import { useNextGameState } from "@/hooks/useGameState";
+import { GameNumbersToAdd } from "@/types/game";
 import { useNetworkQuery } from "@/hooks/useNetwork";
 import { NetworkType } from "@/types/network";
-import { useCreateGame, useGameById } from "@/hooks/useGame";
-import { AddNumbersRequest } from "../../../../backend/bindings/AddNumbersRequest";
+import { useCreateGame } from "@/hooks/useGame";
 
 export function SetupGame() {
   const [numbers, setNumbers] = useState<GameNumbersToAdd>({});
@@ -22,23 +20,22 @@ export function SetupGame() {
   const [inputsDisabled, setInputsDisabled] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
-  // const { mutate: nextGameState } = useNextGameState();
   const { data: network } = useNetworkQuery();
+
+  const { mutate: createGame } = useCreateGame({
+    id: gameId,
+    number1: numbers.number1 || 0,
+    number2: numbers.number2 || 0,
+  });
 
   const generateProgram = () => {
     // Placeholder for the actual generate program logic
     setIsLoading(true);
-    let data: AddNumbersRequest = {
-      id: gameId,
-      number1: numbers.number1 || 0,
-      number2: numbers.number2 || 0,
-    };
-    useCreateGame(data);
+    createGame();
     setIsLoading(false);
     setInputsDisabled(true);
     setIsSuccess(true);
     console.log("Program generated with numbers:", numbers);
-    // nextGameState(GameState.StartGame);
   };
 
   const handleNumberChange = (key: string, value: string) => {
@@ -59,9 +56,9 @@ export function SetupGame() {
     if (!gameId) {
       generateUUID();
     }
-  }, []);
+  }, [gameId]);
 
-  let amountToBet = network && network === NetworkType.Regtest ? 1 : 0.0001;
+  const amountToBet = network && network === NetworkType.Regtest ? 1 : 0.0001;
 
   return (
     <div className="space-y-4 p-4 rounded-lg border border-gray-200">

@@ -29,7 +29,9 @@ export function useNetworkMutation() {
   });
 }
 
-export default {
+const useNetwork = {
   useNetworkQuery,
   useNetworkMutation,
 };
+
+export default useNetwork;

@@ -1,15 +1,11 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { CopyButton } from "@/components/ui/copy-button";
-import { GameNumbersToAdd, GameState } from "@/types/game";
-// import { useNextGameState } from "@/hooks/useGameState";
 import { useNetworkQuery } from "@/hooks/useNetwork";
 import { NetworkType } from "@/types/network";
 
@@ -18,7 +14,6 @@ export function SetupGame() {
   const [inputsDisabled, setInputsDisabled] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
-  // const { mutate: nextGameState } = useNextGameState();
   const { data: network } = useNetworkQuery();
 
   const generateProgram = () => {
@@ -29,7 +24,6 @@ export function SetupGame() {
       setInputsDisabled(true);
       setIsSuccess(true);
     }, 2000);
-    // nextGameState(GameState.StartGame);
   };
 
   const [gameUUID, setGameUUID] = useState<string>("");
@@ -43,9 +37,9 @@ export function SetupGame() {
     if (!gameUUID) {
       generateUUID();
     }
-  }, []);
+  }, [gameUUID]);
 
-  let amountToBet = network && network === NetworkType.Regtest ? 1 : 0.0001;
+  const amountToBet = network && network === NetworkType.Regtest ? 1 : 0.0001;
 
   return (
     <div className="space-y-4 p-4 rounded-lg border border-gray-200">

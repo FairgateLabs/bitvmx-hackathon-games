@@ -3,10 +3,7 @@ import {
   FileText,
   GraduationCap,
   Calculator,
-  Plus,
   Gamepad2,
-  Shuffle,
-  AppWindow,
   Grid3x3,
   ArrowLeftRight,
 } from "lucide-react";

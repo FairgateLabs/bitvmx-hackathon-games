@@ -10,8 +10,8 @@ export function ChallengeLoseGame() {
         </h3>
       </div>
       <p className="text-sm text-red-700 mb-3">
-        You challenged Player 2's answer but the BitVMX protocol has validated
-        on-chain that you were incorrect!
+        You challenged Player 2&apos;s answer but the BitVMX protocol has
+        validated on-chain that you were incorrect!
       </p>
     </div>
   );

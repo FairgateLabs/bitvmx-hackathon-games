@@ -105,7 +105,8 @@ export default function HowToPlayPage() {
                     mark by Player 2.
                   </li>
                   <li>
-                    Declare "I win" if you believe you have a winning line.
+                    Declare &quot;I win&quot; if you believe you have a winning
+                    line.
                   </li>
                   <li>
                     If you don’t act before the timeout ⏳, you automatically
@@ -126,7 +127,8 @@ export default function HowToPlayPage() {
                     mark by Player 1.
                   </li>
                   <li>
-                    Declare "I win" if you believe you have a winning line.
+                    Declare &quot;I win&quot; if you believe you have a winning
+                    line.
                   </li>
                   <li>
                     If you don’t act before the timeout ⏳, you automatically
@@ -146,13 +148,14 @@ export default function HowToPlayPage() {
             <h3 className="text-lg font-semibold mb-2">⚖️ Possible Outcomes</h3>
             <div className="space-y-4 text-sm text-muted-foreground">
               <p>
-                <strong>✅ Case 1:</strong> A player declares "I win" and the
-                claim is correct → The declaring player receives the funds.
+                <strong>✅ Case 1:</strong> A player declares &quot;I win&quot;
+                and the claim is correct → The declaring player receives the
+                funds.
               </p>
 
               <p>
-                <strong>⚔️ Case 2:</strong> A player declares "I win" and the
-                claim is challenged. The truth is settled on-chain:
+                <strong>⚔️ Case 2:</strong> A player declares &quot;I win&quot;
+                and the claim is challenged. The truth is settled on-chain:
               </p>
               <ul className="list-disc list-inside ml-4 mt-1 space-y-1">
                 <li>

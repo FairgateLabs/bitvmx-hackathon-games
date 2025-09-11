@@ -14,7 +14,7 @@ export function AcceptLoseGame() {
       </div>
 
       <p className="text-sm text-red-600">
-        You accepted Player 2's answer, resulting in their victory.
+        You accepted Player 2&apos;s answer, resulting in their victory.
       </p>
       <p className="text-sm text-red-600">
         BitVMX is processing the transaction to finalize this acceptance.

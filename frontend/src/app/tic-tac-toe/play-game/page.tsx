@@ -14,14 +14,11 @@ import { SetupGame as SetupGamePlayer1 } from "@/components/tic-tac-toe/player1/
 import { SetupGame as SetupGamePlayer2 } from "@/components/tic-tac-toe/player2/setup-game";
 import { ChooseAction } from "@/components/player1/choose-actions";
 import { NetworkInfo } from "@/components/common/network-info";
-import { PeerConnectionInfo } from "@/components/common/peer-connection-info";
-import { PeerConnectionInput } from "@/components/common/peer-connection-input";
 import { UtxoExchange } from "@/components/common/utxo-exchange";
 import { ChooseNetwork } from "@/components/common/choose-network";
 import { EnumPlayerRole } from "@/types/game";
 // import { AddNumbersGameStatus } from "../../../../../backend/bindings/AddNumbersGameStatus";
 import { StartGame } from "@/components/tic-tac-toe/common/start-game";
-// import { useGameState, useNextGameState } from "@/hooks/useGameState";
 import { AcceptLoseGame } from "@/components/player1/accept-lose-game";
 // import { ChallengeWinGame } from "@/components/player1/challege-win-game";
 // import { ChallengeWinGame as ChallengeWinGamePlayer2 } from "@/components/player2/challenge-win-game";
@@ -43,8 +40,7 @@ export default function TicTacToePage() {
   const { data: network } = useNetworkQuery();
   const [role, setRole] = useState<EnumPlayerRole | null>(null);
 
-  // const { mutate: nextGameState } = useNextGameState();
-  const { data: currentGame, isLoading: isGameLoading } = useCurrentGame();
+  const { data: currentGame } = useCurrentGame();
   const gameStatus = currentGame?.status;
 
   if (!currentGame && !network) {

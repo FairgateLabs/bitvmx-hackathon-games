@@ -30,7 +30,7 @@ const fetchFundingUtxos = async (
 // Hook for getting my funding UTXO
 export const useFundingUtxos = (uuid: string) => {
   return useQuery({
-    queryKey: ["fundingUtxos", uuid],
+    queryKey: ["fundingUtxos"],
     queryFn: () => fetchFundingUtxos(uuid),
     enabled: !!uuid, // Only run query if uuid is provided
   });
@@ -46,13 +46,16 @@ const saveFundingUtxos = async ({
   otherUtxo: Utxo;
 }): Promise<void> => {
   const baseUrl = getApiBaseUrl();
-  const response = await fetch(`${baseUrl}/api/add-numbers/fundings_utxos`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ otherUtxo }),
-  });
+  const response = await fetch(
+    `${baseUrl}/api/add-numbers/fundings_utxos/${uuid}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ otherUtxo }),
+    }
+  );
 
   if (!response.ok) {
     throw new Error("Failed to send other participant's UTXO");

@@ -10,7 +10,6 @@ import {
 import { EnumPlayerRole } from "@/types/game";
 import { useCommunicationInfo } from "@/hooks/useCommunicationInfo";
 import usePubkey from "@/hooks/usePubkey";
-import { useCurrentGame } from "@/hooks/useGame";
 import { Textarea } from "@/components/ui/textarea";
 import { PlayerRole } from "../../../../backend/bindings/PlayerRole";
 
@@ -118,7 +117,7 @@ export function PeerConnectionInput({
       }
 
       setParsedData(parsed);
-    } catch (error) {
+    } catch {
       setJsonError("Invalid JSON format");
     }
   };
@@ -136,12 +135,12 @@ export function PeerConnectionInput({
     )
       return;
 
-    let operator_keys =
+    const operator_keys =
       role === EnumPlayerRole.Player1
         ? [operatorKey?.pub_key ?? "", parsedData.publicKey]
         : [parsedData.publicKey, operatorKey?.pub_key ?? ""];
 
-    let participants_addresses =
+    const participants_addresses =
       role === EnumPlayerRole.Player1
         ? [
             {
@@ -187,7 +186,7 @@ export function PeerConnectionInput({
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleTrigger asChild>
           <h3 className="font-semibold mb-3 text-gray-800 cursor-pointer hover:text-gray-900">
-            🔗 Other Player's Participant Data
+            🔗 Other Player&apos;s Participant Data
           </h3>
         </CollapsibleTrigger>
         <CollapsibleContent className="flex flex-col gap-3">
@@ -204,7 +203,7 @@ export function PeerConnectionInput({
 
           <div>
             <Label htmlFor="jsonInput" className="text-gray-800">
-              Other Player's Connection Data (JSON):
+              Other Player&apos;s Connection Data (JSON):
             </Label>
             <Textarea
               id="jsonInput"
@@ -243,8 +242,8 @@ export function PeerConnectionInput({
                 ⚠️ Connection Setup Required
               </h3>
               <p className="text-sm text-yellow-700">
-                Paste the JSON data containing the other player's connection
-                information to finalize the connection setup.
+                Paste the JSON data containing the other player&apos;s
+                connection information to finalize the connection setup.
               </p>
             </div>
           )}

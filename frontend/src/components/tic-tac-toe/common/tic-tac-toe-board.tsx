@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Button } from "../../ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
+import { Card } from "../../ui/card";
 import { EnumPlayerRole } from "@/types/game";
 import { useCurrentGame } from "@/hooks/useGame";
 import { useMockTicTacToeMoves } from "@/hooks/useTicTacToeMoves";
@@ -36,7 +36,7 @@ interface TicTacToeBoardProps {
 
 export function TicTacToeBoard({ onGameEnd }: TicTacToeBoardProps) {
   const [board, setBoard] = useState<Board>(Array(9).fill(null));
-  const [winner, setWinner] = useState<PlayerRole | null>(null);
+  const [, setWinner] = useState<PlayerRole | null>(null);
   const [gameOver, setGameOver] = useState(false);
   const [disabled, setDisabled] = useState(false);
   const [currentPlayer, setCurrentPlayer] = useState<EnumPlayerRole>(
@@ -48,8 +48,7 @@ export function TicTacToeBoard({ onGameEnd }: TicTacToeBoardProps) {
   const playerRole = currentGame?.role;
   const timerRef = useRef<TimeRemainingRef>(null);
 
-  const { data: opponentMove, isLoading: isLoadingMoves } =
-    useMockTicTacToeMoves();
+  const { data: opponentMove } = useMockTicTacToeMoves();
 
   // Check for winner after each move
   useEffect(() => {
@@ -58,13 +57,13 @@ export function TicTacToeBoard({ onGameEnd }: TicTacToeBoardProps) {
     if (gameWinner) {
       setWinner(gameWinner);
       setGameOver(true);
-      onGameEnd({ winner: gameWinner, isTimeout: false });
+      onGameEnd({ winner: gameWinner as EnumPlayerRole, isTimeout: false });
     } else if (moveCount >= 9) {
       // Game ends after 9 moves (max possible moves)
       setGameOver(true);
       onGameEnd({ winner: null, isTimeout: false }); // null means draw
     }
-  }, [board]);
+  }, [board, moveCount, onGameEnd]);
 
   useEffect(() => {
     if (!opponentMove || gameOver || !isOpponentTurn()) return;
@@ -97,7 +96,7 @@ export function TicTacToeBoard({ onGameEnd }: TicTacToeBoardProps) {
 
     timerRef.current?.reset();
     setDisabled(false);
-  }, [opponentMove, gameOver, board, playerRole]);
+  }, [opponentMove, gameOver, board, playerRole, moveCount]);
 
   const checkWinner = (currentBoard: Board): PlayerRole | null => {
     const winningCombinations = [
@@ -141,7 +140,7 @@ export function TicTacToeBoard({ onGameEnd }: TicTacToeBoardProps) {
     const newBoard = [...board];
     const wasEmpty = !board[index];
 
-    let myCurrentSymbol =
+    const myCurrentSymbol =
       playerRole === EnumPlayerRole.Player1 ? PlayerSymbol.X : PlayerSymbol.O;
 
     if (board[index] === myCurrentSymbol) return;

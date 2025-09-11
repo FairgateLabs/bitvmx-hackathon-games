@@ -6,8 +6,6 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { GameState } from "@/types/game";
-// import { useNextGameState } from "@/hooks/useGameState";
 import { useNetworkQuery } from "@/hooks/useNetwork";
 import { NetworkType } from "@/types/network";
 
@@ -17,7 +15,6 @@ export function SetupGame() {
   const [gameUUID, setGameUUID] = useState<string>("");
   const [isSuccess, setIsSuccess] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
-  // const { mutate: nextGameState } = useNextGameState();
   const { data: network } = useNetworkQuery();
 
   const generateProgram = () => {
@@ -28,7 +25,6 @@ export function SetupGame() {
       setInputsDisabled(true);
       setIsSuccess(true);
     }, 2000);
-    // nextGameState(GameState.StartGame);
   };
 
   const isUUIDValid = (uuid: string) => {
@@ -37,7 +33,7 @@ export function SetupGame() {
     return uuidRegex.test(uuid);
   };
 
-  let amountToBet = network && network === NetworkType.Regtest ? 1 : 0.0001;
+  const amountToBet = network && network === NetworkType.Regtest ? 1 : 0.0001;
 
   return (
     <div className="space-y-4 p-4 rounded-lg border border-gray-200">

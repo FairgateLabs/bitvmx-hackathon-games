@@ -1,14 +1,10 @@
 import { Button } from "@/components/ui/button";
-// import { useGameState, useNextGameState } from "@/hooks/useGameState";
-import { GameState } from "@/types/game";
 import { TimeRemaining } from "@/components/ui/time-remaining";
 import { useCurrentGame } from "@/hooks/useGame";
-import { EnumPlayerRole } from "@/types/game";
 import { GameEndResult } from "./tic-tac-toe-board";
 import { useState } from "react";
 
 export function ChooseAction({ winner, isTimeout }: GameEndResult) {
-  // const { mutate: // nextGameState } = useNextGameState();
   const { data: currentGame } = useCurrentGame();
   const currentPlayer = currentGame?.role;
   const [buttonsDisabled, setButtonsDisabled] = useState(false);
@@ -22,25 +18,19 @@ export function ChooseAction({ winner, isTimeout }: GameEndResult) {
     if (isTimeout) {
       // Timeout scenario - winner is determined by timeout
       if (winner === currentPlayer) {
-        // nextGameState(GameState.GameCompleteYouWinByTimeout);
       } else {
-        // nextGameState(GameState.GameCompleteYouLoseByTimeout);
       }
     } else if (winner === currentPlayer) {
       // Player won normally - accept victory
-      // nextGameState(GameState.GameCompleteYouWinByAccept);
     } else if (winner === null) {
       // Draw - accept draw (using accept state for now)
-      // nextGameState(GameState.GameCompleteYouWinByAccept);
     } else {
       // Player lost normally - accept loss
-      // nextGameState(GameState.GameCompleteYouLoseByAccept);
     }
   };
 
   const handleChallenge = () => {
     // Any result can be challenged
-    // nextGameState(GameState.ChallengeAnswer);
   };
 
   const handleTimeout = () => {
@@ -49,11 +39,8 @@ export function ChooseAction({ winner, isTimeout }: GameEndResult) {
 
     // This handles the timeout for the action selection phase
     if (winner === currentPlayer) {
-      // nextGameState(GameState.GameCompleteYouWinByTimeout);
     } else if (winner === null) {
-      // nextGameState(GameState.GameCompleteYouWinByAccept);
     } else {
-      // nextGameState(GameState.GameCompleteYouLoseByTimeout);
     }
   };
 
@@ -111,15 +98,15 @@ export function ChooseAction({ winner, isTimeout }: GameEndResult) {
                 <li className="flex items-start gap-2">
                   <span className="text-green-600">✅</span>
                   <span>
-                    <strong>"Accept Loss"</strong> → Accept the game result and
-                    lose
+                    <strong>&quot;Accept Loss&quot;</strong> → Accept the game
+                    result and lose
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-red-600">⚖️</span>
                   <span>
-                    <strong>"Dispute Result"</strong> → Challenge the game
-                    result
+                    <strong>&quot;Dispute Result&quot;</strong> → Challenge the
+                    game result
                   </span>
                 </li>
               </>
@@ -129,14 +116,15 @@ export function ChooseAction({ winner, isTimeout }: GameEndResult) {
                 <li className="flex items-start gap-2">
                   <span className="text-green-600">✅</span>
                   <span>
-                    <strong>"Accept Draw"</strong> → Accept the draw result
+                    <strong>&quot;Accept Draw&quot;</strong> → Accept the draw
+                    result
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-red-600">⚖️</span>
                   <span>
-                    <strong>"Dispute Result"</strong> → Challenge the draw
-                    result
+                    <strong>&quot;Dispute Result&quot;</strong> → Challenge the
+                    draw result
                   </span>
                 </li>
               </>

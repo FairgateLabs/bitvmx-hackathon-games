@@ -1,21 +1,16 @@
 import { Shield } from "lucide-react";
 import { useCurrentGame } from "@/hooks/useGame";
 import { TimeRemaining } from "../ui/time-remaining";
-import { GameState, EnumPlayerRole } from "@/types/game";
-// import { useNextGameState } from "@/hooks/useGameState";
+import { EnumPlayerRole } from "@/types/game";
 
 export function ChallengeAnswer() {
   const { data: currentGame } = useCurrentGame();
   const role = currentGame?.role;
-  let whoDecidedChallenge =
+  const whoDecidedChallenge =
     role === EnumPlayerRole.Player1 ? "You" : "Player 1";
-  let whoIsChallenged = role === EnumPlayerRole.Player1 ? "Player 2" : "Your";
+  const whoIsChallenged = role === EnumPlayerRole.Player1 ? "Player 2" : "Your";
 
-  // const { mutate: nextGameState } = useNextGameState();
-
-  const handleTimeout = () => {
-    // nextGameState(GameState.GameCompleteYouLoseByTimeout);
-  };
+  const handleTimeout = () => {};
 
   return (
     <div className="p-5 bg-orange-50 border border-orange-200 rounded-lg">
@@ -38,19 +33,19 @@ export function ChallengeAnswer() {
           Challenge Details
         </h4>
         <p className="text-sm  mb-3">
-          {whoDecidedChallenge} decided to challenge {whoIsChallenged}'s answer.
-          The validation will now run on-chain to determine who is right. This
-          step will require multiple on-chain transactions from both parties.{" "}
-          <br /> All protocol transactions could be seen in the{" "}
+          {whoDecidedChallenge} decided to challenge {whoIsChallenged}&apos;s
+          answer. The validation will now run on-chain to determine who is
+          right. This step will require multiple on-chain transactions from both
+          parties. <br /> All protocol transactions could be seen in the{" "}
           <a
             href="/add-numbers/transactions"
             className="font-bold underline cursor-pointer"
           >
-            transaction's tab
+            transaction&apos;s tab
           </a>
         </p>
 
-        <h4 className="font-semibold mb-2">💰 Winner's Reward</h4>
+        <h4 className="font-semibold mb-2">💰 Winner&apos;s Reward</h4>
         <p className="text-sm ">
           The winner will receive the total amount bet after the challenge is
           resolved.

@@ -2,4 +2,4 @@
 import type { P2PAddress } from "./P2PAddress";
 import type { Utxo } from "./Utxo";
 
-export type BitVMXProgramProperties = { aggregated_key: string, aggregated_id: string, protocol_address: string, participants_addresses: Array<P2PAddress>, participants_keys: array, funding_protocol_utxo: Utxo | null, funding_bet_utxo: Utxo | null, };
+export type BitVMXProgramProperties = { aggregated_key: string, aggregated_id: string, protocol_address: string, participants_addresses: Array<P2PAddress>, participants_keys: Array<string>, funding_protocol_utxo: Utxo | null, funding_bet_utxo: Utxo | null, };

@@ -1,26 +1,18 @@
 import { Button } from "@/components/ui/button";
-// import { useGameState, useNextGameState } from "@/hooks/useGameState";
-import { GameState } from "@/types/game";
 import { TimeRemaining } from "@/components/ui/time-remaining";
 
 export function ChooseAction() {
-  // const { mutate: nextGameState } = useNextGameState();
-
   const handleAccept = () => {
     // Logic for accepting the answer and transferring funds
-    // nextGameState(GameState.GameCompleteYouLoseByAccept);
   };
 
   const handleChallenge = () => {
     // Logic for challenging the answer and initiating a dispute
-    // nextGameState(GameState.ChallengeAnswer);
   };
 
-  let answer = "8";
+  const answer = "8";
 
-  const handleTimeout = () => {
-    // nextGameState(GameState.GameCompleteYouLoseByTimeout);
-  };
+  const handleTimeout = () => {};
 
   return (
     <div className="space-y-4 border border-gray-200 rounded-lg p-4">
@@ -42,21 +34,21 @@ export function ChooseAction() {
           ⚠️ Choose Your Action
         </h4>
         <p className="text-sm text-blue-700 mb-3">
-          Based on Player 2's answer, you have three options:
+          Based on Player 2&apos;s answer, you have three options:
         </p>
         <ul className="text-sm text-blue-700 space-y-2 mb-4">
           <li className="flex items-start gap-2">
             <span className="text-green-600">✅</span>
             <span>
-              <strong>"Accept Player 2's answer"</strong> → Wait for the timeout
-              and lose.
+              <strong>&quot;Accept Player 2&apos;s answer&quot;</strong> → Wait
+              for the timeout and lose.
             </span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-red-600">❌</span>
             <span>
-              <strong>"I disagree – I win"</strong> → Challenge Player 2's
-              answer.
+              <strong>&quot;I disagree – I win&quot;</strong> → Challenge Player
+              2&apos;s answer.
             </span>
           </li>
           <li className="flex items-start gap-2">

@@ -82,8 +82,6 @@ pub struct BitVMXProgramProperties {
     pub aggregated_id: Uuid,
     pub protocol_address: String,
     pub participants_addresses: Vec<P2PAddress>,
-    #[ts(type = "array")]
-    #[schema(value_type = Vec<String>)]
     pub participants_keys: Vec<String>,
     pub funding_protocol_utxo: Option<Utxo>,
     pub funding_bet_utxo: Option<Utxo>,

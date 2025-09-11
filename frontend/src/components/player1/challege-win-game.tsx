@@ -10,8 +10,8 @@ export function ChallengeWinGame() {
         </h3>
       </div>
       <p className="text-sm text-green-700 mb-3">
-        You challenged Player 2's answer and the BitVMX protocol has validated
-        on-chain that you were correct!
+        You challenged Player 2&apos;s answer and the BitVMX protocol has
+        validated on-chain that you were correct!
       </p>
     </div>
   );

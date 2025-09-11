@@ -1,14 +1,10 @@
-import { Button } from "@/components/ui/button";
 import { Play } from "lucide-react";
-// import { useNextGameState } from "@/hooks/useGameState";
-import { GameState } from "@/types/game";
 import { useState } from "react";
 import { GameEndResult, TicTacToeBoard } from "./tic-tac-toe-board";
 import { ChooseAction } from "./choose-actions";
 
 export function StartGame() {
-  // const { mutate: nextGameState } = useNextGameState();
-  let [gameResult, setGameResult] = useState<GameEndResult | null>(null);
+  const [gameResult, setGameResult] = useState<GameEndResult | null>(null);
   return (
     <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
       <div className="flex items-center gap-3 mb-3">
@@ -28,7 +24,7 @@ export function StartGame() {
         </h4>
         <ul className="text-sm text-gray-700 space-y-1">
           <li>
-            Each move submits a transaction on-chain, ensuring the game's
+            Each move submits a transaction on-chain, ensuring the game&apos;s
             integrity.
           </li>
           <li>

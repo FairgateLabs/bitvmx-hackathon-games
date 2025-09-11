@@ -23,7 +23,7 @@ interface BitcoinTransaction {
   totalInput: number;
   totalOutput: number;
   timestamp: string;
-  jsonData: any;
+  jsonData: Record<string, unknown>;
 }
 
 const hardcodedTransactions: BitcoinTransaction[] = [
@@ -162,15 +162,6 @@ const hardcodedTransactions: BitcoinTransaction[] = [
 
 export default function TransactionList() {
   const [showJson, setShowJson] = useState<{ [key: string]: boolean }>({});
-
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      // You could add a toast notification here
-    } catch (error) {
-      console.error("Failed to copy to clipboard:", error);
-    }
-  };
 
   const toggleJson = (txId: string) => {
     setShowJson((prev) => ({

@@ -10,12 +10,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-// import { useNextGameState } from "@/hooks/useGameState";
-import { GameState } from "@/types/game";
 
 export function ChooseGame() {
-  // const { mutate: // nextState } = useNextGameState();
-
   return (
     <div className="container mx-auto p-6 max-w-4xl">
       <div className="text-center mb-12">

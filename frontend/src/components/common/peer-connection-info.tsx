@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useCommunicationInfo } from "@/hooks/useCommunicationInfo";
@@ -8,7 +8,6 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import usePubkey from "@/hooks/usePubkey";
-import { useCurrentGame } from "@/hooks/useGame";
 import { EnumPlayerRole } from "@/types/game";
 import { PlayerRole } from "../../../../backend/bindings/PlayerRole";
 
@@ -20,13 +19,13 @@ export function PeerConnectionInfo({
   role: PlayerRole;
 }) {
   const [isOpen, setIsOpen] = useState(true);
-  const { data: peerConnectionInfo, isLoading, error } = useCommunicationInfo();
+  const { data: peerConnectionInfo } = useCommunicationInfo();
   const { data: operatorKey } = usePubkey();
 
   const handleCopyAllData = () => {
     if (!operatorKey || !peerConnectionInfo) return;
 
-    let dataToCopy = {
+    const dataToCopy = {
       aggregatedId: aggregatedId,
       publicKey: operatorKey?.pub_key,
       networkAddress: peerConnectionInfo?.address,

@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { getApiBaseUrl } from "../config/backend";
-import { OperatorKeys } from "../../../backend/bindings/OperatorKeys";
 
 //TODO: use backend binding when is available
 export type WalletBalance = {
@@ -20,7 +19,7 @@ const fetchWalletBalance = async (): Promise<WalletBalance> => {
   if (!response.ok) {
     throw new Error("Failed to fetch wallet balance");
   }
-  let data = await response.json();
+  const data = await response.json();
   data.balance = data.balance / 1e8;
 
   return {

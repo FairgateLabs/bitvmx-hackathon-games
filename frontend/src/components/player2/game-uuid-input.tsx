@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import { CopyButton } from "@/components/ui/copy-button";
-import { useProgramMutation } from "@/hooks/usePrograms";
 import {
   Collapsible,
   CollapsibleContent,
@@ -22,7 +21,6 @@ export function GameUUIDInput({ isExpanded = true }: GameUUIDInputProps) {
   const [isOpen, setIsOpen] = useState(isExpanded);
   const [numbers, setNumbers] = useState<GameNumbersToAdd>({});
   const [isSuccess, setIsSuccess] = useState(false);
-  const { mutate: saveProgram } = useProgramMutation();
   const { data: game } = useCurrentGame();
 
   const handleUUIDChange = (value: string) => {
@@ -47,7 +45,6 @@ export function GameUUIDInput({ isExpanded = true }: GameUUIDInputProps) {
       numbers.number1 !== undefined &&
       numbers.number2 !== undefined
     ) {
-      saveProgram(game!.id);
       setIsSuccess(true);
     }
   };
@@ -73,17 +70,17 @@ export function GameUUIDInput({ isExpanded = true }: GameUUIDInputProps) {
               <div className="flex gap-2 mt-1">
                 <Input
                   id="gameUUID"
-                  value={game!.id}
+                  value={game!.program_id}
                   onChange={(e) => handleUUIDChange(e.target.value)}
                   placeholder="e.g., 123e4567-e89b-12d3-a456-426614174000"
                   className={`flex-1 ${
-                    game!.id && !isValid ? "border-gray-300" : ""
+                    game!.program_id && !isValid ? "border-gray-300" : ""
                   }`}
                 />
 
                 <CopyButton text="" size="sm" variant="outline" />
               </div>
-              {game!.id && !isValid && (
+              {game!.program_id && !isValid && (
                 <p className="text-xs text-red-600 mt-1">
                   Please enter a valid UUID format
                 </p>
@@ -133,7 +130,7 @@ export function GameUUIDInput({ isExpanded = true }: GameUUIDInputProps) {
               onClick={handleSubmit}
               disabled={
                 !isValid ||
-                !game!.id ||
+                !game!.program_id ||
                 numbers.number1 === undefined ||
                 numbers.number2 === undefined
               }
