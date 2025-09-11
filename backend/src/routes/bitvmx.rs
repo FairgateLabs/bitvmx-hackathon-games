@@ -1,7 +1,7 @@
 use crate::models::{
     AggregatedKeyResponse, ErrorResponse, OperatorKeys, P2PAddress, ProgramSetupRequest,
-    ProgramSetupResponse, ProtocolCostResponse, SendFundsRequest, SetupParticipantsRequest,
-    TransactionResponse, Utxo, WalletBalance,
+    ProgramSetupResponse, ProtocolCostResponse, SetupParticipantsRequest,
+    TransactionResponse, WalletBalance,
 };
 use crate::state::AppState;
 use crate::utils::http_errors;
@@ -29,7 +29,6 @@ pub fn router() -> Router<AppState> {
         .route("/operator-keys", get(operator_keys))
         .route("/aggregated-key/{uuid}", get(get_aggregated_key))
         .route("/wallet-balance", get(wallet_balance))
-        .route("/send-funds", post(send_funds))
         .route("/transaction/{txid}", get(get_transaction))
         .route("/program-setup", post(program_setup))
         .route("/protocol-cost", get(get_protocol_cost))
@@ -253,41 +252,6 @@ pub async fn wallet_balance(
         http_errors::internal_server_error(&format!("Failed to get wallet balance: {e:?}"))
     })?;
     Ok(Json(wallet_balance))
-}
-
-/// Send funds to a destination
-#[utoipa::path(
-    post,
-    path = "/api/bitvmx/send-funds",
-    request_body = SendFundsRequest,
-    responses(
-        (status = 200, description = "Funds sent successfully", body = Utxo),
-        (status = 400, description = "Invalid destination", body = ErrorResponse),
-        (status = 400, description = "Invalid amount", body = ErrorResponse),
-        (status = 500, description = "Failed to send funds", body = ErrorResponse)
-    ),
-    tag = "BitVMX"
-)]
-#[instrument(skip(app_state))]
-pub async fn send_funds(
-    State(app_state): State<AppState>,
-    Json(send_funds_request): Json<SendFundsRequest>,
-) -> Result<Json<Utxo>, (StatusCode, Json<ErrorResponse>)> {
-    let service_guard = app_state.bitvmx_service.read().await;
-    let utxo = service_guard
-        .send_funds(
-            send_funds_request.destination,
-            send_funds_request.amount,
-            send_funds_request.scripts,
-        )
-        .await
-        .map_err(|e| http_errors::internal_server_error(&format!("Failed to send funds: {e:?}")))?;
-    Ok(Json(Utxo {
-        txid: utxo.0.to_string(),
-        vout: utxo.1,
-        amount: utxo.2.unwrap(),
-        output_type: serde_json::to_value(utxo.3.unwrap()).unwrap(),
-    }))
 }
 
 /// Get Bitcoin transaction dispatched by BitVMX

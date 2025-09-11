@@ -43,17 +43,6 @@ pub struct WalletBalance {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
-pub struct SendFundsRequest {
-    /// The destination hex public key or address to send funds to
-    pub destination: String,
-    /// The scripts in hex format if its a P2TR x only public key destination
-    pub scripts: Option<Vec<String>>,
-    /// The amount to send in satoshis
-    pub amount: u64,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
-#[ts(export)]
 pub struct Utxo {
     /// The transaction ID of the sent funds
     pub txid: String,
@@ -75,6 +64,19 @@ impl From<Utxo> for PartialUtxo {
             serde_json::from_value(utxo.output_type).expect("Invalid output type format");
 
         (txid, utxo.vout, Some(utxo.amount), output_type)
+    }
+}
+
+impl From<PartialUtxo> for Utxo  {
+    fn from(partial_utxo: PartialUtxo) -> Self {
+        let txid = partial_utxo.0.to_string();
+        let vout = partial_utxo.1;
+        let amount = partial_utxo.2.unwrap_or_default();
+        // Convert the output_type to serde_json::Value 
+        let output_type =
+            serde_json::to_value(partial_utxo.3)
+            .expect("Invalid output type format");
+        Self {txid, vout, amount, output_type}
     }
 }
 
