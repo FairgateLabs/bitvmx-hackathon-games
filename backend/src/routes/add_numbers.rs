@@ -6,7 +6,7 @@ use crate::models::{
     SetupParticipantsResponse, Utxo,
 };
 use crate::state::AppState;
-use crate::utils::{bitcoin, http_errors};
+use crate::utils::http_errors;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -14,6 +14,7 @@ use axum::{
     Json, Router,
 };
 use bitvmx_client::bitcoin::PublicKey;
+use bitvmx_client::bitcoin_coordinator::TransactionStatus;
 use bitvmx_client::p2p_handler::PeerId;
 use bitvmx_client::program::participant::P2PAddress;
 use bitvmx_client::types::Destination;
@@ -92,35 +93,45 @@ pub async fn setup_participants(
         .collect::<Result<Vec<PublicKey>, (StatusCode, Json<ErrorResponse>)>>()?;
 
     // Create the aggregated key
-    let service = app_state.bitvmx_service.read().await;
-    let aggregated_key = service
-        .create_agregated_key(
-            aggregated_id,
-            participants_addresses,
-            Some(participants_keys),
-            leader_idx,
-        )
-        .await
-        .map_err(|e| {
-            http_errors::internal_server_error(&format!("Failed to create aggregated key: {e:?}"))
-        })?;
+    let aggregated_key: PublicKey;
+    {
+        let bitvmx_service = app_state.bitvmx_service.read().await;
+        aggregated_key = bitvmx_service
+            .create_agregated_key(
+                aggregated_id,
+                participants_addresses,
+                Some(participants_keys),
+                leader_idx,
+            )
+            .await
+            .map_err(|e| {
+                http_errors::internal_server_error(&format!(
+                    "Failed to create aggregated key: {e:?}"
+                ))
+            })?;
+    }
+    debug!("Aggregated key created: {:?}", aggregated_key);
 
     // Create the program id
     let program_id = Uuid::new_v5(&Uuid::NAMESPACE_OID, request.aggregated_id.as_bytes());
-    debug!("🎉 Setting up game with program id: {:?} 🎉", program_id);
+    debug!("🎉 Setting up game with program id: {:?}", program_id);
 
     // Setup the game
-    let mut service = app_state.add_numbers_service.write().await;
-    service
-        .setup_game(
-            program_id,
-            aggregated_id,
-            request.participants_addresses,
-            request.participants_keys,
-            aggregated_key,
-            request.role,
-        )
-        .map_err(|e| http_errors::internal_server_error(&format!("Failed to setup game: {e:?}")))?;
+    {
+        let mut service = app_state.add_numbers_service.write().await;
+        service
+            .setup_game(
+                program_id,
+                aggregated_id,
+                request.participants_addresses,
+                request.participants_keys,
+                aggregated_key,
+                request.role,
+            )
+            .map_err(|e| {
+                http_errors::internal_server_error(&format!("Failed to setup game: {e:?}"))
+            })?;
+    }
 
     Ok(Json(SetupParticipantsResponse {
         program_id: program_id.to_string(),
@@ -193,9 +204,13 @@ pub async fn make_guess(
     Path(id): Path<Uuid>,
     Json(request): Json<MakeGuessRequest>,
 ) -> Result<Json<AddNumbersGame>, (StatusCode, Json<ErrorResponse>)> {
-    let mut service = app_state.add_numbers_service.write().await;
-    let game = service.make_guess(id, request.guess).map_err(|error| {
-        http_errors::error_response(StatusCode::BAD_REQUEST, "INVALID_OPERATION", &error)
+    let mut add_numbers_service = app_state.add_numbers_service.write().await;
+    let game = add_numbers_service.make_guess(id, request.guess).map_err(|error| {
+        http_errors::error_response(
+            StatusCode::BAD_REQUEST,
+            "INVALID_OPERATION",
+            &error.to_string(),
+        )
     })?;
 
     Ok(Json(game))
@@ -224,10 +239,12 @@ pub async fn get_current_game_id(
     request_body = PlaceBetRequest,
     responses(
         (status = 200, description = "Place bet successfully", body = PlaceBetResponse),
-        (status = 400, description = "Invalid request", body = ErrorResponse),
+        (status = 400, description = "Invalid program ID", body = ErrorResponse),
         (status = 400, description = "Amount cannot be 0", body = ErrorResponse),
         (status = 404, description = "Game not found", body = ErrorResponse),
-        (status = 500, description = "Failed to send funds", body = ErrorResponse),
+        (status = 500, description = "Failed to send protocol funds", body = ErrorResponse),
+        (status = 500, description = "Failed to send bet funds", body = ErrorResponse),
+        (status = 500, description = "Failed to obtain protocol destination from aggregated key", body = ErrorResponse),
     ),
     tag = "AddNumbers"
 )]
@@ -236,64 +253,125 @@ pub async fn place_bet(
     Json(request): Json<PlaceBetRequest>,
 ) -> Result<Json<PlaceBetResponse>, (StatusCode, Json<ErrorResponse>)> {
     // Validate the program ID
-    let program_id = Uuid::parse_str(&request.program_id)
-        .map_err(|_| http_errors::bad_request("Invalid program ID"))?;
+    if request.program_id == Uuid::default() {
+        return Err(http_errors::bad_request("Program ID cannot be empty"));
+    }
+    let program_id = request.program_id;
 
     // Validate the amount
     if request.amount == 0 {
         return Err(http_errors::bad_request("Amount cannot be 0"));
     }
 
-    // Get the game
-    let game_service = app_state.add_numbers_service.read().await;
-    let game = game_service
-        .get_game(program_id)
-        .ok_or(http_errors::not_found("Game not found"))?;
+    let aggregated_key: PublicKey;
+    let destination: Destination;
+    {
+        // Get the game
+        let add_numbers_service = app_state.add_numbers_service.read().await;
+        let game = add_numbers_service
+            .get_game(program_id)
+            .ok_or(http_errors::not_found("Game not found"))?;
+        // Get the aggregated key
+        aggregated_key = game.bitvmx_program_properties.aggregated_key;
+        // Get the protocol information
+        destination = add_numbers_service.protocol_destination(&aggregated_key).map_err(|e| {
+            http_errors::internal_server_error(&format!(
+                "Failed to obtain protocol destination from aggregated key: {e:?}"
+            ))
+        })?;
+    }
 
-    // Get the aggregated key and protocol information
-    let aggregated_key = game.bitvmx_program_properties.aggregated_key;
-    let x_only_pubkey = bitcoin::pub_key_to_xonly(&aggregated_key).map_err(|e| {
-        http_errors::internal_server_error(&format!(
-            "Failed to convert aggregated key to x only pubkey: {e:?}"
-        ))
-    })?;
-    let tap_leaves = game_service.protocol_scripts(&aggregated_key);
-    let destination = Destination::P2TR(x_only_pubkey, tap_leaves);
+    let funding_protocol_utxo: Utxo;
+    let funding_bet_utxo: Utxo;
+    let protocol_tx_status: TransactionStatus;
+    let bet_tx_status: TransactionStatus;
+    {
+        // Get the protocol fees amount
+        let bitvmx_service = app_state.bitvmx_service.read().await;
+        let protocol_amount = bitvmx_service.protocol_cost();
 
-    // Get the protocol fees amount
-    let bitvmx_service = app_state.bitvmx_service.read().await;
-    let protocol_amount = bitvmx_service.protocol_cost();
+        // Send funds to cover protocol fees to the aggregated key
+        let (funding_protocol_uuid, funding_protocol) = bitvmx_service
+            .send_funds(&destination, protocol_amount)
+            .await
+            .map_err(|e| {
+                http_errors::internal_server_error(&format!("Failed to send protocol funds: {e:?}"))
+            })?;
+        debug!(
+            "Sent {protocol_amount} satoshis to cover protocol fees to the aggregated key txid: {:?}",
+            funding_protocol.0
+        );
 
-    // Send funds to cover protocol fees to the aggregated key
-    let initial_utxo = bitvmx_service
-        .send_funds(&destination, protocol_amount)
-        .await
-        .map_err(|e| http_errors::internal_server_error(&format!("Failed to send funds: {e:?}")))?;
-    debug!(
-        "Sent {protocol_amount} satoshis to cover protocol fees to the aggregated key txid: {:?}",
-        initial_utxo.0
-    );
+        // Send the amount that the players will bet to the aggregated key
+        let (funding_bet_uuid, funding_bet) = bitvmx_service
+            .send_funds(&destination, request.amount)
+            .await
+            .map_err(|e| {
+                http_errors::internal_server_error(&format!("Failed to send bet funds: {e:?}"))
+            })?;
+        debug!(
+            "Funds {} satoshis sent to the aggregated key to cover the players bet txid: {:?}",
+            request.amount, funding_bet.0
+        );
 
-    // Send the amount that the players will bet to the aggregated key
-    let prover_win_utxo = bitvmx_service
-        .send_funds(&destination, request.amount)
-        .await
-        .map_err(|e| http_errors::internal_server_error(&format!("Failed to send funds: {e:?}")))?;
-    debug!(
-        "Funds {} satoshis sent to the aggregated key to cover the players bet txid: {:?}",
-        request.amount, prover_win_utxo.0
-    );
+        // Wait for the Transaction Status responses
+        debug!("Waiting for transaction status responses");
+        let (protocol_tx_result, bet_tx_result) = tokio::join!(
+            bitvmx_service.wait_for_transaction_response(funding_protocol_uuid),
+            bitvmx_service.wait_for_transaction_response(funding_bet_uuid),
+        );
 
-    let mut game_service = app_state.add_numbers_service.write().await;
-    game_service
-        .update_game_state(program_id, AddNumbersGameStatus::SetupFunding)
-        .map_err(|e| {
-            http_errors::internal_server_error(&format!("Failed to update game state: {e:?}"))
+        debug!(
+            "Received transaction status responses for correlation ids: {:?} and {:?}",
+            protocol_tx_result, bet_tx_result
+        );
+        // Handle any errors from waiting for responses
+        protocol_tx_status = protocol_tx_result.map_err(|e| {
+            http_errors::internal_server_error(&format!(
+                "Failed to wait for protocol transaction response: {e:?}"
+            ))
+        })?;
+        bet_tx_status = bet_tx_result.map_err(|e| {
+            http_errors::internal_server_error(&format!(
+                "Failed to wait for bet transaction response: {e:?}"
+            ))
         })?;
 
+        funding_protocol_utxo = funding_protocol.clone().into();
+        funding_bet_utxo = funding_bet.clone().into();
+    }
+
+    // Save the funding UTXOs in AddNumbersService
+    {
+        let mut add_numbers_service = app_state.add_numbers_service.write().await;
+        add_numbers_service
+            .save_my_funding_utxos(
+                program_id,
+                funding_protocol_utxo.clone(),
+                funding_bet_utxo.clone(),
+            )
+            .map_err(|e| {
+                http_errors::internal_server_error(&format!(
+                    "Failed to save my funding UTXO: {e:?}"
+                ))
+            })?;
+    }
+    debug!("Saved my funding UTXOs in AddNumbersService");
+
+    if protocol_tx_status.confirmations > 0 && bet_tx_status.confirmations > 0 {
+        debug!("Protocol and bet transactions confirmed, marking funding UTXOs as mined");
+        // Mark the funding UTXOs as mined
+        let mut add_numbers_service = app_state.add_numbers_service.write().await;
+        add_numbers_service
+            .update_game_state(program_id, AddNumbersGameStatus::SetupFunding)
+            .map_err(|e| {
+                http_errors::internal_server_error(&format!("Failed to update game state: {e:?}"))
+            })?;
+    }
+
     Ok(Json(PlaceBetResponse {
-        funding_protocol_utxo: initial_utxo.into(),
-        funding_bet_utxo: prover_win_utxo.into(),
+        funding_protocol_utxo,
+        funding_bet_utxo,
     }))
 }
 
@@ -301,44 +379,28 @@ pub async fn place_bet(
     get,
     path = "/api/add-numbers/fundings_utxos/{id}",
     responses(
-        (status = 200, description = "My participant UTXO", body = FundingUtxosResponse),
-        (status = 404, description = "My participant UTXO not found", body = ErrorResponse)
+        (status = 200, description = "Protocol fees and bet UTXO", body = FundingUtxosResponse),
+        (status = 404, description = "Game not found", body = ErrorResponse)
     ),
     tag = "AddNumbers"
 )]
 pub async fn get_fundings_utxos(
+    State(app_state): State<AppState>,
+    Path(id): Path<Uuid>,
 ) -> Result<Json<FundingUtxosResponse>, (StatusCode, Json<ErrorResponse>)> {
-    // TODO PEDRO: Get the my funding utxo
-    // Hit the BitVMX client to check if the funding UTXO is mined.
-    // TODO PEDRO: Save funding_protocol_utxo, and funding_bet_utxo
+    // Get the game
+    let add_numbers_service = app_state.add_numbers_service.read().await;
+    let game = add_numbers_service
+        .get_game(id)
+        .ok_or(http_errors::not_found("Game not found"))?;
 
-    // For now, return a hardcoded UTXO
-    let funding_protocol_utxo = Utxo {
-        txid: "hardcoded_txid".to_string(),
-        vout: 0,
-        amount: 100_000, // Amount in satoshis
-        output_type: serde_json::json!({
-            "type": "P2PKH",
-            "address": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
-        }),
-    };
+    let funding_protocol_utxo = game.bitvmx_program_properties.funding_protocol_utxo.clone();
+    let funding_bet_utxo = game.bitvmx_program_properties.funding_bet_utxo.clone();
 
-    let funding_bet_utxo = Utxo {
-        txid: "hardcoded_txid".to_string(),
-        vout: 0,
-        amount: 100_000, // Amount in satoshis
-        output_type: serde_json::json!({
-            "type": "P2PKH",
-            "address": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
-        }),
-    };
-
-    let funding_utxo_response = FundingUtxosResponse {
+    Ok(Json(FundingUtxosResponse {
         funding_protocol_utxo,
         funding_bet_utxo,
-    };
-
-    Ok(Json(funding_utxo_response))
+    }))
 }
 
 #[utoipa::path(
@@ -346,7 +408,7 @@ pub async fn get_fundings_utxos(
     path = "/api/add-numbers/setup-funding-utxo",
     request_body = FundingUtxoRequest,
     responses(
-        (status = 200, description = "Funding UTXO setup successfully"),
+        (status = 200, description = "Funding UTXO setup successfully", body = FundingUtxosResponse),
         (status = 400, description = "Invalid UTXO", body = ErrorResponse)
     ),
     tag = "AddNumbers"
@@ -354,27 +416,40 @@ pub async fn get_fundings_utxos(
 pub async fn setup_funding_utxo(
     State(app_state): State<AppState>,
     Json(request): Json<FundingUtxoRequest>,
-) -> Result<Json<()>, (StatusCode, Json<ErrorResponse>)> {
-    // Validate the UTXO
+) -> Result<Json<FundingUtxosResponse>, (StatusCode, Json<ErrorResponse>)> {
+    // Validate the protocol fees UTXO
     if request.funding_protocol_utxo.txid.is_empty() || request.funding_protocol_utxo.amount == 0 {
         return Err(http_errors::bad_request("Invalid UTXO"));
     }
+    let funding_protocol_utxo = request.funding_protocol_utxo;
 
+    // Validate the bet UTXO
+    if request.funding_bet_utxo.txid.is_empty() || request.funding_bet_utxo.amount == 0 {
+        return Err(http_errors::bad_request("Invalid UTXO"));
+    }
+    let funding_bet_utxo = request.funding_bet_utxo;
+
+    // Validate the program ID
     let program_id = Uuid::parse_str(&request.program_id)
         .map_err(|_| http_errors::bad_request("Invalid program ID"))?;
-    let mut service = app_state.add_numbers_service.write().await;
 
-    service
-        .save_fundings_utxos(
-            program_id,
-            request.funding_protocol_utxo,
-            request.funding_bet_utxo,
-        )
-        .map_err(|e| {
-            http_errors::internal_server_error(&format!("Failed to add funding UTXO: {e:?}"))
-        })?;
+    {
+        let mut service = app_state.add_numbers_service.write().await;
+        service
+            .save_other_funding_utxos(
+                program_id,
+                funding_protocol_utxo.clone(),
+                funding_bet_utxo.clone(),
+            )
+            .map_err(|e| {
+                http_errors::internal_server_error(&format!("Failed to add funding UTXO: {e:?}"))
+            })?;
+    }
 
-    Ok(Json(()))
+    Ok(Json(FundingUtxosResponse {
+        funding_protocol_utxo: Some(funding_protocol_utxo),
+        funding_bet_utxo: Some(funding_bet_utxo),
+    }))
 }
 
 // #[utoipa::path(

@@ -67,16 +67,19 @@ impl From<Utxo> for PartialUtxo {
     }
 }
 
-impl From<PartialUtxo> for Utxo  {
+impl From<PartialUtxo> for Utxo {
     fn from(partial_utxo: PartialUtxo) -> Self {
         let txid = partial_utxo.0.to_string();
         let vout = partial_utxo.1;
         let amount = partial_utxo.2.unwrap_or_default();
-        // Convert the output_type to serde_json::Value 
-        let output_type =
-            serde_json::to_value(partial_utxo.3)
-            .expect("Invalid output type format");
-        Self {txid, vout, amount, output_type}
+        // Convert the output_type to serde_json::Value
+        let output_type = serde_json::to_value(partial_utxo.3).expect("Invalid output type format");
+        Self {
+            txid,
+            vout,
+            amount,
+            output_type,
+        }
     }
 }
 
