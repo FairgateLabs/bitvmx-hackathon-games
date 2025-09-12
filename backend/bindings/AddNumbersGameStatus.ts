@@ -2,4 +2,4 @@
 import type { GameOutcome } from "./GameOutcome";
 import type { GameReason } from "./GameReason";
 
-export type AddNumbersGameStatus = "SetupParticipants" | "PlaceBet" | "SetupFunding" | "CreateProgram" | "SubmitSum" | { "GameComplete": { outcome: GameOutcome, reason: GameReason, } } | "Finished";
+export type AddNumbersGameStatus = "SetupParticipants" | "PlaceBet" | "SetupFunding" | "StartGame" | "SubmitGameData" | { "GameComplete": { outcome: GameOutcome, reason: GameReason, } } | "Finished";

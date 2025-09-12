@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { getApiBaseUrl } from "../config/backend";
-import { AddNumbersRequest } from "../../../backend/bindings/StartGameRequest";
 import { AddNumbersGame } from "../../../backend/bindings/AddNumbersGame";
+import { StartGameRequest } from "../../../backend/bindings/StartGameRequest";
 import { EnumPlayerRole } from "@/types/game";
 
 function useGameById(id: string) {

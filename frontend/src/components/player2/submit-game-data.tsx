@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function AnswerGame() {
+export function SubmitGameData() {
   const [answer, setAnswer] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
 

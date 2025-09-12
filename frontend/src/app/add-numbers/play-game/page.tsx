@@ -1,6 +1,5 @@
 "use client";
 
-// import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -11,24 +10,14 @@ import {
 import { ChooseRole } from "@/components/common/game-role-selector";
 import { WalletSection } from "@/components/common/wallet-section";
 import { SetupGame } from "@/components/common/setup-game";
-import { ChooseAction } from "@/components/player1/choose-actions";
 import { NetworkInfo } from "@/components/common/network-info";
-import { PeerConnectionInfo } from "@/components/common/peer-connection-info";
-import { PeerConnectionInput } from "@/components/common/peer-connection-input";
+import { SetupParticipantInfo } from "@/components/common/setup-participant-info";
+import { SetupParticipantInput } from "@/components/common/setup-participant-input";
 import { UtxoExchange } from "@/components/common/utxo-exchange";
 import { ChooseNetwork } from "@/components/common/choose-network";
-// import { AddNumbersGameStatus } from "../../../../../backend/bindings/AddNumbersGameStatus";
 import { StartGame } from "@/components/player1/start-game";
 import { AcceptLoseGame } from "@/components/player1/accept-lose-game";
-// import { ChallengeWinGame } from "@/components/player1/challege-win-game";
-// import { ChallengeWinGame as ChallengeWinGamePlayer2 } from "@/components/player2/challenge-win-game";
-import { ChallengeAnswer } from "@/components/player1/challenge-answer";
-import { AnswerGame } from "@/components/player2/answer-game";
-import { WaitingForAnswer } from "@/components/player2/waiting-for-answer";
-// import { TimeoutWinGame } from "@/components/player1/timeout-win-game";
-import { WaitingAnswer } from "@/components/player1/waiting-answer";
-// import { ChallengeLoseGame } from "@/components/player1/challenge-lose-game";
-// import { TimeoutLoseGame } from "@/components/player2/timeout-lose-game";
+import { SubmitGameData } from "@/components/player2/submit-game-data";
 import { AcceptWinGame } from "@/components/player2/accept-win-game";
 import { useCurrentGame } from "@/hooks/useGame";
 import { useNetworkQuery } from "@/hooks/useNetwork";
@@ -36,7 +25,7 @@ import { AggregatedKey } from "@/components/common/aggregated-key";
 import { useEffect, useState } from "react";
 import { PlayerRole } from "../../../../../backend/bindings/PlayerRole";
 import { EnumPlayerRole } from "@/types/game";
-import { BettingInfo } from "@/components/common/betting-info";
+import { PlaceBet } from "@/components/common/place-bet";
 
 export default function AddNumbersPage() {
   const { data: network } = useNetworkQuery();
@@ -109,27 +98,22 @@ export default function AddNumbersPage() {
           <WalletSection
             expanded={!game || game?.status === "SetupParticipants"}
           />
-          <PeerConnectionInfo
+          <SetupParticipantInfo
             aggregatedId={aggregatedId}
             role={role!}
             expanded={!game || game?.status === "SetupParticipants"}
           />
-          <PeerConnectionInput
-            aggregatedId={aggregatedId}
-            role={role!}
-            expanded={!game || game?.status === "SetupParticipants"}
-          />
+          {game && game.status === "SetupParticipants" && (
+            <SetupParticipantInput aggregatedId={aggregatedId} role={role!} />
+          )}
           {game && game.status !== "PlaceBet" && <AggregatedKey />}
-          {game && game.status !== "SetupParticipants" && <BettingInfo />}
-          {game && game.status !== "SetupFunding" && <UtxoExchange />}
-          {game && game?.status === "CreateProgram" && <SetupGame />}
+          {game && game.status === "PlaceBet" && <PlaceBet />}
+          {game && game.status === "SetupFunding" && <UtxoExchange />}
+          {game && game?.status === "StartGame" && <SetupGame />}
+          {game?.status === "StartGame" && <StartGame />}
 
           {role === EnumPlayerRole.Player1 && (
             <>
-              {game?.status === "WaitForSum" && <StartGame />}
-              {game?.status === "SubmitSum" && <WaitingAnswer />}
-              {game?.status === "ProgramDecision" && <ChooseAction />}
-              {game?.status === "Challenge" && <ChallengeAnswer />}
               {typeof game?.status === "object" &&
                 "GameComplete" in game?.status &&
                 (game?.status.GameComplete.outcome === "Lose" ? (
@@ -139,9 +123,9 @@ export default function AddNumbersPage() {
                 ) : (
                   <div>Game Complete - Draw!</div>
                 ))}
-              {game?.status === "TransferBetFunds" && (
+              {/* {game?.status === "TransferFunds" && (
                 <div>Transferring funds...</div>
-              )}
+              )} */}
               {game?.status === "Finished" && (
                 <div>Game Finished - You Win!</div>
               )}
@@ -150,10 +134,7 @@ export default function AddNumbersPage() {
 
           {role === EnumPlayerRole.Player2 && (
             <>
-              {game?.status === "WaitForSum" && <AnswerGame />}
-              {game?.status === "SubmitSum" && <WaitingForAnswer />}
-              {game?.status === "ProgramDecision" && <WaitingForAnswer />}
-              {game?.status === "Challenge" && <ChallengeAnswer />}
+              {game?.status === "SubmitGameData" && <SubmitGameData />}
               {typeof game?.status === "object" &&
                 "GameComplete" in game?.status &&
                 (game?.status.GameComplete.outcome === "Win" ? (
@@ -163,9 +144,7 @@ export default function AddNumbersPage() {
                 ) : (
                   <div>Game Complete - Draw!</div>
                 ))}
-              {game?.status === "TransferBetFunds" && (
-                <div>Transferring funds...</div>
-              )}
+
               {game?.status === "Finished" && (
                 <div>Game Finished - You Lose!</div>
               )}

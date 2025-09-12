@@ -11,7 +11,7 @@ import usePubkey from "@/hooks/usePubkey";
 import { EnumPlayerRole } from "@/types/game";
 import { PlayerRole } from "../../../../backend/bindings/PlayerRole";
 
-export function PeerConnectionInfo({
+export function SetupParticipantInfo({
   aggregatedId,
   role,
   expanded,

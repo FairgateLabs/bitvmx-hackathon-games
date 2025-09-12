@@ -13,8 +13,8 @@ pub enum AddNumbersGameStatus {
     SetupParticipants, // it stores program id and creates the aggregated key and stores participants
     PlaceBet,          // It sends funds to the agregated address and returns the utxo
     SetupFunding,      // Add other participants utxos
-    CreateProgram, // Create the program, uses the aggregated key and participants to send the 2 numbers to sum
-    SubmitSum, // Participant 2 (Here we send the sum, whenever detect the news then we move to ComputeProgram)
+    StartGame, // Create the program, uses the aggregated key and participants to send the 2 numbers to sum
+    SubmitGameData, // Participant 2 (Here we send the sum, whenever detect the news then we move to ComputeProgram)
     GameComplete {
         outcome: GameOutcome,
         reason: GameReason,

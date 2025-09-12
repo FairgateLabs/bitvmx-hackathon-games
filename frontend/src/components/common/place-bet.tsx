@@ -8,7 +8,7 @@ import {
 import { useCurrentGame } from "@/hooks/useGame";
 import { usePlaceBet } from "@/hooks/usePlaceBet";
 
-export function BettingInfo() {
+export function PlaceBet() {
   const [isOpen, setIsOpen] = useState(true);
   const { mutate: placeBet, isPending: isPlacingBet } = usePlaceBet();
   const { data: game } = useCurrentGame();

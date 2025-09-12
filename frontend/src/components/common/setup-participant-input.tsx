@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useSaveParticipantInfo } from "@/hooks/useParticipantInfo";
 import {
@@ -20,19 +19,17 @@ interface PeerConnectionData {
   aggregatedId?: string; // Make aggregatedId optional
 }
 
-export function PeerConnectionInput({
+export function SetupParticipantInput({
   aggregatedId,
   role,
-  expanded,
 }: {
   role: PlayerRole;
   aggregatedId: string;
-  expanded: boolean;
 }) {
   const [jsonInput, setJsonInput] = useState("");
   const [parsedData, setParsedData] = useState<PeerConnectionData | null>(null);
   const [jsonError, setJsonError] = useState("");
-  const [isOpen, setIsOpen] = useState(expanded);
+  const [isOpen, setIsOpen] = useState(true);
   const [inputsDisabled, setInputsDisabled] = useState(false);
   const [successMessage, setSuccessMessage] = useState(false);
   const { mutate: savePeerConnection, isPending: isSavingParticipantInfo } =

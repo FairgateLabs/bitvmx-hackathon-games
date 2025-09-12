@@ -23,7 +23,7 @@ export function SetupGame() {
   const { data: network } = useNetworkQuery();
 
   const { mutate: createGame } = useCreateGame({
-    id: gameId,
+    program_id: gameId,
     number1: numbers.number1 || 0,
     number2: numbers.number2 || 0,
   });

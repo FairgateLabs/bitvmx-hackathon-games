@@ -4,8 +4,8 @@ use crate::models::{
 };
 use crate::utils::bitcoin;
 use bitvmx_client::bitcoin::{Address, PublicKey};
-use bitvmx_client::protocol_builder::scripts::{self, ProtocolScript};
 use bitvmx_client::bitvmx_wallet::wallet::Destination;
+use bitvmx_client::protocol_builder::scripts::{self, ProtocolScript};
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
@@ -94,7 +94,7 @@ impl AddNumbersService {
             .as_secs();
 
         // Update the game status
-        game.status = AddNumbersGameStatus::CreateProgram;
+        game.status = AddNumbersGameStatus::StartGame;
 
         Ok(())
     }
@@ -118,7 +118,7 @@ impl AddNumbersService {
         // PEDRO Genertes alll ... .
 
         // Update the game status
-        game.status = AddNumbersGameStatus::CreateProgram;
+        game.status = AddNumbersGameStatus::StartGame;
 
         Ok(())
     }
@@ -183,7 +183,7 @@ impl AddNumbersService {
             .ok_or(anyhow::anyhow!("Game not found"))?;
         game.number1 = Some(number1);
         game.number2 = Some(number2);
-        game.status = AddNumbersGameStatus::SubmitSum;
+        game.status = AddNumbersGameStatus::SubmitGameData;
         Ok(())
     }
 
@@ -194,7 +194,7 @@ impl AddNumbersService {
             .ok_or(anyhow::anyhow!("Game not found"))?;
 
         // Validate game status
-        if game.status != AddNumbersGameStatus::SubmitSum {
+        if game.status != AddNumbersGameStatus::SubmitGameData {
             return Err(anyhow::anyhow!("Game is not in waiting for guess state"));
         }
 
