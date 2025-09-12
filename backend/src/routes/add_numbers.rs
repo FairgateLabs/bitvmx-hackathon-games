@@ -95,8 +95,8 @@ pub async fn setup_participants(
     // Create the aggregated key
     let aggregated_key: PublicKey;
     {
-        let service = app_state.bitvmx_service.read().await;
-        aggregated_key = service
+        let bitvmx_service = app_state.bitvmx_service.read().await;
+        aggregated_key = bitvmx_service
             .create_agregated_key(
                 aggregated_id,
                 participants_addresses,
@@ -204,8 +204,8 @@ pub async fn make_guess(
     Path(id): Path<Uuid>,
     Json(request): Json<MakeGuessRequest>,
 ) -> Result<Json<AddNumbersGame>, (StatusCode, Json<ErrorResponse>)> {
-    let mut service = app_state.add_numbers_service.write().await;
-    let game = service.make_guess(id, request.guess).map_err(|error| {
+    let mut add_numbers_service = app_state.add_numbers_service.write().await;
+    let game = add_numbers_service.make_guess(id, request.guess).map_err(|error| {
         http_errors::error_response(
             StatusCode::BAD_REQUEST,
             "INVALID_OPERATION",
@@ -267,14 +267,14 @@ pub async fn place_bet(
     let destination: Destination;
     {
         // Get the game
-        let service = app_state.add_numbers_service.read().await;
-        let game = service
+        let add_numbers_service = app_state.add_numbers_service.read().await;
+        let game = add_numbers_service
             .get_game(program_id)
             .ok_or(http_errors::not_found("Game not found"))?;
         // Get the aggregated key
         aggregated_key = game.bitvmx_program_properties.aggregated_key;
         // Get the protocol information
-        destination = service.protocol_destination(&aggregated_key).map_err(|e| {
+        destination = add_numbers_service.protocol_destination(&aggregated_key).map_err(|e| {
             http_errors::internal_server_error(&format!(
                 "Failed to obtain protocol destination from aggregated key: {e:?}"
             ))
@@ -287,11 +287,11 @@ pub async fn place_bet(
     let bet_tx_status: TransactionStatus;
     {
         // Get the protocol fees amount
-        let service = app_state.bitvmx_service.read().await;
-        let protocol_amount = service.protocol_cost();
+        let bitvmx_service = app_state.bitvmx_service.read().await;
+        let protocol_amount = bitvmx_service.protocol_cost();
 
         // Send funds to cover protocol fees to the aggregated key
-        let (funding_protocol_uuid, funding_protocol) = service
+        let (funding_protocol_uuid, funding_protocol) = bitvmx_service
             .send_funds(&destination, protocol_amount)
             .await
             .map_err(|e| {
@@ -303,7 +303,7 @@ pub async fn place_bet(
         );
 
         // Send the amount that the players will bet to the aggregated key
-        let (funding_bet_uuid, funding_bet) = service
+        let (funding_bet_uuid, funding_bet) = bitvmx_service
             .send_funds(&destination, request.amount)
             .await
             .map_err(|e| {
@@ -317,8 +317,8 @@ pub async fn place_bet(
         // Wait for the Transaction Status responses
         debug!("Waiting for transaction status responses");
         let (protocol_tx_result, bet_tx_result) = tokio::join!(
-            service.wait_for_transaction_response(funding_protocol_uuid),
-            service.wait_for_transaction_response(funding_bet_uuid),
+            bitvmx_service.wait_for_transaction_response(funding_protocol_uuid),
+            bitvmx_service.wait_for_transaction_response(funding_bet_uuid),
         );
 
         debug!(
@@ -343,8 +343,8 @@ pub async fn place_bet(
 
     // Save the funding UTXOs in AddNumbersService
     {
-        let mut service = app_state.add_numbers_service.write().await;
-        service
+        let mut add_numbers_service = app_state.add_numbers_service.write().await;
+        add_numbers_service
             .save_my_funding_utxos(
                 program_id,
                 funding_protocol_utxo.clone(),
@@ -361,8 +361,8 @@ pub async fn place_bet(
     if protocol_tx_status.confirmations > 0 && bet_tx_status.confirmations > 0 {
         debug!("Protocol and bet transactions confirmed, marking funding UTXOs as mined");
         // Mark the funding UTXOs as mined
-        let mut game_service = app_state.add_numbers_service.write().await;
-        game_service
+        let mut add_numbers_service = app_state.add_numbers_service.write().await;
+        add_numbers_service
             .update_game_state(program_id, AddNumbersGameStatus::SetupFunding)
             .map_err(|e| {
                 http_errors::internal_server_error(&format!("Failed to update game state: {e:?}"))
@@ -389,8 +389,8 @@ pub async fn get_fundings_utxos(
     Path(id): Path<Uuid>,
 ) -> Result<Json<FundingUtxosResponse>, (StatusCode, Json<ErrorResponse>)> {
     // Get the game
-    let service = app_state.add_numbers_service.read().await;
-    let game = service
+    let add_numbers_service = app_state.add_numbers_service.read().await;
+    let game = add_numbers_service
         .get_game(id)
         .ok_or(http_errors::not_found("Game not found"))?;
 
