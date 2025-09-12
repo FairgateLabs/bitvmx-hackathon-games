@@ -13,17 +13,13 @@ pub enum AddNumbersGameStatus {
     SetupParticipants, // it stores program id and creates the aggregated key and stores participants
     PlaceBet,          // It sends funds to the agregated address and returns the utxo
     SetupFunding,      // Add other participants utxos
-    CreateProgram,     // Create the program, uses the aggregated key and participants
-    BindNumbersToProgram, // (Player1) Here we send the numbers to sum
+    CreateProgram, // Create the program, uses the aggregated key and participants to send the 2 numbers to sum
     SubmitSum, // Participant 2 (Here we send the sum, whenever detect the news then we move to ComputeProgram)
-    WaitForSum, // Participant 1 (Here we wait for the sum)
-    ProgramDecision, // This should change
-    Challenge,
     GameComplete {
         outcome: GameOutcome,
         reason: GameReason,
     },
-    TransferBetFunds,
+    // TransferBetFunds,
     Finished,
 }
 
@@ -155,4 +151,12 @@ pub struct SetupParticipantsResponse {
 pub enum PlayerRole {
     Player1,
     Player2,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
+#[ts(export)]
+pub struct StartGameRequest {
+    pub program_id: String,
+    pub number1: i32,
+    pub number2: i32,
 }

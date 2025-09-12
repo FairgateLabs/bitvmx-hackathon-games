@@ -114,10 +114,9 @@ impl AddNumbersService {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs();
-        game.status = AddNumbersGameStatus::CreateProgram;
 
         // Update the game status
-        game.status = AddNumbersGameStatus::PlaceBet;
+        game.status = AddNumbersGameStatus::CreateProgram;
 
         Ok(())
     }
@@ -138,8 +137,10 @@ impl AddNumbersService {
         game.bitvmx_program_properties.funding_bet_utxo = Some(funding_bet_utxo);
         game.bitvmx_program_properties.funding_protocol_utxo = Some(funding_protocol_utxo);
 
+        // PEDRO Genertes alll ... .
+
         // Update the game status
-        game.status = AddNumbersGameStatus::SetupFunding;
+        game.status = AddNumbersGameStatus::CreateProgram;
 
         Ok(())
     }
@@ -188,6 +189,22 @@ impl AddNumbersService {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs();
+        Ok(())
+    }
+
+    pub fn start_game(
+        &mut self,
+        program_id: Uuid,
+        number1: i32,
+        number2: i32,
+    ) -> Result<(), anyhow::Error> {
+        let game = self
+            .games
+            .get_mut(&program_id)
+            .ok_or(anyhow::anyhow!("Game not found"))?;
+        game.number1 = Some(number1);
+        game.number2 = Some(number2);
+        game.status = AddNumbersGameStatus::SubmitSum;
         Ok(())
     }
 }

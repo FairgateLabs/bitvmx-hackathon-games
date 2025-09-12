@@ -36,6 +36,7 @@ import { AggregatedKey } from "@/components/common/aggregated-key";
 import { useEffect, useState } from "react";
 import { PlayerRole } from "../../../../../backend/bindings/PlayerRole";
 import { EnumPlayerRole } from "@/types/game";
+import { BettingInfo } from "@/components/common/betting-info";
 
 export default function AddNumbersPage() {
   const { data: network } = useNetworkQuery();
@@ -82,6 +83,9 @@ export default function AddNumbersPage() {
     );
   }
 
+  {
+    console.log("game", !game, game?.status === "SetupParticipants");
+  }
   return (
     <div className="container mx-auto p-6 max-w-4xl">
       <Card>
@@ -99,8 +103,12 @@ export default function AddNumbersPage() {
         </CardHeader>
 
         <CardContent className="space-y-6">
-          <NetworkInfo />
-          <WalletSection />
+          <NetworkInfo
+            expanded={!game || game?.status === "SetupParticipants"}
+          />
+          <WalletSection
+            expanded={!game || game?.status === "SetupParticipants"}
+          />
           <PeerConnectionInfo
             aggregatedId={aggregatedId}
             role={role!}
@@ -112,6 +120,7 @@ export default function AddNumbersPage() {
             expanded={!game || game?.status === "SetupParticipants"}
           />
           {game && game.status !== "PlaceBet" && <AggregatedKey />}
+          {game && game.status !== "SetupParticipants" && <BettingInfo />}
           {game && game.status !== "SetupFunding" && <UtxoExchange />}
           {game && game?.status === "CreateProgram" && <SetupGame />}
 

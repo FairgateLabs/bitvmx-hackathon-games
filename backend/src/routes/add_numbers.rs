@@ -2,8 +2,8 @@ use std::str::FromStr;
 
 use crate::models::{
     AddNumbersGame, AddNumbersGameStatus, ErrorResponse, FundingUtxoRequest, FundingUtxosResponse,
-    MakeGuessRequest, PlaceBetRequest, PlaceBetResponse, SetupParticipantsRequest,
-    SetupParticipantsResponse, Utxo,
+    GameOutcome, GameReason, MakeGuessRequest, PlaceBetRequest, PlaceBetResponse,
+    SetupParticipantsRequest, SetupParticipantsResponse, StartGameRequest, Utxo,
 };
 use crate::state::AppState;
 use crate::utils::http_errors;
@@ -28,7 +28,8 @@ pub fn router() -> Router<AppState> {
         .route("/place-bet", post(place_bet))
         .route("/fundings_utxos/{id}", get(get_fundings_utxos))
         .route("/setup-funding-utxo", post(setup_funding_utxo)) // for player 2
-        // .route("/create-game", post(create_game)) // for player 1
+        .route("/start-game", post(start_game)) // for player 1
+        .route("/submit-sum/{id}", post(submit_sum))
         // .route("/", post(create_game))
         .route("/{id}", get(get_game))
         .route("/{id}/guess", post(make_guess))
@@ -205,13 +206,15 @@ pub async fn make_guess(
     Json(request): Json<MakeGuessRequest>,
 ) -> Result<Json<AddNumbersGame>, (StatusCode, Json<ErrorResponse>)> {
     let mut add_numbers_service = app_state.add_numbers_service.write().await;
-    let game = add_numbers_service.make_guess(id, request.guess).map_err(|error| {
-        http_errors::error_response(
-            StatusCode::BAD_REQUEST,
-            "INVALID_OPERATION",
-            &error.to_string(),
-        )
-    })?;
+    let game = add_numbers_service
+        .make_guess(id, request.guess)
+        .map_err(|error| {
+            http_errors::error_response(
+                StatusCode::BAD_REQUEST,
+                "INVALID_OPERATION",
+                &error.to_string(),
+            )
+        })?;
 
     Ok(Json(game))
 }
@@ -274,11 +277,13 @@ pub async fn place_bet(
         // Get the aggregated key
         aggregated_key = game.bitvmx_program_properties.aggregated_key;
         // Get the protocol information
-        destination = add_numbers_service.protocol_destination(&aggregated_key).map_err(|e| {
-            http_errors::internal_server_error(&format!(
-                "Failed to obtain protocol destination from aggregated key: {e:?}"
-            ))
-        })?;
+        destination = add_numbers_service
+            .protocol_destination(&aggregated_key)
+            .map_err(|e| {
+                http_errors::internal_server_error(&format!(
+                    "Failed to obtain protocol destination from aggregated key: {e:?}"
+                ))
+            })?;
     }
 
     let funding_protocol_utxo: Utxo;
@@ -452,28 +457,68 @@ pub async fn setup_funding_utxo(
     }))
 }
 
-// #[utoipa::path(
-//     post,
-//     path = "/api/add-numbers/create-game",
-//     request_body = CreateGameRequest,
-//     responses(
-//         (status = 200, description = "Game created successfully"),
-//         (status = 400, description = "Invalid request", body = ErrorResponse)
-//     ),
-//     tag = "AddNumbers"
-// )]
-// pub async fn create_game(
-//     State(app_state): State<AppState>,
-//     Json(request): Json<CreateGameRequest>,
-// ) -> Result<Json<()>, (StatusCode, Json<ErrorResponse>)> {
-//     let program_id = Uuid::parse_str(&request.program_id)
-//         .map_err(|_| http_errors::bad_request("Invalid program ID"))?;
-//     let mut service = app_state.add_numbers_service.write().await;
+#[utoipa::path(
+    post,
+    path = "/api/add-numbers/submit-sum/{id}",
+    request_body = MakeGuessRequest,
+    responses(
+        (status = 200, description = "Sum submitted successfully", body = AddNumbersGame),
+        (status = 400, description = "Invalid request", body = ErrorResponse),
+        (status = 404, description = "Game not found", body = ErrorResponse),
+        (status = 500, description = "Failed to submit sum", body = ErrorResponse)
+    ),
+    tag = "AddNumbers"
+)]
+pub async fn submit_sum(
+    State(app_state): State<AppState>,
+    Path(id): Path<Uuid>,
+    Json(request): Json<MakeGuessRequest>,
+) -> Result<Json<AddNumbersGame>, (StatusCode, Json<ErrorResponse>)> {
+    let mut service = app_state.add_numbers_service.write().await;
 
-//     service
-//         .create_game(program_id, request.number1, request.number2)
-//         .map_err(|e| {
-//             http_errors::internal_server_error(&format!("Failed to create game: {e:?}"))
-//         })?;
-//     Ok(Json(()))
-// }
+    let mut game =
+        service
+            .make_guess(id, request.guess)
+            .map_err(|e| match e.to_string().as_str() {
+                "Game not found" => http_errors::not_found("Game not found"),
+                "Game is not in waiting for guess state" => {
+                    http_errors::bad_request("Invalid game state")
+                }
+                _ => http_errors::internal_server_error(&format!("Failed to submit sum: {e:?}")),
+            })?;
+
+    // TOOD: PEDRO Wait until you know the anser
+    game.status = AddNumbersGameStatus::GameComplete {
+        outcome: GameOutcome::Win,
+        reason: GameReason::Accept,
+    };
+
+    Ok(Json(game))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/add-numbers/start-game",
+    request_body = StartGameRequest,
+    responses(
+        (status = 200, description = "Game created successfully"),
+        (status = 400, description = "Invalid request", body = ErrorResponse)
+    ),
+    tag = "AddNumbers"
+)]
+pub async fn start_game(
+    State(app_state): State<AppState>,
+    Json(request): Json<StartGameRequest>,
+) -> Result<Json<()>, (StatusCode, Json<ErrorResponse>)> {
+    let program_id = Uuid::parse_str(&request.program_id)
+        .map_err(|_| http_errors::bad_request("Invalid program ID"))?;
+    let mut service = app_state.add_numbers_service.write().await;
+
+    service
+        .start_game(program_id, request.number1, request.number2)
+        .map_err(|e| {
+            http_errors::internal_server_error(&format!("Failed to create game: {e:?}"))
+        })?;
+
+    Ok(Json(()))
+}

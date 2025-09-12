@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useCommunicationInfo } from "@/hooks/useCommunicationInfo";
@@ -20,7 +20,7 @@ export function PeerConnectionInfo({
   role: PlayerRole;
   expanded: boolean;
 }) {
-  const [isOpen, setIsOpen] = useState(expanded);
+  const [isOpen, setIsOpen] = useState(true);
   const { data: peerConnectionInfo } = useCommunicationInfo();
   const { data: operatorKey } = usePubkey();
 
@@ -36,6 +36,10 @@ export function PeerConnectionInfo({
 
     navigator.clipboard.writeText(JSON.stringify(dataToCopy, null, 2));
   };
+
+  useEffect(() => {
+    setIsOpen(expanded);
+  }, [expanded]);
 
   return (
     <div className="p-4 bg-white border border-gray-200 rounded-lg">

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { NetworkType } from "@/types/network";
@@ -11,19 +11,23 @@ import {
 } from "@/components/ui/collapsible";
 import { useNetworkQuery } from "@/hooks/useNetwork";
 
-export function WalletSection() {
+export function WalletSection({ expanded }: { expanded: boolean }) {
   const [transactionId, setTransactionId] = useState("");
   const [outputIndex, setOutputIndex] = useState("");
   const [isOpen, setIsOpen] = useState(true);
   const { data: addressData, isLoading, error } = useWalletBalance();
   const { data: network } = useNetworkQuery();
 
+  useEffect(() => {
+    setIsOpen(expanded);
+  }, [expanded]);
+
   return (
     <div className="p-4 bg-white border border-gray-200 rounded-lg">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleTrigger asChild>
           <h3 className="font-semibold mb-2 cursor-pointer hover:text-muted-foreground">
-            💰 Wallet Information
+            💳 Wallet Information
           </h3>
         </CollapsibleTrigger>
         <CollapsibleContent>

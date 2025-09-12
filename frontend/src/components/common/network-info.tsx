@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -6,9 +6,13 @@ import {
 } from "@/components/ui/collapsible";
 import { useNetworkQuery } from "@/hooks/useNetwork";
 
-export function NetworkInfo() {
+export function NetworkInfo({ expanded }: { expanded: boolean }) {
   const [isOpen, setIsOpen] = useState(true);
   const { data: network } = useNetworkQuery();
+
+  useEffect(() => {
+    setIsOpen(expanded);
+  }, [expanded]);
 
   return (
     <div className="p-4 bg-white border border-gray-200 rounded-lg">
