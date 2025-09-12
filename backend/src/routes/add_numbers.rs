@@ -18,7 +18,8 @@ use bitvmx_client::bitcoin_coordinator::TransactionStatus;
 use bitvmx_client::program::participant::P2PAddress as BitVMXP2PAddress;
 use bitvmx_client::program::protocols::dispute::{TIMELOCK_BLOCKS, TIMELOCK_BLOCKS_KEY};
 use bitvmx_client::program::variables::VariableTypes;
-use bitvmx_client::types::{Destination, PROGRAM_TYPE_DRP};
+use bitvmx_client::bitvmx_wallet::wallet::Destination;
+use bitvmx_client::types::PROGRAM_TYPE_DRP;
 use tracing::debug;
 use uuid::Uuid;
 
@@ -256,7 +257,7 @@ pub async fn place_bet(
         aggregated_key = game.bitvmx_program_properties.aggregated_key;
         // Get the protocol information
         destination = add_numbers_service
-            .protocol_destination(&aggregated_key)
+            .protocol_destination(&aggregated_key, request.amount)
             .map_err(|e| {
                 http_errors::internal_server_error(&format!(
                     "Failed to obtain protocol destination from aggregated key: {e:?}"

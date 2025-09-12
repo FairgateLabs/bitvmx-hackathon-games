@@ -5,7 +5,7 @@ use crate::models::{
 use crate::utils::bitcoin;
 use bitvmx_client::bitcoin::{Address, PublicKey};
 use bitvmx_client::protocol_builder::scripts::{self, ProtocolScript};
-use bitvmx_client::types::Destination;
+use bitvmx_client::bitvmx_wallet::wallet::Destination;
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
@@ -134,13 +134,14 @@ impl AddNumbersService {
     pub fn protocol_destination(
         &self,
         aggregated_key: &PublicKey,
+        amount: u64,
     ) -> Result<Destination, anyhow::Error> {
         // Get the aggregated key and protocol information
         let x_only_pubkey = bitcoin::pub_key_to_xonly(aggregated_key).map_err(|e| {
             anyhow::anyhow!("Failed to convert aggregated key to x only pubkey: {e:?}")
         })?;
         let tap_leaves = self.protocol_scripts(aggregated_key);
-        let destination = Destination::P2TR(x_only_pubkey, tap_leaves);
+        let destination = Destination::P2TR(x_only_pubkey, tap_leaves, amount);
         Ok(destination)
     }
 
