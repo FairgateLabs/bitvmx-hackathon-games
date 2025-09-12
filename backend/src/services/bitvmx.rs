@@ -7,7 +7,8 @@ use bitvmx_client::bitcoin::{Address, PublicKey, Txid};
 use bitvmx_client::bitcoin_coordinator::TransactionStatus;
 use bitvmx_client::program::participant::P2PAddress as BitVMXP2PAddress;
 use bitvmx_client::program::variables::{PartialUtxo, VariableTypes};
-use bitvmx_client::types::{Destination, IncomingBitVMXApiMessages, OutgoingBitVMXApiMessages};
+use bitvmx_client::bitvmx_wallet::wallet::Destination;
+use bitvmx_client::types::{IncomingBitVMXApiMessages, OutgoingBitVMXApiMessages};
 use std::str::FromStr;
 use std::sync::Arc;
 use tracing::{debug, info, trace};
@@ -136,7 +137,6 @@ impl BitVMXService {
             .send_request(IncomingBitVMXApiMessages::SendFunds(
                 Uuid::new_v4(),
                 destination.clone(),
-                amount,
                 None, // fee rate not needed for regtest
             ))
             .await?;

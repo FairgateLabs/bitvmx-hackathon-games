@@ -16,7 +16,6 @@ use crate::state::AppState;
     paths(
         routes::health::health_check,
         // AddNumbers Program
-        // routes::add_numbers::create_game,
         routes::add_numbers::get_game,
         routes::add_numbers::make_guess,
         routes::add_numbers::setup_participants,
@@ -32,7 +31,6 @@ use crate::state::AppState;
         routes::bitvmx::get_aggregated_key,
         routes::bitvmx::wallet_balance,
         routes::bitvmx::get_transaction,
-        routes::bitvmx::program_setup,
         routes::bitvmx::get_protocol_cost,
     ),
     components(
@@ -40,7 +38,6 @@ use crate::state::AppState;
             crate::models::ErrorResponse,
             crate::models::HealthResponse,
             crate::models::AddNumbersGameStatus,
-            crate::models::AddNumbersRequest,
             crate::models::MakeGuessRequest,
             crate::models::P2PAddress,
             crate::models::OperatorKeys,
@@ -50,11 +47,10 @@ use crate::state::AppState;
             crate::models::WalletBalance,
             crate::models::Utxo,
             crate::models::TransactionResponse,
-            crate::models::ProgramSetupRequest,
-            crate::models::ProgramSetupResponse,
             crate::models::ProtocolCostResponse,
-            crate::models::MyFundingUtxoResponse,
-            crate::models::OtherParticipantFundingUtxoRequest,
+            crate::models::PlayerRole,
+            crate::models::StartGameRequest,
+            crate::models::StartGameResponse,
         )
     ),
     tags(
