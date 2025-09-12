@@ -1,4 +1,6 @@
 use bitvmx_client::bitcoin::Txid;
+use bitvmx_client::program::participant::P2PAddress as BitVMXP2PAddress;
+use bitvmx_client::p2p_handler::PeerId;
 use bitvmx_client::program::variables::PartialUtxo;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -12,6 +14,24 @@ pub struct P2PAddress {
     pub address: String,
     /// The peer ID of the P2P node
     pub peer_id: String,
+}
+
+impl From<P2PAddress> for BitVMXP2PAddress {
+    fn from(p2p: P2PAddress) -> Self {
+        BitVMXP2PAddress {
+            address: p2p.address.clone(),
+            peer_id: PeerId(p2p.peer_id.clone()),
+        }
+    }
+}
+
+impl From<BitVMXP2PAddress> for P2PAddress {
+    fn from(p2p: BitVMXP2PAddress) -> Self {
+        P2PAddress {
+            address: p2p.address.clone(),
+            peer_id: p2p.peer_id.to_string(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
@@ -98,45 +118,10 @@ pub struct TransactionResponse {
     pub block_hash: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
-#[ts(export)]
-pub struct ProgramSetupRequest {
-    /// The program ID
-    pub program_id: String,
-    /// The participants
-    pub participants: Vec<P2PAddress>,
-    /// The aggregated key
-    pub aggregated_key: String,
-    /// The initial utxo
-    pub initial_utxo: Utxo,
-    /// The prover win utxo
-    pub prover_win_utxo: Utxo,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
-#[ts(export)]
-pub struct ProgramSetupResponse {
-    /// The program ID
-    pub program_id: String,
-}
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
 pub struct ProtocolCostResponse {
     /// The program ID
     pub protocol_cost: u64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema)]
-#[ts(export)]
-pub struct MyFundingUtxoResponse {
-    /// The funding UTXO for the current participant
-    pub utxo: Utxo,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema)]
-#[ts(export)]
-pub struct OtherParticipantFundingUtxoRequest {
-    /// The other participant's funding UTXO
-    pub utxo: Utxo,
 }

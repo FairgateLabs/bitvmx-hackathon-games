@@ -46,9 +46,9 @@ pub struct AddNumbersGame {
     #[schema(value_type = String)]
     pub program_id: Uuid,
     pub role: PlayerRole,
-    pub number1: Option<i32>,
-    pub number2: Option<i32>,
-    pub guess: Option<i32>,
+    pub number1: Option<u32>,
+    pub number2: Option<u32>,
+    pub guess: Option<u32>,
     pub status: AddNumbersGameStatus,
     pub created_at: u64,
     pub updated_at: u64,
@@ -87,16 +87,6 @@ pub struct BitVMXProgramProperties {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
-pub struct AddNumbersRequest {
-    #[ts(type = "string")]
-    #[schema(value_type = String)]
-    pub id: Uuid,
-    pub number1: i32,
-    pub number2: i32,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
-#[ts(export)]
 pub struct AddNumbersResponse {
     pub game: AddNumbersGame,
 }
@@ -104,8 +94,10 @@ pub struct AddNumbersResponse {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
 pub struct MakeGuessRequest {
-    pub id: String,
-    pub guess: i32,
+    #[ts(type = "string")]
+    #[schema(value_type = String)]
+    pub id: Uuid,
+    pub guess: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
@@ -156,7 +148,17 @@ pub enum PlayerRole {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
 pub struct StartGameRequest {
-    pub program_id: String,
-    pub number1: i32,
-    pub number2: i32,
+    #[ts(type = "string")]
+    #[schema(value_type = String)]
+    pub program_id: Uuid,
+    pub number1: u32,
+    pub number2: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
+#[ts(export)]
+pub struct StartGameResponse {
+    #[ts(type = "string")]
+    #[schema(value_type = String)]
+    pub program_id: Uuid,
 }

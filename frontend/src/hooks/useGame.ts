@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { getApiBaseUrl } from "../config/backend";
-import { AddNumbersRequest } from "../../../backend/bindings/AddNumbersRequest";
+import { AddNumbersRequest } from "../../../backend/bindings/StartGameRequest";
 import { AddNumbersGame } from "../../../backend/bindings/AddNumbersGame";
 import { EnumPlayerRole } from "@/types/game";
 
@@ -21,11 +21,11 @@ function useGameById(id: string) {
   });
 }
 
-function useCreateGame(data: AddNumbersRequest) {
+function useCreateGame(data: StartGameRequest) {
   return useMutation({
     mutationFn: async () => {
       const baseUrl = getApiBaseUrl();
-      const response = await fetch(`${baseUrl}/api/add-numbers`, {
+      const response = await fetch(`${baseUrl}/api/add-numbers/start-game`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

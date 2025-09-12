@@ -1,5 +1,5 @@
 use crate::models::{
-    AddNumbersGame, AddNumbersGameStatus, BitVMXProgramProperties, P2PAddress, PlayerRole, Utxo,
+    AddNumbersGame, AddNumbersGameStatus, BitVMXProgramProperties, GameOutcome, GameReason, P2PAddress, PlayerRole, Utxo
 };
 use crate::utils::bitcoin;
 use bitvmx_client::bitcoin::{Address, PublicKey};
@@ -63,29 +63,6 @@ impl AddNumbersService {
 
     pub fn get_game(&self, id: Uuid) -> Option<&AddNumbersGame> {
         self.games.get(&id)
-    }
-
-    pub fn make_guess(&mut self, id: Uuid, guess: i32) -> Result<AddNumbersGame, anyhow::Error> {
-        let game = self
-            .games
-            .get_mut(&id)
-            .ok_or(anyhow::anyhow!("Game not found"))?;
-
-        // Validate game status
-        if game.status != AddNumbersGameStatus::SubmitSum {
-            return Err(anyhow::anyhow!("Game is not in waiting for guess state"));
-        }
-
-        // Make the guess
-        game.guess = Some(guess);
-        game.updated_at = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
-
-        game.status = AddNumbersGameStatus::SubmitSum;
-
-        Ok(game.clone())
     }
 
     pub fn get_current_game_id(&self) -> Option<AddNumbersGame> {
@@ -195,8 +172,8 @@ impl AddNumbersService {
     pub fn start_game(
         &mut self,
         program_id: Uuid,
-        number1: i32,
-        number2: i32,
+        number1: u32,
+        number2: u32,
     ) -> Result<(), anyhow::Error> {
         let game = self
             .games
@@ -206,6 +183,34 @@ impl AddNumbersService {
         game.number2 = Some(number2);
         game.status = AddNumbersGameStatus::SubmitSum;
         Ok(())
+    }
+
+    pub fn make_guess(&mut self, id: Uuid, guess: u32) -> Result<AddNumbersGame, anyhow::Error> {
+        let game = self
+            .games
+            .get_mut(&id)
+            .ok_or(anyhow::anyhow!("Game not found"))?;
+
+        // Validate game status
+        if game.status != AddNumbersGameStatus::SubmitSum {
+            return Err(anyhow::anyhow!("Game is not in waiting for guess state"));
+        }
+
+        // Make the guess
+        game.guess = Some(guess);
+        game.updated_at = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+
+        // Update the game status
+        game.status = AddNumbersGameStatus::GameComplete {
+            outcome: GameOutcome::Win,
+            reason: GameReason::Accept,
+        };
+    
+
+        Ok(game.clone())
     }
 }
 
