@@ -7,23 +7,24 @@ use bitvmx_client::bitcoin::{Address, PublicKey};
 use bitvmx_client::bitvmx_wallet::wallet::Destination;
 use bitvmx_client::protocol_builder::scripts::{self, ProtocolScript};
 use std::collections::HashMap;
+use std::sync::{Arc, RwLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
 #[derive(Debug)]
 pub struct AddNumbersService {
-    games: HashMap<Uuid, AddNumbersGame>,
+    games: Arc<RwLock<HashMap<Uuid, AddNumbersGame>>>,
 }
 
 impl AddNumbersService {
     pub fn new() -> Self {
         Self {
-            games: HashMap::new(),
+            games: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 
     pub fn setup_game(
-        &mut self,
+        &self,
         program_id: Uuid,
         aggregated_id: Uuid,
         participants_addresses: Vec<P2PAddress>,
@@ -58,32 +59,35 @@ impl AddNumbersService {
             },
         };
 
-        self.games.insert(program_id, game.clone());
+        let mut hash_map = self.games.write().map_err(|e| anyhow::anyhow!("Failed to write to games: {e:?}"))?;
+        hash_map.insert(program_id, game.clone());
+
         Ok(game)
     }
 
-    pub fn get_game(&self, id: Uuid) -> Option<&AddNumbersGame> {
-        self.games.get(&id)
+    pub fn get_game(&self, id: Uuid) -> Result<Option<AddNumbersGame>, anyhow::Error> {
+        let hash_map = self.games.read().map_err(|e| anyhow::anyhow!("Failed to read from games: {e:?}"))?;
+        Ok(hash_map.get(&id).cloned())
     }
 
-    pub fn get_current_game_id(&self) -> Option<AddNumbersGame> {
-        self.games
+    pub fn get_current_game_id(&self) -> Result<Option<AddNumbersGame>, anyhow::Error> {
+        let hash_map = self.games.read().map_err(|e| anyhow::anyhow!("Failed to read from games: {e:?}"))?;
+        Ok(hash_map
             .iter()
             .find(|(_, game)| game.status != AddNumbersGameStatus::Finished)
             .map(|(_, game)| game.clone())
+        )
     }
 
     /// Save the funding utxos for the current participant (only for player 1)
     pub fn save_my_funding_utxos(
-        &mut self,
+        &self,
         program_id: Uuid,
         funding_protocol_utxo: Utxo,
         funding_bet_utxo: Utxo,
     ) -> Result<(), anyhow::Error> {
-        let game = self
-            .games
-            .get_mut(&program_id)
-            .ok_or(anyhow::anyhow!("Game not found"))?;
+        let mut hash_map = self.games.write().map_err(|e| anyhow::anyhow!("Failed to write to games: {e:?}"))?;
+        let game = hash_map.get_mut(&program_id).ok_or(anyhow::anyhow!("Game not found"))?;
 
         // Save the funding bet UTXO
         game.bitvmx_program_properties.funding_bet_utxo = Some(funding_bet_utxo);
@@ -101,21 +105,17 @@ impl AddNumbersService {
 
     /// Save the funding utxos for the other participant (only for player 2)
     pub fn save_other_funding_utxos(
-        &mut self,
+        &self,
         program_id: Uuid,
         funding_protocol_utxo: Utxo,
         funding_bet_utxo: Utxo,
     ) -> Result<(), anyhow::Error> {
-        let game = self
-            .games
-            .get_mut(&program_id)
-            .ok_or(anyhow::anyhow!("Game not found"))?;
+        let mut hash_map = self.games.write().map_err(|e| anyhow::anyhow!("Failed to write to games: {e:?}"))?;
+        let game = hash_map.get_mut(&program_id).ok_or(anyhow::anyhow!("Game not found"))?;
 
         // Save the funding bet UTXO
         game.bitvmx_program_properties.funding_bet_utxo = Some(funding_bet_utxo);
         game.bitvmx_program_properties.funding_protocol_utxo = Some(funding_protocol_utxo);
-
-        // PEDRO Genertes alll ... .
 
         // Update the game status
         game.status = AddNumbersGameStatus::StartGame;
@@ -158,11 +158,12 @@ impl AddNumbersService {
     }
 
     pub fn update_game_state(
-        &mut self,
+        &self,
         id: Uuid,
         new_status: AddNumbersGameStatus,
     ) -> Result<(), String> {
-        let game = self.games.get_mut(&id).ok_or("Game not found")?;
+        let mut hash_map = self.games.write().map_err(|e| format!("Failed to write to games: {e:?}"))?;
+        let game = hash_map.get_mut(&id).ok_or("Game not found")?;
         game.status = new_status;
         game.updated_at = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -172,26 +173,22 @@ impl AddNumbersService {
     }
 
     pub fn start_game(
-        &mut self,
+        &self,
         program_id: Uuid,
         number1: u32,
         number2: u32,
     ) -> Result<(), anyhow::Error> {
-        let game = self
-            .games
-            .get_mut(&program_id)
-            .ok_or(anyhow::anyhow!("Game not found"))?;
+        let mut hash_map = self.games.write().map_err(|e| anyhow::anyhow!("Failed to write to games: {e:?}"))?;
+        let game = hash_map.get_mut(&program_id).ok_or(anyhow::anyhow!("Game not found"))?;
         game.number1 = Some(number1);
         game.number2 = Some(number2);
         game.status = AddNumbersGameStatus::SubmitGameData;
         Ok(())
     }
 
-    pub fn make_guess(&mut self, id: Uuid, guess: u32) -> Result<AddNumbersGame, anyhow::Error> {
-        let game = self
-            .games
-            .get_mut(&id)
-            .ok_or(anyhow::anyhow!("Game not found"))?;
+    pub fn make_guess(&self, id: Uuid, guess: u32) -> Result<AddNumbersGame, anyhow::Error> {
+        let mut hash_map = self.games.write().map_err(|e| anyhow::anyhow!("Failed to write to games: {e:?}"))?;
+        let game = hash_map.get_mut(&id).ok_or(anyhow::anyhow!("Game not found"))?;
 
         // Validate game status
         if game.status != AddNumbersGameStatus::SubmitGameData {
