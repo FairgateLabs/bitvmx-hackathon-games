@@ -40,11 +40,11 @@ import { EnumPlayerRole } from "@/types/game";
 export default function AddNumbersPage() {
   const { data: network } = useNetworkQuery();
   const [aggregatedId, setAggregatedId] = useState<string>("");
-  const { data: currentGame, isLoading: isGameLoading } = useCurrentGame();
+  const { data: game, isLoading: isGameLoading } = useCurrentGame();
   const [role, setRole] = useState<PlayerRole | null>(null);
 
   useEffect(() => {
-    if (!currentGame) {
+    if (!game) {
       if (role === EnumPlayerRole.Player1) {
         const aggregatedId = crypto.randomUUID();
         setAggregatedId(aggregatedId);
@@ -52,14 +52,12 @@ export default function AddNumbersPage() {
         setAggregatedId("");
       }
     } else {
-      setAggregatedId(
-        currentGame?.bitvmx_program_properties.aggregated_id ?? ""
-      );
-      setRole(currentGame?.role);
+      setAggregatedId(game?.bitvmx_program_properties.aggregated_id ?? "");
+      setRole(game?.role);
     }
-  }, [currentGame, role]);
+  }, [game, role]);
 
-  if (isGameLoading) {
+  if (isGameLoading && game !== undefined) {
     return (
       <div className="container mx-auto p-6 max-w-4xl">
         <div className="text-center">
@@ -69,11 +67,11 @@ export default function AddNumbersPage() {
     );
   }
 
-  if (!currentGame?.program_id && !network) {
+  if (!game?.program_id && !network) {
     return <ChooseNetwork />;
   }
 
-  if (!currentGame?.program_id && !role) {
+  if (!game?.program_id && !role) {
     return (
       <ChooseRole
         title="🎮 Add Numbers Game"
@@ -90,8 +88,8 @@ export default function AddNumbersPage() {
         <CardHeader>
           <CardTitle className="text-2xl">
             {role === EnumPlayerRole.Player1
-              ? "➕ Player 1 - Add Numbers"
-              : "🤝 Player 2 - Add Numbers"}
+              ? "➕ Player 1 - Add Numbers Game"
+              : "🤝 Player 2 - Add Numbers Game"}
           </CardTitle>
           <CardDescription>
             {role === EnumPlayerRole.Player1
@@ -103,31 +101,39 @@ export default function AddNumbersPage() {
         <CardContent className="space-y-6">
           <NetworkInfo />
           <WalletSection />
-          <PeerConnectionInfo aggregatedId={aggregatedId} role={role!} />
-          <PeerConnectionInput aggregatedId={aggregatedId} role={role!} />
-          <UtxoExchange />
-          {currentGame?.status === "CreateProgram" && <SetupGame />}
-          <AggregatedKey />
+          <PeerConnectionInfo
+            aggregatedId={aggregatedId}
+            role={role!}
+            expanded={!game || game?.status === "SetupParticipants"}
+          />
+          <PeerConnectionInput
+            aggregatedId={aggregatedId}
+            role={role!}
+            expanded={!game || game?.status === "SetupParticipants"}
+          />
+          {game && game.status !== "PlaceBet" && <AggregatedKey />}
+          {game && game.status !== "SetupFunding" && <UtxoExchange />}
+          {game && game?.status === "CreateProgram" && <SetupGame />}
 
           {role === EnumPlayerRole.Player1 && (
             <>
-              {currentGame?.status === "WaitForSum" && <StartGame />}
-              {currentGame?.status === "SubmitSum" && <WaitingAnswer />}
-              {currentGame?.status === "ProgramDecision" && <ChooseAction />}
-              {currentGame?.status === "Challenge" && <ChallengeAnswer />}
-              {typeof currentGame?.status === "object" &&
-                "GameComplete" in currentGame?.status &&
-                (currentGame?.status.GameComplete.outcome === "Lose" ? (
+              {game?.status === "WaitForSum" && <StartGame />}
+              {game?.status === "SubmitSum" && <WaitingAnswer />}
+              {game?.status === "ProgramDecision" && <ChooseAction />}
+              {game?.status === "Challenge" && <ChallengeAnswer />}
+              {typeof game?.status === "object" &&
+                "GameComplete" in game?.status &&
+                (game?.status.GameComplete.outcome === "Lose" ? (
                   <AcceptLoseGame />
-                ) : currentGame?.status.GameComplete.outcome === "Win" ? (
+                ) : game?.status.GameComplete.outcome === "Win" ? (
                   <div>Game Complete - You Win!</div>
                 ) : (
                   <div>Game Complete - Draw!</div>
                 ))}
-              {currentGame?.status === "TransferBetFunds" && (
+              {game?.status === "TransferBetFunds" && (
                 <div>Transferring funds...</div>
               )}
-              {currentGame?.status === "Finished" && (
+              {game?.status === "Finished" && (
                 <div>Game Finished - You Win!</div>
               )}
             </>
@@ -135,25 +141,23 @@ export default function AddNumbersPage() {
 
           {role === EnumPlayerRole.Player2 && (
             <>
-              {currentGame?.status === "WaitForSum" && <AnswerGame />}
-              {currentGame?.status === "SubmitSum" && <WaitingForAnswer />}
-              {currentGame?.status === "ProgramDecision" && (
-                <WaitingForAnswer />
-              )}
-              {currentGame?.status === "Challenge" && <ChallengeAnswer />}
-              {typeof currentGame?.status === "object" &&
-                "GameComplete" in currentGame?.status &&
-                (currentGame?.status.GameComplete.outcome === "Win" ? (
+              {game?.status === "WaitForSum" && <AnswerGame />}
+              {game?.status === "SubmitSum" && <WaitingForAnswer />}
+              {game?.status === "ProgramDecision" && <WaitingForAnswer />}
+              {game?.status === "Challenge" && <ChallengeAnswer />}
+              {typeof game?.status === "object" &&
+                "GameComplete" in game?.status &&
+                (game?.status.GameComplete.outcome === "Win" ? (
                   <AcceptWinGame />
-                ) : currentGame?.status.GameComplete.outcome === "Lose" ? (
+                ) : game?.status.GameComplete.outcome === "Lose" ? (
                   <div>Game Complete - You Lose!</div>
                 ) : (
                   <div>Game Complete - Draw!</div>
                 ))}
-              {currentGame?.status === "TransferBetFunds" && (
+              {game?.status === "TransferBetFunds" && (
                 <div>Transferring funds...</div>
               )}
-              {currentGame?.status === "Finished" && (
+              {game?.status === "Finished" && (
                 <div>Game Finished - You Lose!</div>
               )}
             </>

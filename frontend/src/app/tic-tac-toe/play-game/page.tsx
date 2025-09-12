@@ -36,7 +36,6 @@ import { useState } from "react";
 import { useNetworkQuery } from "@/hooks/useNetwork";
 
 export default function TicTacToePage() {
-  // const { data: gameStatus } = useGameState();
   const { data: network } = useNetworkQuery();
   const [role, setRole] = useState<EnumPlayerRole | null>(null);
 

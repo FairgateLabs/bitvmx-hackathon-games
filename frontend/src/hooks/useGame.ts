@@ -78,6 +78,9 @@ function useCurrentGame() {
   return useQuery({
     queryKey: ["currentGameId"],
     queryFn: fetchCurrentGame,
+    refetchInterval: 5 * 1000, // every 5 seconds
+    refetchIntervalInBackground: true, // keep polling even when tab is not focused
+    staleTime: 0, // data becomes stale immediately after fetch
   });
 }
 

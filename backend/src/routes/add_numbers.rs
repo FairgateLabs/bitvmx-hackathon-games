@@ -1,7 +1,9 @@
 use std::str::FromStr;
 
 use crate::models::{
-    AddNumbersGame, ErrorResponse, FundingUtxoRequest, FundingUtxosResponse, MakeGuessRequest, PlaceBetRequest, PlaceBetResponse, SetupParticipantsRequest, SetupParticipantsResponse, Utxo
+    AddNumbersGame, AddNumbersGameStatus, ErrorResponse, FundingUtxoRequest, FundingUtxosResponse,
+    MakeGuessRequest, PlaceBetRequest, PlaceBetResponse, SetupParticipantsRequest,
+    SetupParticipantsResponse, Utxo,
 };
 use crate::state::AppState;
 use crate::utils::{bitcoin, http_errors};
@@ -243,46 +245,51 @@ pub async fn place_bet(
     }
 
     // Get the game
-    let service = app_state.add_numbers_service.read().await;
-    let game = service
+    let game_service = app_state.add_numbers_service.read().await;
+    let game = game_service
         .get_game(program_id)
         .ok_or(http_errors::not_found("Game not found"))?;
 
     // Get the aggregated key and protocol information
     let aggregated_key = game.bitvmx_program_properties.aggregated_key;
-    let x_only_pubkey = bitcoin::pub_key_to_xonly(&aggregated_key)
-        .map_err(|e| http_errors::internal_server_error(&format!("Failed to convert aggregated key to x only pubkey: {e:?}")))?;
-    let tap_leaves = service.protocol_scripts(&aggregated_key);
+    let x_only_pubkey = bitcoin::pub_key_to_xonly(&aggregated_key).map_err(|e| {
+        http_errors::internal_server_error(&format!(
+            "Failed to convert aggregated key to x only pubkey: {e:?}"
+        ))
+    })?;
+    let tap_leaves = game_service.protocol_scripts(&aggregated_key);
     let destination = Destination::P2TR(x_only_pubkey, tap_leaves);
-    
+
     // Get the protocol fees amount
-    let service = app_state.bitvmx_service.read().await;
-    let protocol_amount = service.protocol_cost();
+    let bitvmx_service = app_state.bitvmx_service.read().await;
+    let protocol_amount = bitvmx_service.protocol_cost();
 
     // Send funds to cover protocol fees to the aggregated key
-    let initial_utxo = service
+    let initial_utxo = bitvmx_service
         .send_funds(&destination, protocol_amount)
         .await
-        .map_err(|e| {
-            http_errors::internal_server_error(&format!("Failed to send funds: {e:?}"))
-        })?;
+        .map_err(|e| http_errors::internal_server_error(&format!("Failed to send funds: {e:?}")))?;
     debug!(
         "Sent {protocol_amount} satoshis to cover protocol fees to the aggregated key txid: {:?}",
         initial_utxo.0
     );
 
-
     // Send the amount that the players will bet to the aggregated key
-    let prover_win_utxo = service
+    let prover_win_utxo = bitvmx_service
         .send_funds(&destination, request.amount)
         .await
-        .map_err(|e| {
-            http_errors::internal_server_error(&format!("Failed to send funds: {e:?}"))
-        })?;
+        .map_err(|e| http_errors::internal_server_error(&format!("Failed to send funds: {e:?}")))?;
     debug!(
-        "Funds {} satoshis sent to the aggregated key to cover the players bet txid: {:?}", request.amount,
-        prover_win_utxo.0
+        "Funds {} satoshis sent to the aggregated key to cover the players bet txid: {:?}",
+        request.amount, prover_win_utxo.0
     );
+
+    let mut game_service = app_state.add_numbers_service.write().await;
+    game_service
+        .update_game_state(program_id, AddNumbersGameStatus::SetupFunding)
+        .map_err(|e| {
+            http_errors::internal_server_error(&format!("Failed to update game state: {e:?}"))
+        })?;
 
     Ok(Json(PlaceBetResponse {
         funding_protocol_utxo: initial_utxo.into(),

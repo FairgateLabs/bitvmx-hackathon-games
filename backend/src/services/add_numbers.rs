@@ -41,7 +41,7 @@ impl AddNumbersService {
             number1: None,
             number2: None,
             guess: None,
-            status: AddNumbersGameStatus::SetupParticipants,
+            status: AddNumbersGameStatus::PlaceBet,
             created_at: now,
             updated_at: now,
             role,
@@ -102,26 +102,47 @@ impl AddNumbersService {
         // Save the funding bet UTXO
         game.bitvmx_program_properties.funding_bet_utxo = Some(funding_bet_utxo);
         game.bitvmx_program_properties.funding_protocol_utxo = Some(funding_protocol_utxo);
+        game.updated_at = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        game.status = AddNumbersGameStatus::CreateProgram;
 
         Ok(())
     }
 
-    pub fn protocol_scripts(&self,aggregated_key: &PublicKey) -> Vec<ProtocolScript> {
+    pub fn protocol_scripts(&self, aggregated_key: &PublicKey) -> Vec<ProtocolScript> {
         // Todo check if this tap leaves are correct
         vec![
             scripts::check_aggregated_signature(aggregated_key, scripts::SignMode::Aggregate),
             scripts::check_aggregated_signature(aggregated_key, scripts::SignMode::Aggregate),
         ]
     }
-    
+
     pub fn protocol_address(&self, aggregated_key: &PublicKey) -> Result<Address, anyhow::Error> {
         // Todo check if this tap leaves are correct
-        let x_only_pubkey = bitcoin::pub_key_to_xonly(aggregated_key)
-            .map_err(|e| anyhow::anyhow!("Failed to convert aggregated key to x only pubkey: {e:?}"))?;
+        let x_only_pubkey = bitcoin::pub_key_to_xonly(aggregated_key).map_err(|e| {
+            anyhow::anyhow!("Failed to convert aggregated key to x only pubkey: {e:?}")
+        })?;
         let tap_leaves = self.protocol_scripts(aggregated_key);
-        let p2tr_address = bitcoin::pub_key_to_p2tr(&x_only_pubkey, &tap_leaves)
-            .map_err(|e| anyhow::anyhow!("Failed to convert aggregated key to p2tr address: {e:?}"))?;
+        let p2tr_address = bitcoin::pub_key_to_p2tr(&x_only_pubkey, &tap_leaves).map_err(|e| {
+            anyhow::anyhow!("Failed to convert aggregated key to p2tr address: {e:?}")
+        })?;
         Ok(p2tr_address)
+    }
+
+    pub fn update_game_state(
+        &mut self,
+        id: Uuid,
+        new_status: AddNumbersGameStatus,
+    ) -> Result<(), String> {
+        let game = self.games.get_mut(&id).ok_or("Game not found")?;
+        game.status = new_status;
+        game.updated_at = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        Ok(())
     }
 }
 

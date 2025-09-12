@@ -14,11 +14,13 @@ import { PlayerRole } from "../../../../backend/bindings/PlayerRole";
 export function PeerConnectionInfo({
   aggregatedId,
   role,
+  expanded,
 }: {
   aggregatedId: string;
   role: PlayerRole;
+  expanded: boolean;
 }) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(expanded);
   const { data: peerConnectionInfo } = useCommunicationInfo();
   const { data: operatorKey } = usePubkey();
 

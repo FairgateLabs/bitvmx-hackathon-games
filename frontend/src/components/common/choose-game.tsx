@@ -40,12 +40,7 @@ export function ChooseGame() {
           </CardContent>
           <CardFooter className="flex justify-center">
             <Link href="/add-numbers/play-game" className="w-full">
-              <Button
-                className="w-full"
-                onClick={() => {
-                  /* nextState(GameState.ChooseRole) */
-                }}
-              >
+              <Button className="w-full" onClick={() => {}}>
                 Play Now!
               </Button>
             </Link>
@@ -65,12 +60,7 @@ export function ChooseGame() {
           </CardContent>
           <CardFooter className="flex justify-center">
             <Link href="/tic-tac-toe/play-game" className="w-full">
-              <Button
-                className="w-full"
-                onClick={() => {
-                  /* nextState(GameState.ChooseRole) */
-                }}
-              >
+              <Button className="w-full" onClick={() => {}}>
                 Play Now!
               </Button>
             </Link>

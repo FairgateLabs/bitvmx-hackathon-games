@@ -23,17 +23,20 @@ interface PeerConnectionData {
 export function PeerConnectionInput({
   aggregatedId,
   role,
+  expanded,
 }: {
   role: PlayerRole;
   aggregatedId: string;
+  expanded: boolean;
 }) {
   const [jsonInput, setJsonInput] = useState("");
   const [parsedData, setParsedData] = useState<PeerConnectionData | null>(null);
   const [jsonError, setJsonError] = useState("");
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(expanded);
   const [inputsDisabled, setInputsDisabled] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
-  const { mutate: savePeerConnection } = useSaveParticipantInfo();
+  const [successMessage, setSuccessMessage] = useState(false);
+  const { mutate: savePeerConnection, isPending: isSavingParticipantInfo } =
+    useSaveParticipantInfo();
   const { data: peerConnectionInfo } = useCommunicationInfo();
   const { data: operatorKey } = usePubkey();
 
@@ -167,7 +170,12 @@ export function PeerConnectionInput({
           : parsedData.aggregatedId ?? "",
     });
     setInputsDisabled(true);
-    setSuccessMessage("Connection successfully established!");
+
+    if (isSavingParticipantInfo) {
+      setSuccessMessage(false);
+    } else {
+      setSuccessMessage(true);
+    }
   };
 
   let aggregatedIdPlaceholder = "";
@@ -196,43 +204,40 @@ export function PeerConnectionInput({
               : "Paste the JSON data containing the Aggregated UUID, Public Key, Network Address and Peer ID of the other player to join their game."}
           </p>
 
-          <p className="text-sm text-gray-700 mb-4">
+          <p className="text-sm text-gray-700 mb-3">
             BitVMX will use all this information to connect to the other client
             and start computing the program.
           </p>
 
-          <div>
-            <Label htmlFor="jsonInput" className="text-gray-800">
-              Other Player&apos;s Connection Data (JSON):
-            </Label>
-            <Textarea
-              id="jsonInput"
-              value={jsonInput}
-              onChange={handleJsonChange}
-              placeholder={jsonPlaceholder}
-              className="mt-1 font-mono text-sm min-h-[200px] resize-vertical"
-              rows={8}
-              disabled={inputsDisabled}
-            />
-            {jsonError && (
-              <p className="text-red-600 text-sm mt-1">{jsonError}</p>
-            )}
-          </div>
+          <Textarea
+            id="jsonInput"
+            value={jsonInput}
+            onChange={handleJsonChange}
+            placeholder={jsonPlaceholder}
+            className="font-mono text-sm min-h-[200px] resize-vertical"
+            rows={8}
+            disabled={inputsDisabled}
+          />
+          {jsonError && (
+            <p className="text-red-600 text-sm mt-1">{jsonError}</p>
+          )}
 
           <Button
             onClick={handleSetConnection}
             disabled={!parsedData || !!jsonError || inputsDisabled}
             className="w-full bg-gray-600 hover:bg-gray-700"
           >
-            🔗 Setup Data
+            {isSavingParticipantInfo ? "⏳ Setting Up..." : "🔗 Setup Data"}
           </Button>
 
-          {successMessage && (
+          {successMessage && !isSavingParticipantInfo && (
             <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
               <h3 className="font-semibold mb-2 text-green-800">
                 ✅ Connection Successful
               </h3>
-              <p className="text-sm text-green-700">{successMessage}</p>
+              <p className="text-sm text-green-700">
+                Connection successfully established!
+              </p>
             </div>
           )}
 

@@ -34,9 +34,7 @@ export function StartGame() {
         </ul>
       </div>
       <Button
-        onClick={() => {
-          /* nextGameState(GameState.WaitingAnswer) */
-        }}
+        onClick={() => {}}
         className="w-full bg-blue-600 hover:bg-blue-700"
       >
         <Play className="h-4 w-4 mr-2" />
