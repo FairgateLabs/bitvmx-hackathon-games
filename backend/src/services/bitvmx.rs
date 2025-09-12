@@ -52,7 +52,6 @@ impl BitVMXService {
         self.p2p_address.clone()
     }
 
-    
     pub fn get_wallet_address(&self) -> Result<&Address, anyhow::Error> {
         self.wallet_address
             .as_ref()
@@ -61,7 +60,7 @@ impl BitVMXService {
     }
 
     /// Create aggregated key
-    
+
     pub async fn create_agregated_key(
         &self,
         uuid: Uuid,
@@ -87,7 +86,7 @@ impl BitVMXService {
     }
 
     /// Get aggregated key
-    
+
     pub async fn aggregated_key(&self, aggregated_id: Uuid) -> Result<PublicKey, anyhow::Error> {
         trace!("Get aggregated key from BitVMX");
         let response = self
@@ -109,7 +108,6 @@ impl BitVMXService {
         }
     }
 
-    
     pub async fn wallet_balance(&self) -> Result<WalletBalance, anyhow::Error> {
         let address = self.get_wallet_address()?;
         let response = self
@@ -130,7 +128,6 @@ impl BitVMXService {
         }
     }
 
-    
     pub async fn send_funds(
         &self,
         destination: &Destination,
@@ -156,11 +153,23 @@ impl BitVMXService {
         }
     }
 
-    pub async fn wait_for_transaction_response(&self, correlation_id: Uuid) -> Result<TransactionStatus, anyhow::Error> {
-        debug!("Waiting for transaction response for correlation id: {:?}", correlation_id);
-        let response = self.rpc_client.wait_for_response(correlation_id.to_string()).await?;
+    pub async fn wait_for_transaction_response(
+        &self,
+        correlation_id: Uuid,
+    ) -> Result<TransactionStatus, anyhow::Error> {
+        debug!(
+            "Waiting for transaction response for correlation id: {:?}",
+            correlation_id
+        );
+        let response = self
+            .rpc_client
+            .wait_for_response(correlation_id.to_string())
+            .await?;
         if let OutgoingBitVMXApiMessages::Transaction(_uuid, transaction_status, _) = response {
-            info!("Received transaction response for correlation id: {:?}", correlation_id);
+            info!(
+                "Received transaction response for correlation id: {:?}",
+                correlation_id
+            );
             Ok(transaction_status)
         } else {
             Err(anyhow::anyhow!(
@@ -170,7 +179,6 @@ impl BitVMXService {
         }
     }
 
-    
     pub async fn get_transaction(&self, txid: String) -> Result<TransactionStatus, anyhow::Error> {
         let response = self
             .rpc_client
@@ -190,7 +198,6 @@ impl BitVMXService {
         }
     }
 
-    
     pub async fn set_variable(
         &self,
         program_id: Uuid,
@@ -208,7 +215,6 @@ impl BitVMXService {
         Ok(())
     }
 
-    
     pub async fn program_setup(
         &self,
         program_id: Uuid,
@@ -235,7 +241,7 @@ impl BitVMXService {
     // ----- Start internal methods -----
 
     /// Update P2P address
-    
+
     async fn set_wallet_address(&mut self) -> Result<(), anyhow::Error> {
         let response = self
             .rpc_client
@@ -274,7 +280,7 @@ impl BitVMXService {
     }
 
     /// Update P2P address
-    
+
     async fn set_p2p_address(&mut self) -> Result<(), anyhow::Error> {
         // Set P2P address
         let response = self
@@ -297,7 +303,7 @@ impl BitVMXService {
     }
 
     /// Update pub key
-    
+
     async fn set_pub_key(&mut self) -> Result<(), anyhow::Error> {
         debug!("Create operator key from BitVMX");
         let pub_key_id = Uuid::new_v4();
@@ -319,7 +325,7 @@ impl BitVMXService {
     }
 
     /// Update funding key
-    
+
     async fn set_funding_key(&mut self) -> Result<(), anyhow::Error> {
         debug!("Create funding key for speedups from BitVMX");
         let speedup_key_id = Uuid::new_v4();
@@ -341,7 +347,7 @@ impl BitVMXService {
     }
 
     /// Setup BitVMX
-    
+
     pub async fn initial_setup(&mut self) -> Result<(), anyhow::Error> {
         debug!("Get BitVMX info and initial keys setup");
 

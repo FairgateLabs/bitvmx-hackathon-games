@@ -61,7 +61,10 @@ impl RpcClient {
         &self,
         correlation_id: &str,
     ) -> Result<oneshot::Receiver<OutgoingBitVMXApiMessages>, anyhow::Error> {
-        trace!("Adding response handler to queue for correlation id: {:?}", correlation_id);
+        trace!(
+            "Adding response handler to queue for correlation id: {:?}",
+            correlation_id
+        );
         let (tx, rx) = oneshot::channel();
         {
             let mut pending = self.pending.lock().await;
@@ -87,7 +90,6 @@ impl RpcClient {
         Ok(response)
     }
 
-
     // #[tracing::instrument(skip(self, callback))]
     // pub async fn wait_for_response_callback<F, Fut>(
     //     &self,
@@ -102,7 +104,6 @@ impl RpcClient {
     //         correlation_id
     //     );
     //     let rx = self.add_response_handler(&correlation_id).await?;
-
 
     //     // TODO spawn a task to call the callback
     //     let response = rx.await.unwrap();
@@ -171,8 +172,7 @@ impl RpcClient {
             if optional_tx.is_none() {
                 info!(
                     "No response handler for correlation ID: {}, type: {:?}",
-                    correlation_id,
-                    response,
+                    correlation_id, response,
                 );
                 return Ok(());
             }
@@ -296,21 +296,31 @@ impl RpcClient {
             IncomingBitVMXApiMessages::Ping() => Ok("ping".to_string()),
             IncomingBitVMXApiMessages::SetVar(uuid, _key, _value) => Ok(uuid.to_string()),
             IncomingBitVMXApiMessages::SetWitness(uuid, _address, _witness) => Ok(uuid.to_string()),
-            IncomingBitVMXApiMessages::SetFundingUtxo(_utxo) => Ok(format!("set_funding_utxo_{}", _utxo.txid)),
+            IncomingBitVMXApiMessages::SetFundingUtxo(_utxo) => {
+                Ok(format!("set_funding_utxo_{}", _utxo.txid))
+            }
             IncomingBitVMXApiMessages::GetVar(uuid, _key) => Ok(uuid.to_string()),
             IncomingBitVMXApiMessages::GetWitness(uuid, _address) => Ok(uuid.to_string()),
             IncomingBitVMXApiMessages::GetCommInfo() => Ok("get_comm_info".to_string()),
             IncomingBitVMXApiMessages::GetTransaction(uuid, _txid) => Ok(uuid.to_string()),
-            IncomingBitVMXApiMessages::GetTransactionInfoByName(uuid, _name) => Ok(uuid.to_string()),
-            IncomingBitVMXApiMessages::GetHashedMessage(uuid, _name, _vout, _leaf) => Ok(uuid.to_string()),
+            IncomingBitVMXApiMessages::GetTransactionInfoByName(uuid, _name) => {
+                Ok(uuid.to_string())
+            }
+            IncomingBitVMXApiMessages::GetHashedMessage(uuid, _name, _vout, _leaf) => {
+                Ok(uuid.to_string())
+            }
             IncomingBitVMXApiMessages::Setup(uuid, _program_type, _participants, _leader_idx) => {
                 Ok(uuid.to_string())
             }
             IncomingBitVMXApiMessages::SubscribeToTransaction(uuid, _txid) => Ok(uuid.to_string()),
             IncomingBitVMXApiMessages::SubscribeUTXO() => Ok("subscribe_utxo".to_string()),
-            IncomingBitVMXApiMessages::SubscribeToRskPegin() => Ok("subscribe_rsk_pegin".to_string()),
+            IncomingBitVMXApiMessages::SubscribeToRskPegin() => {
+                Ok("subscribe_rsk_pegin".to_string())
+            }
             IncomingBitVMXApiMessages::GetSPVProof(_txid) => Ok(format!("get_spv_proof_{}", _txid)),
-            IncomingBitVMXApiMessages::DispatchTransaction(uuid, _transaction) => Ok(uuid.to_string()),
+            IncomingBitVMXApiMessages::DispatchTransaction(uuid, _transaction) => {
+                Ok(uuid.to_string())
+            }
             IncomingBitVMXApiMessages::DispatchTransactionName(uuid, _name) => Ok(uuid.to_string()),
             IncomingBitVMXApiMessages::SetupKey(uuid, _addresses, _operator_key, _funding_key) => {
                 Ok(uuid.to_string())
@@ -318,11 +328,17 @@ impl RpcClient {
             IncomingBitVMXApiMessages::GetAggregatedPubkey(uuid) => Ok(uuid.to_string()),
             IncomingBitVMXApiMessages::GetKeyPair(uuid) => Ok(uuid.to_string()),
             IncomingBitVMXApiMessages::GetPubKey(uuid, _new_key) => Ok(uuid.to_string()),
-            IncomingBitVMXApiMessages::SignMessage(uuid, _payload_to_sign, _public_key_to_use) => Ok(uuid.to_string()),
-            IncomingBitVMXApiMessages::GenerateZKP(uuid, _payload_to_sign, _name) => Ok(uuid.to_string()),
+            IncomingBitVMXApiMessages::SignMessage(uuid, _payload_to_sign, _public_key_to_use) => {
+                Ok(uuid.to_string())
+            }
+            IncomingBitVMXApiMessages::GenerateZKP(uuid, _payload_to_sign, _name) => {
+                Ok(uuid.to_string())
+            }
             IncomingBitVMXApiMessages::ProofReady(uuid) => Ok(uuid.to_string()),
             IncomingBitVMXApiMessages::GetZKPExecutionResult(uuid) => Ok(uuid.to_string()),
-            IncomingBitVMXApiMessages::Encrypt(uuid, _payload_to_encrypt, _public_key_to_use) => Ok(uuid.to_string()),
+            IncomingBitVMXApiMessages::Encrypt(uuid, _payload_to_encrypt, _public_key_to_use) => {
+                Ok(uuid.to_string())
+            }
             IncomingBitVMXApiMessages::Decrypt(uuid, _payload_to_decrypt) => Ok(uuid.to_string()),
             IncomingBitVMXApiMessages::GetFundingBalance(uuid) => Ok(uuid.to_string()),
             IncomingBitVMXApiMessages::GetFundingAddress(uuid) => Ok(uuid.to_string()),
@@ -349,9 +365,12 @@ impl RpcClient {
             OutgoingBitVMXApiMessages::PeginTransactionFound(_txid, _transaction_status) => {
                 Ok("subscribe_rsk_pegin".to_string())
             }
-            OutgoingBitVMXApiMessages::SpendingUTXOTransactionFound(uuid, _txid, _vout, _transaction_status) => {
-                Ok(uuid.to_string())
-            },
+            OutgoingBitVMXApiMessages::SpendingUTXOTransactionFound(
+                uuid,
+                _txid,
+                _vout,
+                _transaction_status,
+            ) => Ok(uuid.to_string()),
             OutgoingBitVMXApiMessages::SetupCompleted(uuid) => Ok(uuid.to_string()),
             OutgoingBitVMXApiMessages::AggregatedPubkey(uuid, _aggregated_pubkey) => {
                 Ok(uuid.to_string())
@@ -368,13 +387,14 @@ impl RpcClient {
                 Ok(uuid.to_string())
             }
             OutgoingBitVMXApiMessages::PubKey(uuid, _pub_key) => Ok(uuid.to_string()),
-            OutgoingBitVMXApiMessages::SignedMessage(uuid, _signature_r, _signature_s, _recovery_id) => {
-                Ok(uuid.to_string())
-            }
+            OutgoingBitVMXApiMessages::SignedMessage(
+                uuid,
+                _signature_r,
+                _signature_s,
+                _recovery_id,
+            ) => Ok(uuid.to_string()),
             OutgoingBitVMXApiMessages::Variable(uuid, _key, _value) => Ok(uuid.to_string()),
-            OutgoingBitVMXApiMessages::Witness(uuid, _key, _witness) => {
-                Ok(uuid.to_string())
-            }
+            OutgoingBitVMXApiMessages::Witness(uuid, _key, _witness) => Ok(uuid.to_string()),
             OutgoingBitVMXApiMessages::HashedMessage(uuid, _name, _vout, _leaf, _) => {
                 Ok(uuid.to_string())
             }

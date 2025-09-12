@@ -36,15 +36,15 @@ where
                 // Find the first occurrence of the key in global storage
                 if let Some(pos_in_global) = self.global.iter().position(|(k, _)| k == key) {
                     let (_, value) = self.global.remove(pos_in_global).unwrap();
-                    
+
                     // Remove one index from the queue (we don't need to validate it)
                     indices.pop_front();
-                    
+
                     // Clean up the map entry if no more indices
                     if indices.is_empty() {
                         self.map.remove(key);
                     }
-                    
+
                     return Ok(Some(value));
                 } else {
                     // Key not found in global storage, clean up the indices
@@ -56,7 +56,6 @@ where
         }
         Ok(None)
     }
-
 }
 
 #[cfg(test)]
@@ -80,7 +79,6 @@ mod tests {
         Ok(())
     }
 
-
     #[tokio::test]
     async fn test_race_condition_invalid_index() -> Result<()> {
         let mut bag: ChainedMap<&str, oneshot::Sender<String>> = ChainedMap::new();
@@ -89,7 +87,7 @@ mod tests {
         let (tx1, rx1) = oneshot::channel();
         let (tx2, rx2) = oneshot::channel();
         let (tx3, rx3) = oneshot::channel();
-        
+
         bag.insert("job1", tx1);
         bag.insert("job1", tx2);
         bag.insert("job1", tx3);
@@ -123,7 +121,7 @@ mod tests {
         let (tx2, rx2) = oneshot::channel();
         let (tx3, rx3) = oneshot::channel();
         let (tx4, rx4) = oneshot::channel();
-        
+
         bag.insert("job1", tx1);
         bag.insert("job2", tx2);
         bag.insert("job1", tx3);

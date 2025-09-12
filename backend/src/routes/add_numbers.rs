@@ -18,7 +18,7 @@ use bitvmx_client::bitcoin_coordinator::TransactionStatus;
 use bitvmx_client::p2p_handler::PeerId;
 use bitvmx_client::program::participant::P2PAddress;
 use bitvmx_client::types::Destination;
-use tracing::{debug};
+use tracing::debug;
 use uuid::Uuid;
 
 pub fn router() -> Router<AppState> {
@@ -105,7 +105,9 @@ pub async fn setup_participants(
             )
             .await
             .map_err(|e| {
-                http_errors::internal_server_error(&format!("Failed to create aggregated key: {e:?}"))
+                http_errors::internal_server_error(&format!(
+                    "Failed to create aggregated key: {e:?}"
+                ))
             })?;
     }
     debug!("Aggregated key created: {:?}", aggregated_key);
@@ -126,7 +128,9 @@ pub async fn setup_participants(
                 aggregated_key,
                 request.role,
             )
-            .map_err(|e| http_errors::internal_server_error(&format!("Failed to setup game: {e:?}")))?;
+            .map_err(|e| {
+                http_errors::internal_server_error(&format!("Failed to setup game: {e:?}"))
+            })?;
     }
 
     Ok(Json(SetupParticipantsResponse {
@@ -202,7 +206,11 @@ pub async fn make_guess(
 ) -> Result<Json<AddNumbersGame>, (StatusCode, Json<ErrorResponse>)> {
     let mut service = app_state.add_numbers_service.write().await;
     let game = service.make_guess(id, request.guess).map_err(|error| {
-        http_errors::error_response(StatusCode::BAD_REQUEST, "INVALID_OPERATION", &error.to_string())
+        http_errors::error_response(
+            StatusCode::BAD_REQUEST,
+            "INVALID_OPERATION",
+            &error.to_string(),
+        )
     })?;
 
     Ok(Json(game))
@@ -249,7 +257,7 @@ pub async fn place_bet(
         return Err(http_errors::bad_request("Program ID cannot be empty"));
     }
     let program_id = request.program_id;
-    
+
     // Validate the amount
     if request.amount == 0 {
         return Err(http_errors::bad_request("Amount cannot be 0"));
@@ -266,11 +274,13 @@ pub async fn place_bet(
         // Get the aggregated key
         aggregated_key = game.bitvmx_program_properties.aggregated_key;
         // Get the protocol information
-        destination = service.protocol_destination(&aggregated_key)
-        .map_err(|e| http_errors::internal_server_error(&format!("Failed to obtain protocol destination from aggregated key: {e:?}")))?;
-    
+        destination = service.protocol_destination(&aggregated_key).map_err(|e| {
+            http_errors::internal_server_error(&format!(
+                "Failed to obtain protocol destination from aggregated key: {e:?}"
+            ))
+        })?;
     }
-    
+
     let funding_protocol_utxo: Utxo;
     let funding_bet_utxo: Utxo;
     let protocol_tx_status: TransactionStatus;
@@ -300,8 +310,8 @@ pub async fn place_bet(
                 http_errors::internal_server_error(&format!("Failed to send bet funds: {e:?}"))
             })?;
         debug!(
-            "Funds {} satoshis sent to the aggregated key to cover the players bet txid: {:?}", request.amount,
-            funding_bet.0
+            "Funds {} satoshis sent to the aggregated key to cover the players bet txid: {:?}",
+            request.amount, funding_bet.0
         );
 
         // Wait for the Transaction Status responses
@@ -310,59 +320,60 @@ pub async fn place_bet(
             service.wait_for_transaction_response(funding_protocol_uuid),
             service.wait_for_transaction_response(funding_bet_uuid),
         );
-        
-        debug!("Received transaction status responses for correlation ids: {:?} and {:?}", protocol_tx_result, bet_tx_result);
+
+        debug!(
+            "Received transaction status responses for correlation ids: {:?} and {:?}",
+            protocol_tx_result, bet_tx_result
+        );
         // Handle any errors from waiting for responses
         protocol_tx_status = protocol_tx_result.map_err(|e| {
-            http_errors::internal_server_error(&format!("Failed to wait for protocol transaction response: {e:?}"))
+            http_errors::internal_server_error(&format!(
+                "Failed to wait for protocol transaction response: {e:?}"
+            ))
         })?;
         bet_tx_status = bet_tx_result.map_err(|e| {
-            http_errors::internal_server_error(&format!("Failed to wait for bet transaction response: {e:?}"))
+            http_errors::internal_server_error(&format!(
+                "Failed to wait for bet transaction response: {e:?}"
+            ))
         })?;
 
         funding_protocol_utxo = funding_protocol.clone().into();
         funding_bet_utxo = funding_bet.clone().into();
     }
-   
-
-    if protocol_tx_status.confirmations > 0 && bet_tx_status.confirmations > 0 {
-        debug!("Protocol and bet transactions confirmed, marking funding UTXOs as mined");
-        // Mark the funding UTXOs as mined
-        {
-            let mut service = app_state.add_numbers_service.write().await;
-            service.mark_my_funding_utxos_as_mined(program_id).map_err(|e| {
-                http_errors::internal_server_error(&format!("Failed to mark my funding UTXOs as mined: {e:?}"))
-            })?;
-        }
-    }
-
 
     // Save the funding UTXOs in AddNumbersService
     {
         let mut service = app_state.add_numbers_service.write().await;
-        service.save_my_funding_utxos(
-            program_id,
-            funding_protocol_utxo.clone(),
-            funding_bet_utxo.clone(),
-        ).map_err(|e| {
-            http_errors::internal_server_error(&format!("Failed to save my funding UTXO: {e:?}"))
-        })?;
+        service
+            .save_my_funding_utxos(
+                program_id,
+                funding_protocol_utxo.clone(),
+                funding_bet_utxo.clone(),
+            )
+            .map_err(|e| {
+                http_errors::internal_server_error(&format!(
+                    "Failed to save my funding UTXO: {e:?}"
+                ))
+            })?;
     }
     debug!("Saved my funding UTXOs in AddNumbersService");
 
-    let mut game_service = app_state.add_numbers_service.write().await;
-    game_service
-        .update_game_state(program_id, AddNumbersGameStatus::SetupFunding)
-        .map_err(|e| {
-            http_errors::internal_server_error(&format!("Failed to update game state: {e:?}"))
-        })?;
+    if protocol_tx_status.confirmations > 0 && bet_tx_status.confirmations > 0 {
+        debug!("Protocol and bet transactions confirmed, marking funding UTXOs as mined");
+        // Mark the funding UTXOs as mined
+        let mut game_service = app_state.add_numbers_service.write().await;
+        game_service
+            .update_game_state(program_id, AddNumbersGameStatus::SetupFunding)
+            .map_err(|e| {
+                http_errors::internal_server_error(&format!("Failed to update game state: {e:?}"))
+            })?;
+    }
 
     Ok(Json(PlaceBetResponse {
         funding_protocol_utxo,
         funding_bet_utxo,
     }))
 }
-
 
 #[utoipa::path(
     get,

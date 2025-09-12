@@ -1,7 +1,7 @@
 use crate::models::{
     AggregatedKeyResponse, ErrorResponse, OperatorKeys, P2PAddress, ProgramSetupRequest,
-    ProgramSetupResponse, ProtocolCostResponse, SetupParticipantsRequest,
-    TransactionResponse, WalletBalance,
+    ProgramSetupResponse, ProtocolCostResponse, SetupParticipantsRequest, TransactionResponse,
+    WalletBalance,
 };
 use crate::state::AppState;
 use crate::utils::http_errors;
@@ -134,17 +134,20 @@ pub async fn program_setup(
     // Set inputs values
     let first_number: u32 = 1;
     let second_number: u32 = 2;
-    
+
     // Concatenate the two input numbers as bytes
     let mut concatenated_bytes = Vec::<u8>::new();
     concatenated_bytes.extend_from_slice(&first_number.to_be_bytes());
     concatenated_bytes.extend_from_slice(&second_number.to_be_bytes());
 
-
     // Set variables in BitVMX
     let service_guard = app_state.bitvmx_service.read().await;
     service_guard
-        .set_variable(program_id, "program_input_0", VariableTypes::Input(concatenated_bytes.clone()))
+        .set_variable(
+            program_id,
+            "program_input_0",
+            VariableTypes::Input(concatenated_bytes.clone()),
+        )
         .await
         .map_err(|e| {
             http_errors::internal_server_error(&format!("Failed to set variable: {e:?}"))

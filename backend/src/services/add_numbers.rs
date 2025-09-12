@@ -66,7 +66,10 @@ impl AddNumbersService {
     }
 
     pub fn make_guess(&mut self, id: Uuid, guess: i32) -> Result<AddNumbersGame, anyhow::Error> {
-        let game = self.games.get_mut(&id).ok_or(anyhow::anyhow!("Game not found"))?;
+        let game = self
+            .games
+            .get_mut(&id)
+            .ok_or(anyhow::anyhow!("Game not found"))?;
 
         // Validate game status
         if game.status != AddNumbersGameStatus::SubmitSum {
@@ -99,7 +102,10 @@ impl AddNumbersService {
         funding_protocol_utxo: Utxo,
         funding_bet_utxo: Utxo,
     ) -> Result<(), anyhow::Error> {
-        let game = self.games.get_mut(&program_id).ok_or(anyhow::anyhow!("Game not found"))?;
+        let game = self
+            .games
+            .get_mut(&program_id)
+            .ok_or(anyhow::anyhow!("Game not found"))?;
 
         // Save the funding bet UTXO
         game.bitvmx_program_properties.funding_bet_utxo = Some(funding_bet_utxo);
@@ -116,19 +122,6 @@ impl AddNumbersService {
         Ok(())
     }
 
-    /// 
-    pub fn mark_my_funding_utxos_as_mined(
-        &mut self,
-        program_id: Uuid,
-    ) -> Result<(), anyhow::Error> {
-        let game = self.games.get_mut(&program_id).ok_or(anyhow::anyhow!("Game not found"))?;
-    
-        // Update the game status
-        game.status = AddNumbersGameStatus::SetupFunding;
-
-        Ok(())
-    }
-
     /// Save the funding utxos for the other participant (only for player 2)
     pub fn save_other_funding_utxos(
         &mut self,
@@ -136,7 +129,10 @@ impl AddNumbersService {
         funding_protocol_utxo: Utxo,
         funding_bet_utxo: Utxo,
     ) -> Result<(), anyhow::Error> {
-        let game = self.games.get_mut(&program_id).ok_or(anyhow::anyhow!("Game not found"))?;
+        let game = self
+            .games
+            .get_mut(&program_id)
+            .ok_or(anyhow::anyhow!("Game not found"))?;
 
         // Save the funding bet UTXO
         game.bitvmx_program_properties.funding_bet_utxo = Some(funding_bet_utxo);
@@ -156,7 +152,10 @@ impl AddNumbersService {
         ]
     }
 
-    pub fn protocol_destination(&self,aggregated_key: &PublicKey) -> Result<Destination, anyhow::Error> {
+    pub fn protocol_destination(
+        &self,
+        aggregated_key: &PublicKey,
+    ) -> Result<Destination, anyhow::Error> {
         // Get the aggregated key and protocol information
         let x_only_pubkey = bitcoin::pub_key_to_xonly(&aggregated_key).map_err(|e| {
             anyhow::anyhow!("Failed to convert aggregated key to x only pubkey: {e:?}")
@@ -165,7 +164,7 @@ impl AddNumbersService {
         let destination = Destination::P2TR(x_only_pubkey, tap_leaves);
         Ok(destination)
     }
-    
+
     pub fn protocol_address(&self, aggregated_key: &PublicKey) -> Result<Address, anyhow::Error> {
         // Todo check if this tap leaves are correct
         let x_only_pubkey = bitcoin::pub_key_to_xonly(aggregated_key).map_err(|e| {
