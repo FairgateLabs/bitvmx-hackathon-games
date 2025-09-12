@@ -61,7 +61,9 @@ pub struct AddNumbersGame {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 pub struct PlaceBetRequest {
-    pub program_id: String,
+    #[ts(type = "string")]
+    #[schema(value_type = String)]
+    pub program_id: Uuid,
     pub amount: u64,
 }
 
@@ -121,8 +123,8 @@ pub struct FundingUtxoRequest {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
 pub struct FundingUtxosResponse {
-    pub funding_protocol_utxo: Utxo,
-    pub funding_bet_utxo: Utxo,
+    pub funding_protocol_utxo: Option<Utxo>,
+    pub funding_bet_utxo: Option<Utxo>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]

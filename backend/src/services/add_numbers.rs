@@ -4,6 +4,7 @@ use crate::models::{
 use crate::utils::bitcoin;
 use bitvmx_client::bitcoin::{Address, PublicKey};
 use bitvmx_client::protocol_builder::scripts::{self, ProtocolScript};
+use bitvmx_client::types::Destination;
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
@@ -64,12 +65,12 @@ impl AddNumbersService {
         self.games.get(&id)
     }
 
-    pub fn make_guess(&mut self, id: Uuid, guess: i32) -> Result<AddNumbersGame, String> {
-        let game = self.games.get_mut(&id).ok_or("Game not found")?;
+    pub fn make_guess(&mut self, id: Uuid, guess: i32) -> Result<AddNumbersGame, anyhow::Error> {
+        let game = self.games.get_mut(&id).ok_or(anyhow::anyhow!("Game not found"))?;
 
         // Validate game status
         if game.status != AddNumbersGameStatus::SubmitSum {
-            return Err("Game is not in waiting for guess state".to_string());
+            return Err(anyhow::anyhow!("Game is not in waiting for guess state"));
         }
 
         // Make the guess
@@ -91,13 +92,14 @@ impl AddNumbersService {
             .map(|(_, game)| game.clone())
     }
 
-    pub fn save_fundings_utxos(
+    /// Save the funding utxos for the current participant (only for player 1)
+    pub fn save_my_funding_utxos(
         &mut self,
         program_id: Uuid,
         funding_protocol_utxo: Utxo,
         funding_bet_utxo: Utxo,
-    ) -> Result<(), String> {
-        let game = self.games.get_mut(&program_id).ok_or("Game not found")?;
+    ) -> Result<(), anyhow::Error> {
+        let game = self.games.get_mut(&program_id).ok_or(anyhow::anyhow!("Game not found"))?;
 
         // Save the funding bet UTXO
         game.bitvmx_program_properties.funding_bet_utxo = Some(funding_bet_utxo);
@@ -107,6 +109,41 @@ impl AddNumbersService {
             .unwrap()
             .as_secs();
         game.status = AddNumbersGameStatus::CreateProgram;
+
+        // Update the game status
+        game.status = AddNumbersGameStatus::PlaceBet;
+
+        Ok(())
+    }
+
+    /// 
+    pub fn mark_my_funding_utxos_as_mined(
+        &mut self,
+        program_id: Uuid,
+    ) -> Result<(), anyhow::Error> {
+        let game = self.games.get_mut(&program_id).ok_or(anyhow::anyhow!("Game not found"))?;
+    
+        // Update the game status
+        game.status = AddNumbersGameStatus::SetupFunding;
+
+        Ok(())
+    }
+
+    /// Save the funding utxos for the other participant (only for player 2)
+    pub fn save_other_funding_utxos(
+        &mut self,
+        program_id: Uuid,
+        funding_protocol_utxo: Utxo,
+        funding_bet_utxo: Utxo,
+    ) -> Result<(), anyhow::Error> {
+        let game = self.games.get_mut(&program_id).ok_or(anyhow::anyhow!("Game not found"))?;
+
+        // Save the funding bet UTXO
+        game.bitvmx_program_properties.funding_bet_utxo = Some(funding_bet_utxo);
+        game.bitvmx_program_properties.funding_protocol_utxo = Some(funding_protocol_utxo);
+
+        // Update the game status
+        game.status = AddNumbersGameStatus::SetupFunding;
 
         Ok(())
     }
@@ -119,6 +156,16 @@ impl AddNumbersService {
         ]
     }
 
+    pub fn protocol_destination(&self,aggregated_key: &PublicKey) -> Result<Destination, anyhow::Error> {
+        // Get the aggregated key and protocol information
+        let x_only_pubkey = bitcoin::pub_key_to_xonly(&aggregated_key).map_err(|e| {
+            anyhow::anyhow!("Failed to convert aggregated key to x only pubkey: {e:?}")
+        })?;
+        let tap_leaves = self.protocol_scripts(&aggregated_key);
+        let destination = Destination::P2TR(x_only_pubkey, tap_leaves);
+        Ok(destination)
+    }
+    
     pub fn protocol_address(&self, aggregated_key: &PublicKey) -> Result<Address, anyhow::Error> {
         // Todo check if this tap leaves are correct
         let x_only_pubkey = bitcoin::pub_key_to_xonly(aggregated_key).map_err(|e| {

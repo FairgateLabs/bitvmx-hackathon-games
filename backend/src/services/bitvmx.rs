@@ -1,18 +1,16 @@
 use crate::config::BitcoinConfig;
 use crate::models::{P2PAddress, WalletBalance};
 use crate::rpc::rpc_client::RpcClient;
-use crate::utils;
 use bitvmx_bitcoin_rpc::bitcoin_client::BitcoinClient;
 use bitvmx_bitcoin_rpc::bitcoin_client::BitcoinClientApi;
 use bitvmx_client::bitcoin::{Address, PublicKey, Txid};
 use bitvmx_client::bitcoin_coordinator::TransactionStatus;
 use bitvmx_client::program::participant::P2PAddress as BitVMXP2PAddress;
 use bitvmx_client::program::variables::{PartialUtxo, VariableTypes};
-use bitvmx_client::protocol_builder::types::OutputType;
 use bitvmx_client::types::{Destination, IncomingBitVMXApiMessages, OutgoingBitVMXApiMessages};
 use std::str::FromStr;
 use std::sync::Arc;
-use tracing::{debug, error, trace};
+use tracing::{debug, info, trace};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -54,6 +52,7 @@ impl BitVMXService {
         self.p2p_address.clone()
     }
 
+    
     pub fn get_wallet_address(&self) -> Result<&Address, anyhow::Error> {
         self.wallet_address
             .as_ref()
@@ -62,6 +61,7 @@ impl BitVMXService {
     }
 
     /// Create aggregated key
+    
     pub async fn create_agregated_key(
         &self,
         uuid: Uuid,
@@ -86,113 +86,8 @@ impl BitVMXService {
         }
     }
 
-    /// Create aggregated key with callback - non-blocking version
-    /// This method sends the request and executes the callback when the response is received
-    /// without blocking the current endpoint
-    ///
-    /// Includes proper error handling and structured logging to prevent zombie tasks
-    #[tracing::instrument(skip(self, callback), fields(uuid = %uuid, participants_count = participants.len(), leader_idx = leader_idx))]
-    pub async fn create_agregated_key_with_callback<F, Fut>(
-        &self,
-        uuid: Uuid,
-        participants: Vec<BitVMXP2PAddress>,
-        participants_keys: Option<Vec<PublicKey>>,
-        leader_idx: u16,
-        callback: F,
-    ) -> Result<(), anyhow::Error>
-    where
-        F: FnOnce(Result<PublicKey, anyhow::Error>) -> Fut + Send + 'static,
-        Fut: std::future::Future<Output = ()> + Send + 'static,
-    {
-        debug!(
-            "Creating aggregated key with callback for UUID: {}, participants: {}, leader_idx: {}",
-            uuid,
-            participants.len(),
-            leader_idx
-        );
-
-        let message =
-            IncomingBitVMXApiMessages::SetupKey(uuid, participants, participants_keys, leader_idx);
-
-        self.rpc_client
-            .send_request_with_callback(message, move |response| async move {
-                // Parse and validate the response at the service level
-                let result = match response {
-                    Ok(OutgoingBitVMXApiMessages::AggregatedPubkey(_uuid, aggregated_pubkey)) => {
-                        debug!("Successfully obtained aggregated key for UUID {}: {}", uuid, aggregated_pubkey);
-                        Ok(aggregated_pubkey)
-                    }
-                    Ok(response) => {
-                        error!(
-                            "Unexpected response type for aggregated key creation UUID {}: {:?}",
-                            uuid, response
-                        );
-                        Err(anyhow::anyhow!(
-                            "Expected AggregatedPubkey response, got: {:?}",
-                            response
-                        ))
-                    }
-                    Err(e) => {
-                        error!(
-                            "RPC error during aggregated key creation for UUID {}: {:?}",
-                            uuid, e
-                        );
-                        Err(e)
-                    }
-                };
-
-                // Execute the callback with the parsed result
-                callback(result).await;
-            })
-            .await
-            .map_err(|e| {
-                error!(
-                    "Failed to send aggregated key creation request with callback for UUID {}: {:?}",
-                    uuid, e
-                );
-                e
-            })?;
-
-        debug!(
-            "Aggregated key creation request with callback submitted for UUID: {}",
-            uuid
-        );
-        Ok(())
-    }
-
-    /// Send any BitVMX message with a callback - generic non-blocking version
-    /// This method sends the request and executes the callback when the response is received
-    /// without blocking the current endpoint
-    ///
-    /// Includes proper error handling and structured logging to prevent zombie tasks
-    #[tracing::instrument(skip(self, callback), fields(message_type = %std::any::type_name::<IncomingBitVMXApiMessages>()))]
-    pub async fn send_message_with_callback<F, Fut>(
-        &self,
-        message: IncomingBitVMXApiMessages,
-        callback: F,
-    ) -> Result<(), anyhow::Error>
-    where
-        F: FnOnce(Result<OutgoingBitVMXApiMessages, anyhow::Error>) -> Fut + Send + 'static,
-        Fut: std::future::Future<Output = ()> + Send + 'static,
-    {
-        trace!("Sending BitVMX message with callback");
-
-        self.rpc_client
-            .send_request_with_callback(message, move |response| async move {
-                // Pass the raw response to the callback - let the callback handle parsing
-                callback(response).await;
-            })
-            .await
-            .map_err(|e| {
-                error!("Failed to send BitVMX message with callback: {:?}", e);
-                e
-            })?;
-
-        debug!("BitVMX message with callback submitted successfully");
-        Ok(())
-    }
-
     /// Get aggregated key
+    
     pub async fn aggregated_key(&self, aggregated_id: Uuid) -> Result<PublicKey, anyhow::Error> {
         trace!("Get aggregated key from BitVMX");
         let response = self
@@ -214,6 +109,7 @@ impl BitVMXService {
         }
     }
 
+    
     pub async fn wallet_balance(&self) -> Result<WalletBalance, anyhow::Error> {
         let address = self.get_wallet_address()?;
         let response = self
@@ -234,11 +130,12 @@ impl BitVMXService {
         }
     }
 
+    
     pub async fn send_funds(
         &self,
         destination: &Destination,
         amount: u64,
-    ) -> Result<PartialUtxo, anyhow::Error> {
+    ) -> Result<(Uuid, PartialUtxo), anyhow::Error> {
         let response = self
             .rpc_client
             .send_request(IncomingBitVMXApiMessages::SendFunds(
@@ -249,25 +146,8 @@ impl BitVMXService {
             ))
             .await?;
 
-        if let OutgoingBitVMXApiMessages::FundsSent(_uuid, txid) = response {
-            match destination {
-                Destination::P2TR(x_only_pubkey, tap_leaves) => {
-                    let pubkey = utils::bitcoin::xonly_to_pub_key(&x_only_pubkey)?;
-                    let output_type = OutputType::taproot(amount, &pubkey, &tap_leaves)?;
-                    Ok((txid, 0, Some(amount), Some(output_type)))
-                }
-                Destination::Address(address) => {
-                    let script_pubkey = Address::from_str(&address)?
-                        .assume_checked()
-                        .script_pubkey();
-                    let output_type = OutputType::ExternalUnknown { script_pubkey };
-                    Ok((txid, 0, Some(amount), Some(output_type)))
-                }
-                Destination::P2WPKH(pubkey) => {
-                    let output_type = OutputType::segwit_key(amount, &pubkey)?;
-                    Ok((txid, 0, Some(amount), Some(output_type)))
-                }
-            }
+        if let OutgoingBitVMXApiMessages::FundsSent(uuid, txid) = response {
+            Ok((uuid, (txid, 0, Some(amount), None)))
         } else {
             Err(anyhow::anyhow!(
                 "Expected Funds Sent response, got: {:?}",
@@ -276,6 +156,21 @@ impl BitVMXService {
         }
     }
 
+    pub async fn wait_for_transaction_response(&self, correlation_id: Uuid) -> Result<TransactionStatus, anyhow::Error> {
+        debug!("Waiting for transaction response for correlation id: {:?}", correlation_id);
+        let response = self.rpc_client.wait_for_response(correlation_id.to_string()).await?;
+        if let OutgoingBitVMXApiMessages::Transaction(_uuid, transaction_status, _) = response {
+            info!("Received transaction response for correlation id: {:?}", correlation_id);
+            Ok(transaction_status)
+        } else {
+            Err(anyhow::anyhow!(
+                "Expected Transaction response, got: {:?}",
+                response
+            ))
+        }
+    }
+
+    
     pub async fn get_transaction(&self, txid: String) -> Result<TransactionStatus, anyhow::Error> {
         let response = self
             .rpc_client
@@ -295,6 +190,7 @@ impl BitVMXService {
         }
     }
 
+    
     pub async fn set_variable(
         &self,
         program_id: Uuid,
@@ -312,6 +208,7 @@ impl BitVMXService {
         Ok(())
     }
 
+    
     pub async fn program_setup(
         &self,
         program_id: Uuid,
@@ -338,6 +235,7 @@ impl BitVMXService {
     // ----- Start internal methods -----
 
     /// Update P2P address
+    
     async fn set_wallet_address(&mut self) -> Result<(), anyhow::Error> {
         let response = self
             .rpc_client
@@ -376,6 +274,7 @@ impl BitVMXService {
     }
 
     /// Update P2P address
+    
     async fn set_p2p_address(&mut self) -> Result<(), anyhow::Error> {
         // Set P2P address
         let response = self
@@ -398,6 +297,7 @@ impl BitVMXService {
     }
 
     /// Update pub key
+    
     async fn set_pub_key(&mut self) -> Result<(), anyhow::Error> {
         debug!("Create operator key from BitVMX");
         let pub_key_id = Uuid::new_v4();
@@ -419,6 +319,7 @@ impl BitVMXService {
     }
 
     /// Update funding key
+    
     async fn set_funding_key(&mut self) -> Result<(), anyhow::Error> {
         debug!("Create funding key for speedups from BitVMX");
         let speedup_key_id = Uuid::new_v4();
@@ -440,6 +341,7 @@ impl BitVMXService {
     }
 
     /// Setup BitVMX
+    
     pub async fn initial_setup(&mut self) -> Result<(), anyhow::Error> {
         debug!("Get BitVMX info and initial keys setup");
 

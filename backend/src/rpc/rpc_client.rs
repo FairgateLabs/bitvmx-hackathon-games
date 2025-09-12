@@ -6,7 +6,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tokio::sync::broadcast::{Receiver, Sender};
 use tokio::task::JoinHandle;
-use tracing::{debug, error, info, trace, Instrument};
+use tracing::{debug, info, trace, Instrument};
 
 use std::time::Duration;
 use tokio::sync::{mpsc, oneshot, Mutex};
@@ -57,20 +57,73 @@ impl RpcClient {
         (service, sender_task, listener_task)
     }
 
+    async fn add_response_handler(
+        &self,
+        correlation_id: &str,
+    ) -> Result<oneshot::Receiver<OutgoingBitVMXApiMessages>, anyhow::Error> {
+        trace!("Adding response handler to queue for correlation id: {:?}", correlation_id);
+        let (tx, rx) = oneshot::channel();
+        {
+            let mut pending = self.pending.lock().await;
+            pending.insert(correlation_id.to_string(), tx);
+        }
+        Ok(rx)
+    }
+
+    pub async fn wait_for_response(
+        &self,
+        correlation_id: String,
+    ) -> Result<OutgoingBitVMXApiMessages, anyhow::Error> {
+        debug!(
+            "Waiting for BitVMX response for correlation id: {:?}",
+            correlation_id
+        );
+        let rx = self.add_response_handler(&correlation_id).await?;
+        let response = rx.await?;
+        debug!(
+            "Received from BitVMX response: {:?} message: {:?}",
+            correlation_id, response
+        );
+        Ok(response)
+    }
+
+
+    // #[tracing::instrument(skip(self, callback))]
+    // pub async fn wait_for_response_callback<F, Fut>(
+    //     &self,
+    //     correlation_id: String,
+    //     callback: F,
+    // ) where
+    //     F: FnOnce(Result<OutgoingBitVMXApiMessages, anyhow::Error>) -> Fut + Send + 'static,
+    //     Fut: std::future::Future<Output = ()> + Send + 'static,
+    // {
+    //     debug!(
+    //         "Waiting for BitVMX response with callback for correlation id: {:?}",
+    //         correlation_id
+    //     );
+    //     let rx = self.add_response_handler(&correlation_id).await?;
+
+
+    //     // TODO spawn a task to call the callback
+    //     let response = rx.await.unwrap();
+    //     callback(response);
+    //     debug!(
+    //         "Received from BitVMX response: {:?} message: {:?}",
+    //         correlation_id, response
+    //     );
+    //     Ok(response)
+    // }
+
     pub async fn send_request(
         &self,
         message: IncomingBitVMXApiMessages,
     ) -> Result<OutgoingBitVMXApiMessages, anyhow::Error> {
         let correlation_id = self.request_to_correlation_id(&message)?;
         debug!(
-            "Sending to BitVMX request: {:?} message: {:?}",
+            "Sending to BitVMX and waiting for response, request correlation_id: {:?} message: {:?}",
             correlation_id, message
         );
-        let (tx, rx) = oneshot::channel();
-        {
-            let mut pending = self.pending.lock().await;
-            pending.insert(correlation_id.clone(), tx);
-        }
+        let rx = self.add_response_handler(&correlation_id).await?;
 
         self.outgoing
             .send((correlation_id.clone(), message))
@@ -100,82 +153,7 @@ impl RpcClient {
         Ok(())
     }
 
-    /// Send a request and execute a callback function when the response is received
-    /// This method reuses the existing send_request logic but executes it in a background task
-    /// so the current endpoint doesn't get blocked waiting for a response
-    ///
-    /// The spawned task includes proper error handling, timeout protection, and structured logging
-    /// to prevent zombie tasks and enable request tracing
-    #[tracing::instrument(skip(self, callback), fields(correlation_id = %self.request_to_correlation_id(&message).unwrap_or_default()))]
-    pub async fn send_request_with_callback<F, Fut>(
-        &self,
-        message: IncomingBitVMXApiMessages,
-        callback: F,
-    ) -> Result<(), anyhow::Error>
-    where
-        F: FnOnce(Result<OutgoingBitVMXApiMessages, anyhow::Error>) -> Fut + Send + 'static,
-        Fut: std::future::Future<Output = ()> + Send + 'static,
-    {
-        let correlation_id = self.request_to_correlation_id(&message)?;
-        let client = self.clone();
-
-        debug!(
-            "Spawned background task for RPC callback request with correlation_id: {}",
-            correlation_id
-        );
-
-        // Spawn a background task with proper error handling and timeout protection
-        tokio::spawn(async move {
-            // Add timeout to prevent hanging tasks
-            let timeout_duration = std::time::Duration::from_secs(300); // 5 minutes timeout
-
-            let result = tokio::time::timeout(timeout_duration, async {
-                trace!(
-                    "Starting background RPC request with callback for correlation_id: {}",
-                    correlation_id
-                );
-
-                let response = client.send_request(message).await;
-
-                trace!(
-                    "RPC request completed for correlation_id: {}, executing callback",
-                    correlation_id
-                );
-
-                response
-            })
-            .await;
-
-            match result {
-                Ok(response) => {
-                    // Execute the callback with the response
-                    callback(response).await;
-
-                    trace!(
-                            "Background RPC callback task completed successfully for correlation_id: {}",
-                            correlation_id
-                        );
-                }
-                Err(_timeout) => {
-                    error!(
-                        "Background RPC callback task timed out after {}s for correlation_id: {}",
-                        timeout_duration.as_secs(),
-                        correlation_id
-                    );
-
-                    // Execute callback with timeout error
-                    callback(Err(anyhow::anyhow!(
-                        "RPC request timed out after {} seconds",
-                        timeout_duration.as_secs()
-                    )))
-                    .await;
-                }
-            }
-        });
-
-        Ok(())
-    }
-
+    #[tracing::instrument(skip(self))]
     async fn handle_response(&self, resp: String) -> Result<(), anyhow::Error> {
         // Deserialize the response
         let response = serde_json::from_str(&resp)?;
@@ -192,8 +170,9 @@ impl RpcClient {
             let optional_tx = pending.remove_first_for_key(&correlation_id)?;
             if optional_tx.is_none() {
                 info!(
-                    "No response handler for correlation ID: {}",
-                    correlation_id
+                    "No response handler for correlation ID: {}, type: {:?}",
+                    correlation_id,
+                    response,
                 );
                 return Ok(());
             }
@@ -314,24 +293,42 @@ impl RpcClient {
     ) -> Result<String, anyhow::Error> {
         // Serialize the message
         match message {
+            IncomingBitVMXApiMessages::Ping() => Ok("ping".to_string()),
+            IncomingBitVMXApiMessages::SetVar(uuid, _key, _value) => Ok(uuid.to_string()),
+            IncomingBitVMXApiMessages::SetWitness(uuid, _address, _witness) => Ok(uuid.to_string()),
+            IncomingBitVMXApiMessages::SetFundingUtxo(_utxo) => Ok(format!("set_funding_utxo_{}", _utxo.txid)),
+            IncomingBitVMXApiMessages::GetVar(uuid, _key) => Ok(uuid.to_string()),
+            IncomingBitVMXApiMessages::GetWitness(uuid, _address) => Ok(uuid.to_string()),
+            IncomingBitVMXApiMessages::GetCommInfo() => Ok("get_comm_info".to_string()),
+            IncomingBitVMXApiMessages::GetTransaction(uuid, _txid) => Ok(uuid.to_string()),
+            IncomingBitVMXApiMessages::GetTransactionInfoByName(uuid, _name) => Ok(uuid.to_string()),
+            IncomingBitVMXApiMessages::GetHashedMessage(uuid, _name, _vout, _leaf) => Ok(uuid.to_string()),
             IncomingBitVMXApiMessages::Setup(uuid, _program_type, _participants, _leader_idx) => {
                 Ok(uuid.to_string())
             }
-            IncomingBitVMXApiMessages::SetVar(uuid, _key, _value) => Ok(uuid.to_string()),
-            IncomingBitVMXApiMessages::GetVar(uuid, _key) => Ok(uuid.to_string()),
-            IncomingBitVMXApiMessages::GetTransaction(uuid, _txid) => Ok(uuid.to_string()),
-            IncomingBitVMXApiMessages::SendFunds(uuid, _destination, _amount, _fee) => {
-                Ok(uuid.to_string())
-            }
-            IncomingBitVMXApiMessages::GetFundingBalance(uuid) => Ok(uuid.to_string()),
-            IncomingBitVMXApiMessages::GetFundingAddress(uuid) => Ok(uuid.to_string()),
+            IncomingBitVMXApiMessages::SubscribeToTransaction(uuid, _txid) => Ok(uuid.to_string()),
+            IncomingBitVMXApiMessages::SubscribeUTXO() => Ok("subscribe_utxo".to_string()),
+            IncomingBitVMXApiMessages::SubscribeToRskPegin() => Ok("subscribe_rsk_pegin".to_string()),
+            IncomingBitVMXApiMessages::GetSPVProof(_txid) => Ok(format!("get_spv_proof_{}", _txid)),
+            IncomingBitVMXApiMessages::DispatchTransaction(uuid, _transaction) => Ok(uuid.to_string()),
+            IncomingBitVMXApiMessages::DispatchTransactionName(uuid, _name) => Ok(uuid.to_string()),
             IncomingBitVMXApiMessages::SetupKey(uuid, _addresses, _operator_key, _funding_key) => {
                 Ok(uuid.to_string())
             }
             IncomingBitVMXApiMessages::GetAggregatedPubkey(uuid) => Ok(uuid.to_string()),
+            IncomingBitVMXApiMessages::GetKeyPair(uuid) => Ok(uuid.to_string()),
             IncomingBitVMXApiMessages::GetPubKey(uuid, _new_key) => Ok(uuid.to_string()),
-            IncomingBitVMXApiMessages::GetCommInfo() => Ok("get_comm_info".to_string()),
-            IncomingBitVMXApiMessages::Ping() => Ok("ping".to_string()),
+            IncomingBitVMXApiMessages::SignMessage(uuid, _payload_to_sign, _public_key_to_use) => Ok(uuid.to_string()),
+            IncomingBitVMXApiMessages::GenerateZKP(uuid, _payload_to_sign, _name) => Ok(uuid.to_string()),
+            IncomingBitVMXApiMessages::ProofReady(uuid) => Ok(uuid.to_string()),
+            IncomingBitVMXApiMessages::GetZKPExecutionResult(uuid) => Ok(uuid.to_string()),
+            IncomingBitVMXApiMessages::Encrypt(uuid, _payload_to_encrypt, _public_key_to_use) => Ok(uuid.to_string()),
+            IncomingBitVMXApiMessages::Decrypt(uuid, _payload_to_decrypt) => Ok(uuid.to_string()),
+            IncomingBitVMXApiMessages::GetFundingBalance(uuid) => Ok(uuid.to_string()),
+            IncomingBitVMXApiMessages::GetFundingAddress(uuid) => Ok(uuid.to_string()),
+            IncomingBitVMXApiMessages::SendFunds(uuid, _destination, _amount, _fee) => {
+                Ok(uuid.to_string())
+            }
             _ => Err(anyhow::anyhow!(
                 "unhandled request message type: {:?}",
                 message
@@ -345,23 +342,47 @@ impl RpcClient {
         response: &OutgoingBitVMXApiMessages,
     ) -> Result<String, anyhow::Error> {
         match response {
-            OutgoingBitVMXApiMessages::NotFound(uuid, _key) => Ok(uuid.to_string()),
-            OutgoingBitVMXApiMessages::SetupCompleted(uuid) => Ok(uuid.to_string()),
-            OutgoingBitVMXApiMessages::Variable(uuid, _key, _value) => Ok(uuid.to_string()),
+            OutgoingBitVMXApiMessages::Pong() => Ok("ping".to_string()),
             OutgoingBitVMXApiMessages::Transaction(uuid, _transaction_status, _transaction) => {
                 Ok(uuid.to_string())
             }
+            OutgoingBitVMXApiMessages::PeginTransactionFound(_txid, _transaction_status) => {
+                Ok("subscribe_rsk_pegin".to_string())
+            }
+            OutgoingBitVMXApiMessages::SpendingUTXOTransactionFound(uuid, _txid, _vout, _transaction_status) => {
+                Ok(uuid.to_string())
+            },
+            OutgoingBitVMXApiMessages::SetupCompleted(uuid) => Ok(uuid.to_string()),
+            OutgoingBitVMXApiMessages::AggregatedPubkey(uuid, _aggregated_pubkey) => {
+                Ok(uuid.to_string())
+            }
+            OutgoingBitVMXApiMessages::AggregatedPubkeyNotReady(uuid) => Ok(uuid.to_string()),
+            OutgoingBitVMXApiMessages::TransactionInfo(uuid, _name, _transaction) => {
+                Ok(uuid.to_string())
+            }
+            OutgoingBitVMXApiMessages::ZKPResult(uuid, _zkp_result, _zkp_proof) => {
+                Ok(uuid.to_string())
+            }
+            OutgoingBitVMXApiMessages::CommInfo(_p2p_address) => Ok("get_comm_info".to_string()),
+            OutgoingBitVMXApiMessages::KeyPair(uuid, _private_key, _public_key) => {
+                Ok(uuid.to_string())
+            }
+            OutgoingBitVMXApiMessages::PubKey(uuid, _pub_key) => Ok(uuid.to_string()),
+            OutgoingBitVMXApiMessages::SignedMessage(uuid, _signature_r, _signature_s, _recovery_id) => {
+                Ok(uuid.to_string())
+            }
+            OutgoingBitVMXApiMessages::Variable(uuid, _key, _value) => Ok(uuid.to_string()),
+            OutgoingBitVMXApiMessages::Witness(uuid, _key, _witness) => {
+                Ok(uuid.to_string())
+            }
+            OutgoingBitVMXApiMessages::HashedMessage(uuid, _name, _vout, _leaf, _) => {
+                Ok(uuid.to_string())
+            }
+            OutgoingBitVMXApiMessages::NotFound(uuid, _key) => Ok(uuid.to_string()),
             OutgoingBitVMXApiMessages::FundsSent(uuid, _txid) => Ok(uuid.to_string()),
             OutgoingBitVMXApiMessages::FundingBalance(uuid, _balance) => Ok(uuid.to_string()),
             OutgoingBitVMXApiMessages::WalletNotReady(uuid) => Ok(uuid.to_string()),
             OutgoingBitVMXApiMessages::FundingAddress(uuid, _address) => Ok(uuid.to_string()),
-            OutgoingBitVMXApiMessages::AggregatedPubkeyNotReady(uuid) => Ok(uuid.to_string()),
-            OutgoingBitVMXApiMessages::AggregatedPubkey(uuid, _aggregated_pubkey) => {
-                Ok(uuid.to_string())
-            }
-            OutgoingBitVMXApiMessages::PubKey(uuid, _pub_key) => Ok(uuid.to_string()),
-            OutgoingBitVMXApiMessages::CommInfo(_p2p_address) => Ok("get_comm_info".to_string()),
-            OutgoingBitVMXApiMessages::Pong() => Ok("ping".to_string()),
             _ => Err(anyhow::anyhow!(
                 "unhandled response message type: {:?}",
                 response
