@@ -60,7 +60,6 @@ impl BitVMXService {
     }
 
     /// Create aggregated key
-
     pub async fn create_agregated_key(
         &self,
         uuid: Uuid,
@@ -86,7 +85,6 @@ impl BitVMXService {
     }
 
     /// Get aggregated key
-
     pub async fn aggregated_key(&self, aggregated_id: Uuid) -> Result<PublicKey, anyhow::Error> {
         trace!("Get aggregated key from BitVMX");
         let response = self
@@ -241,7 +239,6 @@ impl BitVMXService {
     // ----- Start internal methods -----
 
     /// Update P2P address
-
     async fn set_wallet_address(&mut self) -> Result<(), anyhow::Error> {
         let response = self
             .rpc_client
@@ -280,7 +277,6 @@ impl BitVMXService {
     }
 
     /// Update P2P address
-
     async fn set_p2p_address(&mut self) -> Result<(), anyhow::Error> {
         // Set P2P address
         let response = self
@@ -303,7 +299,6 @@ impl BitVMXService {
     }
 
     /// Update pub key
-
     async fn set_pub_key(&mut self) -> Result<(), anyhow::Error> {
         debug!("Create operator key from BitVMX");
         let pub_key_id = Uuid::new_v4();
@@ -325,7 +320,6 @@ impl BitVMXService {
     }
 
     /// Update funding key
-
     async fn set_funding_key(&mut self) -> Result<(), anyhow::Error> {
         debug!("Create funding key for speedups from BitVMX");
         let speedup_key_id = Uuid::new_v4();
@@ -347,7 +341,6 @@ impl BitVMXService {
     }
 
     /// Setup BitVMX
-
     pub async fn initial_setup(&mut self) -> Result<(), anyhow::Error> {
         debug!("Get BitVMX info and initial keys setup");
 

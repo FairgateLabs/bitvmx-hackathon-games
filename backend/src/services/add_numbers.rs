@@ -157,10 +157,10 @@ impl AddNumbersService {
         aggregated_key: &PublicKey,
     ) -> Result<Destination, anyhow::Error> {
         // Get the aggregated key and protocol information
-        let x_only_pubkey = bitcoin::pub_key_to_xonly(&aggregated_key).map_err(|e| {
+        let x_only_pubkey = bitcoin::pub_key_to_xonly(aggregated_key).map_err(|e| {
             anyhow::anyhow!("Failed to convert aggregated key to x only pubkey: {e:?}")
         })?;
-        let tap_leaves = self.protocol_scripts(&aggregated_key);
+        let tap_leaves = self.protocol_scripts(aggregated_key);
         let destination = Destination::P2TR(x_only_pubkey, tap_leaves);
         Ok(destination)
     }

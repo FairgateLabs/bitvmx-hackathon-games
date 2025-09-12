@@ -317,7 +317,7 @@ impl RpcClient {
             IncomingBitVMXApiMessages::SubscribeToRskPegin() => {
                 Ok("subscribe_rsk_pegin".to_string())
             }
-            IncomingBitVMXApiMessages::GetSPVProof(_txid) => Ok(format!("get_spv_proof_{}", _txid)),
+            IncomingBitVMXApiMessages::GetSPVProof(_txid) => Ok(format!("get_spv_proof_{_txid}")),
             IncomingBitVMXApiMessages::DispatchTransaction(uuid, _transaction) => {
                 Ok(uuid.to_string())
             }
