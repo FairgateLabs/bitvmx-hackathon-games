@@ -1,7 +1,9 @@
 use std::str::FromStr;
 
 use crate::models::{
-    AddNumbersGame, AddNumbersGameStatus, ErrorResponse, FundingUtxoRequest, FundingUtxosResponse, MakeGuessRequest, PlaceBetRequest, PlaceBetResponse, SetupParticipantsRequest, SetupParticipantsResponse, StartGameRequest, StartGameResponse, Utxo
+    AddNumbersGame, AddNumbersGameStatus, ErrorResponse, FundingUtxoRequest, FundingUtxosResponse,
+    MakeGuessRequest, PlaceBetRequest, PlaceBetResponse, SetupParticipantsRequest,
+    SetupParticipantsResponse, StartGameRequest, StartGameResponse, Utxo,
 };
 use crate::state::AppState;
 use crate::utils::http_errors;
@@ -505,24 +507,37 @@ pub async fn start_game(
             )
             .await
             .map_err(|e| {
-                http_errors::internal_server_error(&format!("Failed to set variable aggregated pubkey: {e:?}"))
+                http_errors::internal_server_error(&format!(
+                    "Failed to set variable aggregated pubkey: {e:?}"
+                ))
             })?;
     }
 
     // Set protocol cost utxo
-    let protocol_utxo = game.bitvmx_program_properties.funding_protocol_utxo.ok_or(http_errors::internal_server_error("Protocol UTXO not found"))?;
+    let protocol_utxo = game.bitvmx_program_properties.funding_protocol_utxo.ok_or(
+        http_errors::internal_server_error("Protocol UTXO not found"),
+    )?;
     {
         let bitvmx_service = app_state.bitvmx_service.read().await;
         bitvmx_service
-            .set_variable(program_id, "utxo", VariableTypes::Utxo(protocol_utxo.into()))
+            .set_variable(
+                program_id,
+                "utxo",
+                VariableTypes::Utxo(protocol_utxo.into()),
+            )
             .await
             .map_err(|e| {
-                http_errors::internal_server_error(&format!("Failed to set variable protocol utxo: {e:?}"))
+                http_errors::internal_server_error(&format!(
+                    "Failed to set variable protocol utxo: {e:?}"
+                ))
             })?;
     }
 
     // Set bet utxo
-    let bet_utxo = game.bitvmx_program_properties.funding_bet_utxo.ok_or(http_errors::internal_server_error("Bet UTXO not found"))?;
+    let bet_utxo = game
+        .bitvmx_program_properties
+        .funding_bet_utxo
+        .ok_or(http_errors::internal_server_error("Bet UTXO not found"))?;
     {
         let bitvmx_service = app_state.bitvmx_service.read().await;
         bitvmx_service
@@ -533,8 +548,10 @@ pub async fn start_game(
             )
             .await
             .map_err(|e| {
-                    http_errors::internal_server_error(&format!("Failed to set variable bet utxo: {e:?}"))
-                })?;
+                http_errors::internal_server_error(&format!(
+                    "Failed to set variable bet utxo: {e:?}"
+                ))
+            })?;
     }
 
     // Set program definition, it should be the relative path from the bitvmx-client to the program definition file
@@ -542,15 +559,17 @@ pub async fn start_game(
     {
         let bitvmx_service = app_state.bitvmx_service.read().await;
         bitvmx_service
-        .set_variable(
-            program_id,
-            "program_definition",
-            VariableTypes::String(program_path.to_string()),
-        )
-        .await
-        .map_err(|e| {
-            http_errors::internal_server_error(&format!("Failed to set variable program definition: {e:?}"))
-        })?;
+            .set_variable(
+                program_id,
+                "program_definition",
+                VariableTypes::String(program_path.to_string()),
+            )
+            .await
+            .map_err(|e| {
+                http_errors::internal_server_error(&format!(
+                    "Failed to set variable program definition: {e:?}"
+                ))
+            })?;
     }
 
     // Set timelock blocks
@@ -564,19 +583,28 @@ pub async fn start_game(
             )
             .await
             .map_err(|e| {
-                http_errors::internal_server_error(&format!("Failed to set variable timelock blocks: {e:?}"))
+                http_errors::internal_server_error(&format!(
+                    "Failed to set variable timelock blocks: {e:?}"
+                ))
             })?;
     }
 
     // Call setup program
-    let participants_addresses: Vec<BitVMXP2PAddress> = game.bitvmx_program_properties.participants_addresses.iter().map(|p2p| p2p.clone().into()).collect();
+    let participants_addresses: Vec<BitVMXP2PAddress> = game
+        .bitvmx_program_properties
+        .participants_addresses
+        .iter()
+        .map(|p2p| p2p.clone().into())
+        .collect();
     {
         let bitvmx_service = app_state.bitvmx_service.read().await;
         bitvmx_service
             .program_setup(program_id, PROGRAM_TYPE_DRP, participants_addresses, 1)
             .await
             .map_err(|e| {
-                http_errors::internal_server_error(&format!("Failed to set variable program setup: {e:?}"))
+                http_errors::internal_server_error(&format!(
+                    "Failed to set variable program setup: {e:?}"
+                ))
             })?;
     }
 
@@ -586,14 +614,14 @@ pub async fn start_game(
         add_numbers_service
             .start_game(program_id, request.number1, request.number2)
             .map_err(|e| {
-                http_errors::internal_server_error(&format!("Failed to save start game state: {e:?}"))
+                http_errors::internal_server_error(&format!(
+                    "Failed to save start game state: {e:?}"
+                ))
             })?;
     }
 
     // Return the program ID
-    Ok(Json(StartGameResponse {
-        program_id,
-    }))
+    Ok(Json(StartGameResponse { program_id }))
 }
 
 #[utoipa::path(
@@ -612,21 +640,19 @@ pub async fn submit_sum(
     State(app_state): State<AppState>,
     Json(request): Json<MakeGuessRequest>,
 ) -> Result<Json<AddNumbersGame>, (StatusCode, Json<ErrorResponse>)> {
-
     // TOOD: PEDRO Wait until you know the anser
     let game: AddNumbersGame;
     {
         let mut service = app_state.add_numbers_service.write().await;
-        game =
-            service
-                .make_guess(request.id, request.guess)
-                .map_err(|e| match e.to_string().as_str() {
-                    "Game not found" => http_errors::not_found("Game not found"),
-                    "Game is not in waiting for guess state" => {
-                        http_errors::bad_request("Invalid game state")
-                    }
-                    _ => http_errors::internal_server_error(&format!("Failed to submit sum: {e:?}")),
-                })?;
+        game = service.make_guess(request.id, request.guess).map_err(|e| {
+            match e.to_string().as_str() {
+                "Game not found" => http_errors::not_found("Game not found"),
+                "Game is not in waiting for guess state" => {
+                    http_errors::bad_request("Invalid game state")
+                }
+                _ => http_errors::internal_server_error(&format!("Failed to submit sum: {e:?}")),
+            }
+        })?;
     }
 
     Ok(Json(game))

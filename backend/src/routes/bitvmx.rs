@@ -1,15 +1,10 @@
 use crate::models::{
-    AggregatedKeyResponse, ErrorResponse, OperatorKeys, P2PAddress, ProtocolCostResponse, TransactionResponse,
-    WalletBalance,
+    AggregatedKeyResponse, ErrorResponse, OperatorKeys, P2PAddress, ProtocolCostResponse,
+    TransactionResponse, WalletBalance,
 };
 use crate::state::AppState;
 use crate::utils::http_errors;
-use axum::{
-    extract::Path,
-    extract::State,
-    routing::get,
-    Json, Router,
-};
+use axum::{extract::Path, extract::State, routing::get, Json, Router};
 use http::StatusCode;
 use uuid::Uuid;
 
@@ -70,7 +65,6 @@ pub async fn operator_keys(
         funding_key,
     }))
 }
-
 
 /// Get BitVMX aggregated key
 #[utoipa::path(

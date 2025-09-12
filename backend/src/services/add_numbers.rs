@@ -1,5 +1,6 @@
 use crate::models::{
-    AddNumbersGame, AddNumbersGameStatus, BitVMXProgramProperties, GameOutcome, GameReason, P2PAddress, PlayerRole, Utxo
+    AddNumbersGame, AddNumbersGameStatus, BitVMXProgramProperties, GameOutcome, GameReason,
+    P2PAddress, PlayerRole, Utxo,
 };
 use crate::utils::bitcoin;
 use bitvmx_client::bitcoin::{Address, PublicKey};
@@ -208,7 +209,6 @@ impl AddNumbersService {
             outcome: GameOutcome::Win,
             reason: GameReason::Accept,
         };
-    
 
         Ok(game.clone())
     }

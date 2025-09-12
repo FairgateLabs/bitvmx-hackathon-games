@@ -1,6 +1,6 @@
 use bitvmx_client::bitcoin::Txid;
-use bitvmx_client::program::participant::P2PAddress as BitVMXP2PAddress;
 use bitvmx_client::p2p_handler::PeerId;
+use bitvmx_client::program::participant::P2PAddress as BitVMXP2PAddress;
 use bitvmx_client::program::variables::PartialUtxo;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -117,7 +117,6 @@ pub struct TransactionResponse {
     /// The block hash
     pub block_hash: String,
 }
-
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
