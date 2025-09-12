@@ -2,11 +2,14 @@ import { useMutation } from "@tanstack/react-query";
 import { getApiBaseUrl } from "../config/backend";
 
 interface PlaceBetRequest {
-  gameId: string;
+  program_id: string;
   amount: number; // in satoshis
 }
 
-const placeBet = async ({ gameId, amount }: PlaceBetRequest): Promise<void> => {
+const placeBet = async ({
+  program_id,
+  amount,
+}: PlaceBetRequest): Promise<void> => {
   const baseUrl = getApiBaseUrl();
   const response = await fetch(`${baseUrl}/api/add-numbers/place-bet`, {
     method: "POST",
@@ -14,8 +17,8 @@ const placeBet = async ({ gameId, amount }: PlaceBetRequest): Promise<void> => {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      game_id: gameId,
-      amount: amount,
+      program_id,
+      amount,
     }),
   });
 

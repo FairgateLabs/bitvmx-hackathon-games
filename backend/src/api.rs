@@ -23,6 +23,9 @@ use crate::state::AppState;
         routes::add_numbers::place_bet,
         routes::add_numbers::get_fundings_utxos,
         routes::add_numbers::setup_funding_utxo,
+        routes::add_numbers::start_game,
+        routes::add_numbers::get_current_game_id,
+        routes::add_numbers::submit_sum,
         //BitVMX
         routes::bitvmx::comm_info,
         routes::bitvmx::operator_keys,
