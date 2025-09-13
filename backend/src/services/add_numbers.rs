@@ -60,6 +60,9 @@ impl AddNumbersService {
         };
 
         let mut hash_map = self.games.write().map_err(|e| anyhow::anyhow!("Failed to write to games: {e:?}"))?;
+        if hash_map.contains_key(&program_id) {
+            return Err(anyhow::anyhow!("Game already exists"));
+        }
         hash_map.insert(program_id, game.clone());
 
         Ok(game)
@@ -79,8 +82,8 @@ impl AddNumbersService {
         )
     }
 
-    /// Save the funding utxos for the current participant (only for player 1)
-    pub fn save_my_funding_utxos(
+    /// Save the funding utxos for the current participant
+    pub fn save_funding_utxos(
         &self,
         program_id: Uuid,
         funding_protocol_utxo: Utxo,
@@ -88,6 +91,11 @@ impl AddNumbersService {
     ) -> Result<(), anyhow::Error> {
         let mut hash_map = self.games.write().map_err(|e| anyhow::anyhow!("Failed to write to games: {e:?}"))?;
         let game = hash_map.get_mut(&program_id).ok_or(anyhow::anyhow!("Game not found"))?;
+
+        // Validate the game status
+        if game.status != AddNumbersGameStatus::PlaceBet {
+            return Err(anyhow::anyhow!("Game is not in place bet state"));
+        }
 
         // Save the funding bet UTXO
         game.bitvmx_program_properties.funding_bet_utxo = Some(funding_bet_utxo);
@@ -96,26 +104,6 @@ impl AddNumbersService {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs();
-
-        // Update the game status
-        game.status = AddNumbersGameStatus::StartGame;
-
-        Ok(())
-    }
-
-    /// Save the funding utxos for the other participant (only for player 2)
-    pub fn save_other_funding_utxos(
-        &self,
-        program_id: Uuid,
-        funding_protocol_utxo: Utxo,
-        funding_bet_utxo: Utxo,
-    ) -> Result<(), anyhow::Error> {
-        let mut hash_map = self.games.write().map_err(|e| anyhow::anyhow!("Failed to write to games: {e:?}"))?;
-        let game = hash_map.get_mut(&program_id).ok_or(anyhow::anyhow!("Game not found"))?;
-
-        // Save the funding bet UTXO
-        game.bitvmx_program_properties.funding_bet_utxo = Some(funding_bet_utxo);
-        game.bitvmx_program_properties.funding_protocol_utxo = Some(funding_protocol_utxo);
 
         // Update the game status
         game.status = AddNumbersGameStatus::StartGame;
@@ -157,21 +145,6 @@ impl AddNumbersService {
         Ok(p2tr_address)
     }
 
-    pub fn update_game_state(
-        &self,
-        id: Uuid,
-        new_status: AddNumbersGameStatus,
-    ) -> Result<(), String> {
-        let mut hash_map = self.games.write().map_err(|e| format!("Failed to write to games: {e:?}"))?;
-        let game = hash_map.get_mut(&id).ok_or("Game not found")?;
-        game.status = new_status;
-        game.updated_at = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
-        Ok(())
-    }
-
     pub fn start_game(
         &self,
         program_id: Uuid,
@@ -180,6 +153,12 @@ impl AddNumbersService {
     ) -> Result<(), anyhow::Error> {
         let mut hash_map = self.games.write().map_err(|e| anyhow::anyhow!("Failed to write to games: {e:?}"))?;
         let game = hash_map.get_mut(&program_id).ok_or(anyhow::anyhow!("Game not found"))?;
+
+        // Validate the game status
+        if game.status != AddNumbersGameStatus::StartGame {
+            return Err(anyhow::anyhow!("Game is not in start game state"));
+        }
+
         game.number1 = Some(number1);
         game.number2 = Some(number2);
         game.status = AddNumbersGameStatus::SubmitGameData;

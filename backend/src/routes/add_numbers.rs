@@ -1,9 +1,7 @@
 use std::str::FromStr;
 
 use crate::models::{
-    AddNumbersGame, AddNumbersGameStatus, ErrorResponse, FundingUtxoRequest, FundingUtxosResponse,
-    MakeGuessRequest, PlaceBetRequest, PlaceBetResponse, SetupParticipantsRequest,
-    SetupParticipantsResponse, StartGameRequest, StartGameResponse, Utxo,
+    AddNumbersGame, AddNumbersGameStatus, ErrorResponse, FundingUtxoRequest, FundingUtxosResponse, MakeGuessRequest, PlaceBetRequest, PlaceBetResponse, PlayerRole, SetupParticipantsRequest, SetupParticipantsResponse, StartGameRequest, StartGameResponse, Utxo
 };
 use crate::state::AppState;
 use crate::utils::http_errors;
@@ -57,11 +55,10 @@ pub async fn setup_participants(
     Json(request): Json<SetupParticipantsRequest>,
 ) -> Result<Json<SetupParticipantsResponse>, (StatusCode, Json<ErrorResponse>)> {
     // Validate the aggregated ID
-    if request.aggregated_id.is_empty() {
+    if request.aggregated_id == Uuid::default() {
         return Err(http_errors::bad_request("Aggregated ID cannot be empty"));
     }
-    let aggregated_id = Uuid::parse_str(&request.aggregated_id)
-        .map_err(|_| http_errors::bad_request("Invalid Aggregated ID"))?;
+    let aggregated_id = request.aggregated_id;
 
     let leader_idx = request.leader_idx;
 
@@ -107,7 +104,7 @@ pub async fn setup_participants(
     debug!("Aggregated key created: {:?}", aggregated_key);
 
     // Create the program id
-    let program_id = Uuid::new_v5(&Uuid::NAMESPACE_OID, request.aggregated_id.as_bytes());
+    let program_id = Uuid::new_v5(&Uuid::NAMESPACE_OID, aggregated_id.as_bytes());
     debug!("🎉 Setting up game with program id: {:?}", program_id);
 
     // Setup the game
@@ -125,7 +122,8 @@ pub async fn setup_participants(
         })?;
 
     Ok(Json(SetupParticipantsResponse {
-        program_id: program_id.to_string(),
+        program_id,
+        aggregated_key,
     }))
 }
 
@@ -134,7 +132,7 @@ pub async fn setup_participants(
     get,
     path = "/api/add-numbers/{id}",
     params(
-        ("id" = String, Path, description = "Game ID")
+        ("id" = String, Path, description = "Game ID", example = "123e4567-e89b-12d3-a456-426614174000")
     ),
     responses(
         (status = 200, description = "Game found"),
@@ -162,7 +160,7 @@ pub async fn get_game(
     post,
     path = "/api/add-numbers/{id}/guess",
     params(
-        ("id" = String, Path, description = "Game ID")
+        ("id" = String, Path, description = "Game ID", example = "123e4567-e89b-12d3-a456-426614174000")
     ),
     request_body = MakeGuessRequest,
     responses(
@@ -249,6 +247,14 @@ pub async fn place_bet(
         })?
         .ok_or(http_errors::not_found("Game not found"))?;
 
+    if game.status != AddNumbersGameStatus::PlaceBet {
+        return Err(http_errors::bad_request("Game is not in place bet state"));
+    }
+
+    if game.role != PlayerRole::Player1 {
+        return Err(http_errors::bad_request("Only player 1 can place a bet"));
+    }
+
     // Get the aggregated key
     let aggregated_key = game.bitvmx_program_properties.aggregated_key;
 
@@ -270,7 +276,6 @@ pub async fn place_bet(
             http_errors::internal_server_error(&format!("Failed to obtain bet destination from aggregated key: {e:?}"))
         })?;
 
-
     // Send funds to cover protocol fees to the aggregated key
     let (funding_uuid, funding_txid) = app_state.bitvmx_service
         .send_funds(&Destination::Batch(vec![protocol_destination, bet_destination]))
@@ -282,7 +287,6 @@ pub async fn place_bet(
         "Sent {protocol_amount} satoshis to cover protocol fees and bet {} satoshis to the aggregated key txid: {:?} uuid: {:?}",
         request.amount, funding_txid, funding_uuid
     );
-
 
     // Wait for the Transaction Status responses
     debug!("Waiting for transaction status responses");
@@ -316,7 +320,7 @@ pub async fn place_bet(
 
     // Save the funding UTXOs in AddNumbersService
     app_state.add_numbers_service
-        .save_my_funding_utxos(
+        .save_funding_utxos(
             program_id,
             funding_protocol_utxo.clone(),
             funding_bet_utxo.clone(),
@@ -338,6 +342,9 @@ pub async fn place_bet(
 #[utoipa::path(
     get,
     path = "/api/add-numbers/fundings_utxos/{id}",
+    params(
+        ("id" = String, Path, description = "Game ID", example = "123e4567-e89b-12d3-a456-426614174000")
+    ),
     responses(
         (status = 200, description = "Protocol fees and bet UTXO", body = FundingUtxosResponse),
         (status = 404, description = "Game not found", body = ErrorResponse)
@@ -381,6 +388,11 @@ pub async fn setup_funding_utxo(
     State(app_state): State<AppState>,
     Json(request): Json<FundingUtxoRequest>,
 ) -> Result<Json<FundingUtxosResponse>, (StatusCode, Json<ErrorResponse>)> {
+    // Validate the program ID
+    if request.program_id == Uuid::default() {
+        return Err(http_errors::bad_request("Invalid program ID"));
+    }
+
     // Validate the protocol fees UTXO
     if request.funding_protocol_utxo.txid.is_empty() || request.funding_protocol_utxo.amount == 0 {
         return Err(http_errors::bad_request("Invalid UTXO"));
@@ -393,21 +405,16 @@ pub async fn setup_funding_utxo(
     }
     let funding_bet_utxo = request.funding_bet_utxo;
 
-    // Validate the program ID
-    let program_id = Uuid::parse_str(&request.program_id)
-        .map_err(|_| http_errors::bad_request("Invalid program ID"))?;
-
-    {
-        app_state.add_numbers_service
-            .save_other_funding_utxos(
-                program_id,
-                funding_protocol_utxo.clone(),
-                funding_bet_utxo.clone(),
-            )
-            .map_err(|e| {
-                http_errors::internal_server_error(&format!("Failed to add funding UTXO: {e:?}"))
-            })?;
-    }
+    // Save the funding UTXOs
+    app_state.add_numbers_service
+        .save_funding_utxos(
+            request.program_id,
+            funding_protocol_utxo.clone(),
+            funding_bet_utxo.clone(),
+        )
+        .map_err(|e| {
+            http_errors::internal_server_error(&format!("Failed to add funding UTXO: {e:?}"))
+        })?;
 
     Ok(Json(FundingUtxosResponse {
         funding_protocol_utxo: Some(funding_protocol_utxo),
