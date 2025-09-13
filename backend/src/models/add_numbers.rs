@@ -58,7 +58,7 @@ pub struct AddNumbersGame {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 pub struct PlaceBetRequest {
     #[ts(type = "string")]
-    #[schema(value_type = String)]
+    #[schema(value_type = String, example = "123e4567-e89b-12d3-a456-426614174000")]
     pub program_id: Uuid,
     pub amount: u64,
 }
@@ -73,10 +73,10 @@ pub struct PlaceBetResponse {
 #[ts(export)]
 pub struct BitVMXProgramProperties {
     #[ts(type = "string")]
-    #[schema(value_type = String)]
+    #[schema(value_type = String, example = "020202020202020202020202020202020202020202020202020202020202020202")]
     pub aggregated_key: PublicKey,
     #[ts(type = "string")]
-    #[schema(value_type = String)]
+    #[schema(value_type = String, example = "123e4567-e89b-12d3-a456-426614174000")]
     pub aggregated_id: Uuid,
     pub protocol_address: String,
     pub participants_addresses: Vec<P2PAddress>,
@@ -95,7 +95,7 @@ pub struct AddNumbersResponse {
 #[ts(export)]
 pub struct MakeGuessRequest {
     #[ts(type = "string")]
-    #[schema(value_type = String)]
+    #[schema(value_type = String, example = "123e4567-e89b-12d3-a456-426614174000")]
     pub id: Uuid,
     pub guess: u32,
 }
@@ -104,7 +104,7 @@ pub struct MakeGuessRequest {
 #[ts(export)]
 pub struct FundingUtxoRequest {
     #[ts(type = "string")]
-    #[schema(value_type = String)]
+    #[schema(value_type = String, example = "123e4567-e89b-12d3-a456-426614174000")]
     pub program_id: Uuid,
     pub funding_protocol_utxo: Utxo,
     pub funding_bet_utxo: Utxo,
@@ -122,7 +122,7 @@ pub struct FundingUtxosResponse {
 pub struct SetupParticipantsRequest {
     /// The UUID of the aggregated key, must be the same for all participants
     #[ts(type = "string")]
-    #[schema(value_type = String)]
+    #[schema(value_type = String, example = "123e4567-e89b-12d3-a456-426614174000")]
     pub aggregated_id: Uuid,
     /// The P2P addresses of the bitvmx nodes in the aggregated key
     pub participants_addresses: Vec<P2PAddress>,
@@ -140,11 +140,11 @@ pub struct SetupParticipantsRequest {
 pub struct SetupParticipantsResponse {
     /// The generated program ID, this is the program id that will be used to identify the game
     #[ts(type = "string")]
-    #[schema(value_type = String)]
+    #[schema(value_type = String, example = "123e4567-e89b-12d3-a456-426614174000")]
     pub program_id: Uuid,
     /// The aggregated key
     #[ts(type = "string")]
-    #[schema(value_type = String)]
+    #[schema(value_type = String, example = "020202020202020202020202020202020202020202020202020202020202020202")]
     pub aggregated_key: PublicKey,
 }
 
@@ -159,7 +159,7 @@ pub enum PlayerRole {
 #[ts(export)]
 pub struct StartGameRequest {
     #[ts(type = "string")]
-    #[schema(value_type = String)]
+    #[schema(value_type = String, example = "123e4567-e89b-12d3-a456-426614174000")]
     pub program_id: Uuid,
     pub number1: u32,
     pub number2: u32,
@@ -169,6 +169,6 @@ pub struct StartGameRequest {
 #[ts(export)]
 pub struct StartGameResponse {
     #[ts(type = "string")]
-    #[schema(value_type = String)]
+    #[schema(value_type = String, example = "123e4567-e89b-12d3-a456-426614174000")]
     pub program_id: Uuid,
 }
