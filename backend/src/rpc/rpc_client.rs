@@ -342,9 +342,7 @@ impl RpcClient {
             IncomingBitVMXApiMessages::Decrypt(uuid, _payload_to_decrypt) => Ok(uuid.to_string()),
             IncomingBitVMXApiMessages::GetFundingBalance(uuid) => Ok(uuid.to_string()),
             IncomingBitVMXApiMessages::GetFundingAddress(uuid) => Ok(uuid.to_string()),
-            IncomingBitVMXApiMessages::SendFunds(uuid, _destination, _fee) => {
-                Ok(uuid.to_string())
-            }
+            IncomingBitVMXApiMessages::SendFunds(uuid, _destination, _fee) => Ok(uuid.to_string()),
             _ => Err(anyhow::anyhow!(
                 "unhandled request message type: {:?}",
                 message

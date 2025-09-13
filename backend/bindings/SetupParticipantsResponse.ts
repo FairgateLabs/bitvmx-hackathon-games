@@ -2,6 +2,10 @@
 
 export type SetupParticipantsResponse = { 
 /**
- * The generated program ID
+ * The generated program ID, this is the program id that will be used to identify the game
  */
-program_id: string, };
+program_id: string, 
+/**
+ * The aggregated key
+ */
+aggregated_key: string, };

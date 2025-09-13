@@ -89,13 +89,9 @@ async fn main() -> anyhow::Result<()> {
                 .wait_for_ready(shutdown_rx_setup)
                 .await;
 
-            // Now perform the setup
-            {
-                // Setup does multiple things so we should not lock the service,
-                // but since this is just a one time task at the beginning, we can do it here
-                let mut service_guard = app_state_setup.bitvmx_service.write().await;
-                service_guard.initial_setup().await?;
-            }
+            // Setup does multiple things so we should not lock the service,
+            // but since this is just a one time task at the beginning, we can do it here
+            app_state_setup.bitvmx_service.initial_setup().await?;
             info!("BitVMX RPC setup successful");
 
             Ok::<_, anyhow::Error>(()) // coercion to Result

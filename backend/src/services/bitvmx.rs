@@ -5,23 +5,27 @@ use bitvmx_bitcoin_rpc::bitcoin_client::BitcoinClient;
 use bitvmx_bitcoin_rpc::bitcoin_client::BitcoinClientApi;
 use bitvmx_client::bitcoin::{Address, PublicKey, Txid};
 use bitvmx_client::bitcoin_coordinator::TransactionStatus;
-use bitvmx_client::program::participant::P2PAddress as BitVMXP2PAddress;
-use bitvmx_client::program::variables::{PartialUtxo, VariableTypes};
 use bitvmx_client::bitvmx_wallet::wallet::Destination;
+use bitvmx_client::program::participant::P2PAddress as BitVMXP2PAddress;
+use bitvmx_client::program::variables::VariableTypes;
 use bitvmx_client::types::{IncomingBitVMXApiMessages, OutgoingBitVMXApiMessages};
 use std::str::FromStr;
 use std::sync::Arc;
+use tokio::sync::RwLock;
 use tracing::{debug, info, trace};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
-pub struct BitVMXService {
+pub struct BitVMXInfo {
     pub p2p_address: Option<P2PAddress>,
     pub pub_key: Option<String>,
     pub funding_key: Option<String>,
     pub wallet_address: Option<Address>,
+}
+#[derive(Debug, Clone)]
+pub struct BitVMXService {
+    pub bitvmx_info: Arc<RwLock<BitVMXInfo>>,
     pub bitcoin_config: BitcoinConfig,
-
     /// BitVMX RPC client
     pub rpc_client: Arc<RpcClient>,
 }
@@ -29,35 +33,42 @@ pub struct BitVMXService {
 impl BitVMXService {
     pub fn new(rpc_client: Arc<RpcClient>, bitcoin_config: BitcoinConfig) -> Self {
         Self {
-            p2p_address: None,
-            pub_key: None,
-            funding_key: None,
-            wallet_address: None,
+            bitvmx_info: Arc::new(RwLock::new(BitVMXInfo {
+                p2p_address: None,
+                pub_key: None,
+                funding_key: None,
+                wallet_address: None,
+            })),
             bitcoin_config: bitcoin_config.clone(),
             rpc_client,
         }
     }
 
     /// Get pub key
-    pub fn get_pub_key(&self) -> Option<String> {
-        self.pub_key.clone()
+    pub async fn get_pub_key(&self) -> Result<Option<String>, anyhow::Error> {
+        let bitvmx_info = self.bitvmx_info.read().await;
+        Ok(bitvmx_info.pub_key.clone())
     }
 
     /// Get funding key
-    pub fn get_funding_key(&self) -> Option<String> {
-        self.funding_key.clone()
+    pub async fn get_funding_key(&self) -> Result<Option<String>, anyhow::Error> {
+        let bitvmx_info = self.bitvmx_info.read().await;
+        Ok(bitvmx_info.funding_key.clone())
     }
 
     /// Get P2P address
-    pub fn get_p2p_address(&self) -> Option<P2PAddress> {
-        self.p2p_address.clone()
+    pub async fn get_p2p_address(&self) -> Result<Option<P2PAddress>, anyhow::Error> {
+        let bitvmx_info = self.bitvmx_info.read().await;
+        Ok(bitvmx_info.p2p_address.clone())
     }
 
-    pub fn get_wallet_address(&self) -> Result<&Address, anyhow::Error> {
-        self.wallet_address
-            .as_ref()
+    pub async fn get_wallet_address(&self) -> Result<Address, anyhow::Error> {
+        let bitvmx_info = self.bitvmx_info.read().await;
+        let wallet_address = bitvmx_info
+            .wallet_address
+            .clone()
             .ok_or(anyhow::anyhow!("Wallet address not found"))?;
-        Ok(self.wallet_address.as_ref().unwrap())
+        Ok(wallet_address)
     }
 
     /// Create aggregated key
@@ -108,7 +119,7 @@ impl BitVMXService {
     }
 
     pub async fn wallet_balance(&self) -> Result<WalletBalance, anyhow::Error> {
-        let address = self.get_wallet_address()?;
+        let address = self.get_wallet_address().await?;
         let response = self
             .rpc_client
             .send_request(IncomingBitVMXApiMessages::GetFundingBalance(Uuid::new_v4()))
@@ -130,8 +141,7 @@ impl BitVMXService {
     pub async fn send_funds(
         &self,
         destination: &Destination,
-        amount: u64,
-    ) -> Result<(Uuid, PartialUtxo), anyhow::Error> {
+    ) -> Result<(Uuid, Txid), anyhow::Error> {
         let response = self
             .rpc_client
             .send_request(IncomingBitVMXApiMessages::SendFunds(
@@ -142,7 +152,7 @@ impl BitVMXService {
             .await?;
 
         if let OutgoingBitVMXApiMessages::FundsSent(uuid, txid) = response {
-            Ok((uuid, (txid, 0, Some(amount), None)))
+            Ok((uuid, txid))
         } else {
             Err(anyhow::anyhow!(
                 "Expected Funds Sent response, got: {:?}",
@@ -239,23 +249,22 @@ impl BitVMXService {
     // ----- Start internal methods -----
 
     /// Update P2P address
-    async fn set_wallet_address(&mut self) -> Result<(), anyhow::Error> {
+    async fn set_wallet_address(&self) -> Result<(), anyhow::Error> {
         let response = self
             .rpc_client
             .send_request(IncomingBitVMXApiMessages::GetFundingAddress(Uuid::new_v4()))
             .await?;
 
+        let wallet_address: Address;
         if let OutgoingBitVMXApiMessages::FundingAddress(_uuid, address) = response {
-            self.wallet_address = Some(address.assume_checked());
+            wallet_address = address.assume_checked();
+            self.bitvmx_info.write().await.wallet_address = Some(wallet_address.clone());
         } else {
             return Err(anyhow::anyhow!(
                 "Expected Funding Address response, got: {:?}",
                 response
             ));
         }
-        let address = Address::from_str(&self.wallet_address.as_ref().unwrap().to_string())
-            .unwrap()
-            .assume_checked();
         let bitcoin_config = self.bitcoin_config.clone();
 
         // corre una rutina bloqueante sin trabar el runtime
@@ -267,7 +276,9 @@ impl BitVMXService {
             )
             .unwrap();
             // each block gives a 50 BTC reward
-            bitcoin_client.mine_blocks_to_address(1, &address).unwrap();
+            bitcoin_client
+                .mine_blocks_to_address(1, &wallet_address)
+                .unwrap();
             bitcoin_client.mine_blocks(100).unwrap();
         })
         .await?;
@@ -277,14 +288,14 @@ impl BitVMXService {
     }
 
     /// Update P2P address
-    async fn set_p2p_address(&mut self) -> Result<(), anyhow::Error> {
+    async fn set_p2p_address(&self) -> Result<(), anyhow::Error> {
         // Set P2P address
         let response = self
             .rpc_client
             .send_request(IncomingBitVMXApiMessages::GetCommInfo())
             .await?;
         if let OutgoingBitVMXApiMessages::CommInfo(comm_info) = response {
-            self.p2p_address = Some(P2PAddress {
+            self.bitvmx_info.write().await.p2p_address = Some(P2PAddress {
                 address: comm_info.address.clone(),
                 peer_id: comm_info.peer_id.to_string(),
             });
@@ -299,7 +310,7 @@ impl BitVMXService {
     }
 
     /// Update pub key
-    async fn set_pub_key(&mut self) -> Result<(), anyhow::Error> {
+    async fn set_pub_key(&self) -> Result<(), anyhow::Error> {
         debug!("Create operator key from BitVMX");
         let pub_key_id = Uuid::new_v4();
         let response = self
@@ -308,7 +319,7 @@ impl BitVMXService {
             .await?;
 
         if let OutgoingBitVMXApiMessages::PubKey(_uuid, pub_key) = response {
-            self.pub_key = Some(pub_key.to_string());
+            self.bitvmx_info.write().await.pub_key = Some(pub_key.to_string());
         } else {
             return Err(anyhow::anyhow!(
                 "Expected Operator PubKey response, got: {:?}",
@@ -320,7 +331,7 @@ impl BitVMXService {
     }
 
     /// Update funding key
-    async fn set_funding_key(&mut self) -> Result<(), anyhow::Error> {
+    async fn set_funding_key(&self) -> Result<(), anyhow::Error> {
         debug!("Create funding key for speedups from BitVMX");
         let speedup_key_id = Uuid::new_v4();
         let response = self
@@ -329,7 +340,7 @@ impl BitVMXService {
             .await?;
 
         if let OutgoingBitVMXApiMessages::PubKey(_uuid, funding_key) = response {
-            self.funding_key = Some(funding_key.to_string());
+            self.bitvmx_info.write().await.funding_key = Some(funding_key.to_string());
         } else {
             return Err(anyhow::anyhow!(
                 "Expected Funding PubKey response, got: {:?}",
@@ -341,13 +352,13 @@ impl BitVMXService {
     }
 
     /// Setup BitVMX
-    pub async fn initial_setup(&mut self) -> Result<(), anyhow::Error> {
+    pub async fn initial_setup(&self) -> Result<(), anyhow::Error> {
         debug!("Get BitVMX info and initial keys setup");
 
         self.set_p2p_address().await?;
 
         // If keys do not exist, setup keys
-        if self.get_pub_key().is_none() {
+        if self.get_pub_key().await?.is_none() {
             debug!("No keys found, creating them");
             // Set operator pub key
             self.set_pub_key().await?;

@@ -8,8 +8,7 @@ pub struct ChainedMap<K, V>
 where
     K: Eq + Hash + Clone + Debug,
 {
-    map: HashMap<K, VecDeque<usize>>, // key → indices into `global`
-    global: VecDeque<(K, V)>,         // global storage of actual values
+    map: HashMap<K, VecDeque<V>>, // key → queue of values directly
 }
 
 impl<K, V> ChainedMap<K, V>
@@ -19,39 +18,21 @@ where
     pub fn new() -> Self {
         Self {
             map: HashMap::new(),
-            global: VecDeque::new(),
         }
     }
 
     pub fn insert(&mut self, key: K, value: V) {
-        let idx = self.global.len(); // index of this element
-        self.global.push_back((key.clone(), value));
-        self.map.entry(key).or_default().push_back(idx);
+        self.map.entry(key).or_default().push_back(value);
     }
 
     /// Remove and return the first value for a given key
     pub fn remove_first_for_key(&mut self, key: &K) -> Result<Option<V>> {
-        if let Some(indices) = self.map.get_mut(key) {
-            if !indices.is_empty() {
-                // Find the first occurrence of the key in global storage
-                if let Some(pos_in_global) = self.global.iter().position(|(k, _)| k == key) {
-                    let (_, value) = self.global.remove(pos_in_global).unwrap();
-
-                    // Remove one index from the queue (we don't need to validate it)
-                    indices.pop_front();
-
-                    // Clean up the map entry if no more indices
-                    if indices.is_empty() {
-                        self.map.remove(key);
-                    }
-
-                    return Ok(Some(value));
-                } else {
-                    // Key not found in global storage, clean up the indices
-                    indices.clear();
+        if let Some(values) = self.map.get_mut(key) {
+            if let Some(value) = values.pop_front() {
+                if values.is_empty() {
                     self.map.remove(key);
-                    return Ok(None);
                 }
+                return Ok(Some(value));
             }
         }
         Ok(None)
