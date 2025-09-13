@@ -1,7 +1,9 @@
 use std::str::FromStr;
 
 use crate::models::{
-    AddNumbersGame, AddNumbersGameStatus, ErrorResponse, FundingUtxoRequest, FundingUtxosResponse, MakeGuessRequest, PlaceBetRequest, PlaceBetResponse, PlayerRole, SetupParticipantsRequest, SetupParticipantsResponse, StartGameRequest, StartGameResponse, Utxo
+    AddNumbersGame, AddNumbersGameStatus, ErrorResponse, FundingUtxoRequest, FundingUtxosResponse,
+    MakeGuessRequest, PlaceBetRequest, PlaceBetResponse, PlayerRole, SetupParticipantsRequest,
+    SetupParticipantsResponse, StartGameRequest, StartGameResponse, Utxo,
 };
 use crate::state::AppState;
 use crate::utils::http_errors;
@@ -88,7 +90,8 @@ pub async fn setup_participants(
         .collect::<Result<Vec<PublicKey>, (StatusCode, Json<ErrorResponse>)>>()?;
 
     // Create the aggregated key
-    let aggregated_key = app_state.bitvmx_service
+    let aggregated_key = app_state
+        .bitvmx_service
         .create_agregated_key(
             aggregated_id,
             participants_addresses,
@@ -97,9 +100,7 @@ pub async fn setup_participants(
         )
         .await
         .map_err(|e| {
-            http_errors::internal_server_error(&format!(
-                "Failed to create aggregated key: {e:?}"
-            ))
+            http_errors::internal_server_error(&format!("Failed to create aggregated key: {e:?}"))
         })?;
     debug!("Aggregated key created: {:?}", aggregated_key);
 
@@ -108,7 +109,8 @@ pub async fn setup_participants(
     debug!("🎉 Setting up game with program id: {:?}", program_id);
 
     // Setup the game
-    app_state.add_numbers_service
+    app_state
+        .add_numbers_service
         .setup_game(
             program_id,
             aggregated_id,
@@ -117,9 +119,7 @@ pub async fn setup_participants(
             aggregated_key,
             request.role,
         )
-        .map_err(|e| {
-            http_errors::internal_server_error(&format!("Failed to setup game: {e:?}"))
-        })?;
+        .map_err(|e| http_errors::internal_server_error(&format!("Failed to setup game: {e:?}")))?;
 
     Ok(Json(SetupParticipantsResponse {
         program_id,
@@ -145,11 +145,10 @@ pub async fn get_game(
     State(app_state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<AddNumbersGame>, (StatusCode, Json<ErrorResponse>)> {
-    let game = app_state.add_numbers_service
+    let game = app_state
+        .add_numbers_service
         .get_game(id)
-        .map_err(|e| {
-            http_errors::internal_server_error(&format!("Failed to get game: {e:?}"))
-        })?
+        .map_err(|e| http_errors::internal_server_error(&format!("Failed to get game: {e:?}")))?
         .ok_or(http_errors::not_found("Game not found"))?;
 
     Ok(Json(game.clone()))
@@ -175,7 +174,8 @@ pub async fn make_guess(
     Path(id): Path<Uuid>,
     Json(request): Json<MakeGuessRequest>,
 ) -> Result<Json<AddNumbersGame>, (StatusCode, Json<ErrorResponse>)> {
-    let game = app_state.add_numbers_service
+    let game = app_state
+        .add_numbers_service
         .make_guess(id, request.guess)
         .map_err(|error| {
             http_errors::error_response(
@@ -199,7 +199,9 @@ pub async fn make_guess(
 pub async fn get_current_game_id(
     State(app_state): State<AppState>,
 ) -> Result<Json<Option<AddNumbersGame>>, (StatusCode, Json<ErrorResponse>)> {
-    let game = app_state.add_numbers_service.get_current_game_id()
+    let game = app_state
+        .add_numbers_service
+        .get_current_game_id()
         .map_err(|e| {
             http_errors::internal_server_error(&format!("Failed to get current game ID: {e:?}"))
         })?;
@@ -240,11 +242,10 @@ pub async fn place_bet(
     }
 
     // Get the game
-    let game = app_state.add_numbers_service
+    let game = app_state
+        .add_numbers_service
         .get_game(program_id)
-        .map_err(|e| {
-            http_errors::internal_server_error(&format!("Failed to get game: {e:?}"))
-        })?
+        .map_err(|e| http_errors::internal_server_error(&format!("Failed to get game: {e:?}")))?
         .ok_or(http_errors::not_found("Game not found"))?;
 
     if game.status != AddNumbersGameStatus::PlaceBet {
@@ -261,7 +262,8 @@ pub async fn place_bet(
     // Get the protocol fees amount
     let protocol_amount = app_state.bitvmx_service.protocol_cost();
     // Preparer the utxo destination for the protocol fees
-    let protocol_destination = app_state.add_numbers_service
+    let protocol_destination = app_state
+        .add_numbers_service
         .protocol_destination(&aggregated_key, protocol_amount)
         .map_err(|e| {
             http_errors::internal_server_error(&format!(
@@ -270,15 +272,22 @@ pub async fn place_bet(
         })?;
 
     // Prepare the utxo destination for the bet
-    let bet_destination = app_state.add_numbers_service
+    let bet_destination = app_state
+        .add_numbers_service
         .protocol_destination(&aggregated_key, request.amount)
         .map_err(|e| {
-            http_errors::internal_server_error(&format!("Failed to obtain bet destination from aggregated key: {e:?}"))
+            http_errors::internal_server_error(&format!(
+                "Failed to obtain bet destination from aggregated key: {e:?}"
+            ))
         })?;
 
     // Send funds to cover protocol fees to the aggregated key
-    let (funding_uuid, funding_txid) = app_state.bitvmx_service
-        .send_funds(&Destination::Batch(vec![protocol_destination, bet_destination]))
+    let (funding_uuid, funding_txid) = app_state
+        .bitvmx_service
+        .send_funds(&Destination::Batch(vec![
+            protocol_destination,
+            bet_destination,
+        ]))
         .await
         .map_err(|e| {
             http_errors::internal_server_error(&format!("Failed to send protocol funds: {e:?}"))
@@ -290,9 +299,15 @@ pub async fn place_bet(
 
     // Wait for the Transaction Status responses
     debug!("Waiting for transaction status responses");
-    let funding_tx_status = app_state.bitvmx_service.wait_for_transaction_response(funding_uuid).await.map_err(|e| {
-        http_errors::internal_server_error(&format!("Failed to wait for transaction status response: {e:?}"))
-    })?;
+    let funding_tx_status = app_state
+        .bitvmx_service
+        .wait_for_transaction_response(funding_uuid)
+        .await
+        .map_err(|e| {
+            http_errors::internal_server_error(&format!(
+                "Failed to wait for transaction status response: {e:?}"
+            ))
+        })?;
 
     debug!(
         "Received transaction status responses for correlation ids: {:?} and {:?}",
@@ -300,8 +315,13 @@ pub async fn place_bet(
     );
 
     if funding_tx_status.confirmations == 0 {
-        error!("Transaction {} not confirmed for correlation id: {:?}", funding_txid, funding_uuid);
-        return Err(http_errors::internal_server_error("Transaction not confirmed"));
+        error!(
+            "Transaction {} not confirmed for correlation id: {:?}",
+            funding_txid, funding_uuid
+        );
+        return Err(http_errors::internal_server_error(
+            "Transaction not confirmed",
+        ));
     }
 
     debug!("Protocol and bet transactions confirmed, marking funding UTXOs as mined");
@@ -319,20 +339,18 @@ pub async fn place_bet(
     };
 
     // Save the funding UTXOs in AddNumbersService
-    app_state.add_numbers_service
+    app_state
+        .add_numbers_service
         .save_funding_utxos(
             program_id,
             funding_protocol_utxo.clone(),
             funding_bet_utxo.clone(),
         )
         .map_err(|e| {
-            http_errors::internal_server_error(&format!(
-                "Failed to save my funding UTXO: {e:?}"
-            ))
+            http_errors::internal_server_error(&format!("Failed to save my funding UTXO: {e:?}"))
         })?;
     debug!("Saved my funding UTXOs in AddNumbersService");
 
-    
     Ok(Json(PlaceBetResponse {
         funding_protocol_utxo,
         funding_bet_utxo,
@@ -356,11 +374,10 @@ pub async fn get_fundings_utxos(
     Path(id): Path<Uuid>,
 ) -> Result<Json<FundingUtxosResponse>, (StatusCode, Json<ErrorResponse>)> {
     // Get the game
-    let game = app_state.add_numbers_service
+    let game = app_state
+        .add_numbers_service
         .get_game(id)
-        .map_err(|e| {
-            http_errors::internal_server_error(&format!("Failed to get game: {e:?}"))
-        })?
+        .map_err(|e| http_errors::internal_server_error(&format!("Failed to get game: {e:?}")))?
         .ok_or(http_errors::not_found("Game not found"))?;
 
     let funding_protocol_utxo = game.bitvmx_program_properties.funding_protocol_utxo.clone();
@@ -406,7 +423,8 @@ pub async fn setup_funding_utxo(
     let funding_bet_utxo = request.funding_bet_utxo;
 
     // Save the funding UTXOs
-    app_state.add_numbers_service
+    app_state
+        .add_numbers_service
         .save_funding_utxos(
             request.program_id,
             funding_protocol_utxo.clone(),
@@ -451,13 +469,12 @@ pub async fn start_game(
     let program_id = request.program_id;
 
     // Get the game
-    let game = app_state.add_numbers_service
-            .get_game(program_id)
-            .map_err(|e| {
-                http_errors::internal_server_error(&format!("Failed to get game: {e:?}"))
-            })?
-            .ok_or(http_errors::not_found("Game not found"))?
-            .clone();
+    let game = app_state
+        .add_numbers_service
+        .get_game(program_id)
+        .map_err(|e| http_errors::internal_server_error(&format!("Failed to get game: {e:?}")))?
+        .ok_or(http_errors::not_found("Game not found"))?
+        .clone();
 
     // Set inputs values, Concatenate the two input numbers as bytes
     let mut concatenated_bytes = Vec::<u8>::new();
@@ -467,7 +484,8 @@ pub async fn start_game(
     // Set all necesary program variables in BitVMX
 
     // Set program input 0, the two numbers to sum
-    app_state.bitvmx_service
+    app_state
+        .bitvmx_service
         .set_variable(
             program_id,
             "program_input_0",
@@ -479,7 +497,8 @@ pub async fn start_game(
         })?;
 
     // Set aggregated key
-    app_state.bitvmx_service
+    app_state
+        .bitvmx_service
         .set_variable(
             program_id,
             "aggregated",
@@ -496,7 +515,8 @@ pub async fn start_game(
     let protocol_utxo = game.bitvmx_program_properties.funding_protocol_utxo.ok_or(
         http_errors::internal_server_error("Protocol UTXO not found"),
     )?;
-    app_state.bitvmx_service
+    app_state
+        .bitvmx_service
         .set_variable(
             program_id,
             "utxo",
@@ -514,8 +534,9 @@ pub async fn start_game(
         .bitvmx_program_properties
         .funding_bet_utxo
         .ok_or(http_errors::internal_server_error("Bet UTXO not found"))?;
-    
-    app_state.bitvmx_service
+
+    app_state
+        .bitvmx_service
         .set_variable(
             program_id,
             "utxo_prover_win_action",
@@ -523,14 +544,13 @@ pub async fn start_game(
         )
         .await
         .map_err(|e| {
-            http_errors::internal_server_error(&format!(
-                "Failed to set variable bet utxo: {e:?}"
-            ))
+            http_errors::internal_server_error(&format!("Failed to set variable bet utxo: {e:?}"))
         })?;
 
     // Set program definition, it should be the relative path from the bitvmx-client to the program definition file
     let program_path = "./verifiers/add-test-with-const-pre.yaml";
-    app_state.bitvmx_service
+    app_state
+        .bitvmx_service
         .set_variable(
             program_id,
             "program_definition",
@@ -544,7 +564,8 @@ pub async fn start_game(
         })?;
 
     // Set timelock blocks
-    app_state.bitvmx_service
+    app_state
+        .bitvmx_service
         .set_variable(
             program_id,
             TIMELOCK_BLOCKS_KEY,
@@ -554,8 +575,8 @@ pub async fn start_game(
         .map_err(|e| {
             http_errors::internal_server_error(&format!(
                 "Failed to set variable timelock blocks: {e:?}"
-        ))
-    })?;
+            ))
+        })?;
 
     // Call setup program
     let participants_addresses: Vec<BitVMXP2PAddress> = game
@@ -565,22 +586,22 @@ pub async fn start_game(
         .map(|p2p| p2p.clone().into())
         .collect();
 
-    app_state.bitvmx_service
-            .program_setup(program_id, PROGRAM_TYPE_DRP, participants_addresses, 1)
-            .await
-            .map_err(|e| {
-                http_errors::internal_server_error(&format!(
-                    "Failed to set variable program setup: {e:?}"
-                ))
-            })?;
-
-    // Set game as started
-    app_state.add_numbers_service
-        .start_game(program_id, request.number1, request.number2)
+    app_state
+        .bitvmx_service
+        .program_setup(program_id, PROGRAM_TYPE_DRP, participants_addresses, 1)
+        .await
         .map_err(|e| {
             http_errors::internal_server_error(&format!(
-                "Failed to save start game state: {e:?}"
+                "Failed to set variable program setup: {e:?}"
             ))
+        })?;
+
+    // Set game as started
+    app_state
+        .add_numbers_service
+        .start_game(program_id, request.number1, request.number2)
+        .map_err(|e| {
+            http_errors::internal_server_error(&format!("Failed to save start game state: {e:?}"))
         })?;
 
     // Return the program ID
@@ -605,15 +626,15 @@ pub async fn submit_sum(
     Json(request): Json<MakeGuessRequest>,
 ) -> Result<Json<AddNumbersGame>, (StatusCode, Json<ErrorResponse>)> {
     // TOOD: PEDRO Wait until you know the anser
-    let game = app_state.add_numbers_service
-        .make_guess(request.id, request.guess).map_err(|e| {
-            match e.to_string().as_str() {
-                "Game not found" => http_errors::not_found("Game not found"),
-                "Game is not in waiting for guess state" => {
-                    http_errors::bad_request("Invalid game state")
-                }
-                _ => http_errors::internal_server_error(&format!("Failed to submit sum: {e:?}")),
+    let game = app_state
+        .add_numbers_service
+        .make_guess(request.id, request.guess)
+        .map_err(|e| match e.to_string().as_str() {
+            "Game not found" => http_errors::not_found("Game not found"),
+            "Game is not in waiting for guess state" => {
+                http_errors::bad_request("Invalid game state")
             }
+            _ => http_errors::internal_server_error(&format!("Failed to submit sum: {e:?}")),
         })?;
 
     Ok(Json(game))

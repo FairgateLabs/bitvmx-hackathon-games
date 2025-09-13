@@ -59,7 +59,10 @@ impl AddNumbersService {
             },
         };
 
-        let mut hash_map = self.games.write().map_err(|e| anyhow::anyhow!("Failed to write to games: {e:?}"))?;
+        let mut hash_map = self
+            .games
+            .write()
+            .map_err(|e| anyhow::anyhow!("Failed to write to games: {e:?}"))?;
         if hash_map.contains_key(&program_id) {
             return Err(anyhow::anyhow!("Game already exists"));
         }
@@ -69,17 +72,22 @@ impl AddNumbersService {
     }
 
     pub fn get_game(&self, id: Uuid) -> Result<Option<AddNumbersGame>, anyhow::Error> {
-        let hash_map = self.games.read().map_err(|e| anyhow::anyhow!("Failed to read from games: {e:?}"))?;
+        let hash_map = self
+            .games
+            .read()
+            .map_err(|e| anyhow::anyhow!("Failed to read from games: {e:?}"))?;
         Ok(hash_map.get(&id).cloned())
     }
 
     pub fn get_current_game_id(&self) -> Result<Option<AddNumbersGame>, anyhow::Error> {
-        let hash_map = self.games.read().map_err(|e| anyhow::anyhow!("Failed to read from games: {e:?}"))?;
+        let hash_map = self
+            .games
+            .read()
+            .map_err(|e| anyhow::anyhow!("Failed to read from games: {e:?}"))?;
         Ok(hash_map
             .iter()
             .find(|(_, game)| game.status != AddNumbersGameStatus::Finished)
-            .map(|(_, game)| game.clone())
-        )
+            .map(|(_, game)| game.clone()))
     }
 
     /// Save the funding utxos for the current participant
@@ -89,8 +97,13 @@ impl AddNumbersService {
         funding_protocol_utxo: Utxo,
         funding_bet_utxo: Utxo,
     ) -> Result<(), anyhow::Error> {
-        let mut hash_map = self.games.write().map_err(|e| anyhow::anyhow!("Failed to write to games: {e:?}"))?;
-        let game = hash_map.get_mut(&program_id).ok_or(anyhow::anyhow!("Game not found"))?;
+        let mut hash_map = self
+            .games
+            .write()
+            .map_err(|e| anyhow::anyhow!("Failed to write to games: {e:?}"))?;
+        let game = hash_map
+            .get_mut(&program_id)
+            .ok_or(anyhow::anyhow!("Game not found"))?;
 
         // Validate the game status
         if game.status != AddNumbersGameStatus::PlaceBet {
@@ -151,8 +164,13 @@ impl AddNumbersService {
         number1: u32,
         number2: u32,
     ) -> Result<(), anyhow::Error> {
-        let mut hash_map = self.games.write().map_err(|e| anyhow::anyhow!("Failed to write to games: {e:?}"))?;
-        let game = hash_map.get_mut(&program_id).ok_or(anyhow::anyhow!("Game not found"))?;
+        let mut hash_map = self
+            .games
+            .write()
+            .map_err(|e| anyhow::anyhow!("Failed to write to games: {e:?}"))?;
+        let game = hash_map
+            .get_mut(&program_id)
+            .ok_or(anyhow::anyhow!("Game not found"))?;
 
         // Validate the game status
         if game.status != AddNumbersGameStatus::StartGame {
@@ -166,8 +184,13 @@ impl AddNumbersService {
     }
 
     pub fn make_guess(&self, id: Uuid, guess: u32) -> Result<AddNumbersGame, anyhow::Error> {
-        let mut hash_map = self.games.write().map_err(|e| anyhow::anyhow!("Failed to write to games: {e:?}"))?;
-        let game = hash_map.get_mut(&id).ok_or(anyhow::anyhow!("Game not found"))?;
+        let mut hash_map = self
+            .games
+            .write()
+            .map_err(|e| anyhow::anyhow!("Failed to write to games: {e:?}"))?;
+        let game = hash_map
+            .get_mut(&id)
+            .ok_or(anyhow::anyhow!("Game not found"))?;
 
         // Validate game status
         if game.status != AddNumbersGameStatus::SubmitGameData {

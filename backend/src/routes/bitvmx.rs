@@ -33,7 +33,8 @@ pub fn router() -> Router<AppState> {
 pub async fn comm_info(
     State(app_state): State<AppState>,
 ) -> Result<Json<P2PAddress>, (StatusCode, Json<ErrorResponse>)> {
-    let p2p_address = app_state.bitvmx_service
+    let p2p_address = app_state
+        .bitvmx_service
         .get_p2p_address()
         .await
         .map_err(|e| {
@@ -59,14 +60,14 @@ pub async fn comm_info(
 pub async fn operator_keys(
     State(app_state): State<AppState>,
 ) -> Result<Json<OperatorKeys>, (StatusCode, Json<ErrorResponse>)> {
-    let pub_key = app_state.bitvmx_service
+    let pub_key = app_state
+        .bitvmx_service
         .get_pub_key()
         .await
-        .map_err(|e| {
-            http_errors::internal_server_error(&format!("Failed to get pub key: {e:?}"))
-        })?
+        .map_err(|e| http_errors::internal_server_error(&format!("Failed to get pub key: {e:?}")))?
         .ok_or(http_errors::not_found("Operator pub key not found"))?;
-    let funding_key = app_state.bitvmx_service
+    let funding_key = app_state
+        .bitvmx_service
         .get_funding_key()
         .await
         .map_err(|e| {
@@ -96,9 +97,13 @@ pub async fn get_aggregated_key(
     State(app_state): State<AppState>,
     Path(uuid): Path<Uuid>,
 ) -> Result<Json<AggregatedKeyResponse>, (StatusCode, Json<ErrorResponse>)> {
-    let aggregated_key = app_state.bitvmx_service.aggregated_key(uuid).await.map_err(|e| {
-        http_errors::internal_server_error(&format!("Failed to get aggregated key: {e:?}"))
-    })?;
+    let aggregated_key = app_state
+        .bitvmx_service
+        .aggregated_key(uuid)
+        .await
+        .map_err(|e| {
+            http_errors::internal_server_error(&format!("Failed to get aggregated key: {e:?}"))
+        })?;
     Ok(Json(AggregatedKeyResponse {
         uuid: uuid.to_string(),
         aggregated_key: aggregated_key.to_string(),
@@ -118,9 +123,13 @@ pub async fn get_aggregated_key(
 pub async fn wallet_balance(
     State(app_state): State<AppState>,
 ) -> Result<Json<WalletBalance>, (StatusCode, Json<ErrorResponse>)> {
-    let wallet_balance = app_state.bitvmx_service.wallet_balance().await.map_err(|e| {
-        http_errors::internal_server_error(&format!("Failed to get wallet balance: {e:?}"))
-    })?;
+    let wallet_balance = app_state
+        .bitvmx_service
+        .wallet_balance()
+        .await
+        .map_err(|e| {
+            http_errors::internal_server_error(&format!("Failed to get wallet balance: {e:?}"))
+        })?;
     Ok(Json(wallet_balance))
 }
 
@@ -138,9 +147,13 @@ pub async fn get_transaction(
     State(app_state): State<AppState>,
     Path(txid): Path<String>,
 ) -> Result<Json<TransactionResponse>, (StatusCode, Json<ErrorResponse>)> {
-    let transaction = app_state.bitvmx_service.get_transaction(txid).await.map_err(|e| {
-        http_errors::internal_server_error(&format!("Failed to get transaction: {e:?}"))
-    })?;
+    let transaction = app_state
+        .bitvmx_service
+        .get_transaction(txid)
+        .await
+        .map_err(|e| {
+            http_errors::internal_server_error(&format!("Failed to get transaction: {e:?}"))
+        })?;
     let mut block_height = 0;
     let mut block_hash = String::new();
     if let Some(block_info) = transaction.block_info {

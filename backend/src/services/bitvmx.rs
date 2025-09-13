@@ -5,13 +5,13 @@ use bitvmx_bitcoin_rpc::bitcoin_client::BitcoinClient;
 use bitvmx_bitcoin_rpc::bitcoin_client::BitcoinClientApi;
 use bitvmx_client::bitcoin::{Address, PublicKey, Txid};
 use bitvmx_client::bitcoin_coordinator::TransactionStatus;
+use bitvmx_client::bitvmx_wallet::wallet::Destination;
 use bitvmx_client::program::participant::P2PAddress as BitVMXP2PAddress;
 use bitvmx_client::program::variables::VariableTypes;
-use bitvmx_client::bitvmx_wallet::wallet::Destination;
 use bitvmx_client::types::{IncomingBitVMXApiMessages, OutgoingBitVMXApiMessages};
-use tokio::sync::RwLock;
 use std::str::FromStr;
 use std::sync::Arc;
+use tokio::sync::RwLock;
 use tracing::{debug, info, trace};
 use uuid::Uuid;
 
@@ -64,7 +64,8 @@ impl BitVMXService {
 
     pub async fn get_wallet_address(&self) -> Result<Address, anyhow::Error> {
         let bitvmx_info = self.bitvmx_info.read().await;
-        let wallet_address = bitvmx_info.wallet_address
+        let wallet_address = bitvmx_info
+            .wallet_address
             .clone()
             .ok_or(anyhow::anyhow!("Wallet address not found"))?;
         Ok(wallet_address)
@@ -275,7 +276,9 @@ impl BitVMXService {
             )
             .unwrap();
             // each block gives a 50 BTC reward
-            bitcoin_client.mine_blocks_to_address(1, &wallet_address).unwrap();
+            bitcoin_client
+                .mine_blocks_to_address(1, &wallet_address)
+                .unwrap();
             bitcoin_client.mine_blocks(100).unwrap();
         })
         .await?;
