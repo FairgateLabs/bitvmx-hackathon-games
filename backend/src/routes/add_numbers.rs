@@ -14,11 +14,12 @@ use axum::{
     Json, Router,
 };
 use bitvmx_client::bitcoin::PublicKey;
+use bitvmx_client::bitvmx_wallet::wallet::Destination;
 use bitvmx_client::program::participant::P2PAddress as BitVMXP2PAddress;
 use bitvmx_client::program::protocols::dispute::{TIMELOCK_BLOCKS, TIMELOCK_BLOCKS_KEY};
 use bitvmx_client::program::variables::VariableTypes;
 use bitvmx_client::types::PROGRAM_TYPE_DRP;
-use tracing::debug;
+use tracing::{debug, error};
 use uuid::Uuid;
 
 pub fn router() -> Router<AppState> {
@@ -247,69 +248,71 @@ pub async fn place_bet(
             http_errors::internal_server_error(&format!("Failed to get game: {e:?}"))
         })?
         .ok_or(http_errors::not_found("Game not found"))?;
+
     // Get the aggregated key
     let aggregated_key = game.bitvmx_program_properties.aggregated_key;
-    // Get the protocol information
-    let destination = app_state.add_numbers_service
-        .protocol_destination(&aggregated_key, request.amount)
+
+    // Get the protocol fees amount
+    let protocol_amount = app_state.bitvmx_service.protocol_cost();
+    // Preparer the utxo destination for the protocol fees
+    let protocol_destination = app_state.add_numbers_service
+        .protocol_destination(&aggregated_key, protocol_amount)
         .map_err(|e| {
             http_errors::internal_server_error(&format!(
                 "Failed to obtain protocol destination from aggregated key: {e:?}"
             ))
         })?;
 
-    // Get the protocol fees amount
-    let protocol_amount = app_state.bitvmx_service.protocol_cost();
+    // Prepare the utxo destination for the bet
+    let bet_destination = app_state.add_numbers_service
+        .protocol_destination(&aggregated_key, request.amount)
+        .map_err(|e| {
+            http_errors::internal_server_error(&format!("Failed to obtain bet destination from aggregated key: {e:?}"))
+        })?;
+
 
     // Send funds to cover protocol fees to the aggregated key
-    let (funding_protocol_uuid, funding_protocol) = app_state.bitvmx_service
-        .send_funds(&destination, protocol_amount)
+    let (funding_uuid, funding_txid) = app_state.bitvmx_service
+        .send_funds(&Destination::Batch(vec![protocol_destination, bet_destination]))
         .await
         .map_err(|e| {
             http_errors::internal_server_error(&format!("Failed to send protocol funds: {e:?}"))
         })?;
     debug!(
-        "Sent {protocol_amount} satoshis to cover protocol fees to the aggregated key txid: {:?}",
-        funding_protocol.0
+        "Sent {protocol_amount} satoshis to cover protocol fees and bet {} satoshis to the aggregated key txid: {:?} uuid: {:?}",
+        request.amount, funding_txid, funding_uuid
     );
 
-    // Send the amount that the players will bet to the aggregated key
-    let (funding_bet_uuid, funding_bet) = app_state.bitvmx_service
-        .send_funds(&destination, request.amount)
-        .await
-        .map_err(|e| {
-            http_errors::internal_server_error(&format!("Failed to send bet funds: {e:?}"))
-        })?;
-    debug!(
-        "Funds {} satoshis sent to the aggregated key to cover the players bet txid: {:?}",
-        request.amount, funding_bet.0
-    );
 
     // Wait for the Transaction Status responses
     debug!("Waiting for transaction status responses");
-    let (protocol_tx_result, bet_tx_result) = tokio::join!(
-        app_state.bitvmx_service.wait_for_transaction_response(funding_protocol_uuid),
-        app_state.bitvmx_service.wait_for_transaction_response(funding_bet_uuid),
-    );
+    let funding_tx_status = app_state.bitvmx_service.wait_for_transaction_response(funding_uuid).await.map_err(|e| {
+        http_errors::internal_server_error(&format!("Failed to wait for transaction status response: {e:?}"))
+    })?;
 
     debug!(
         "Received transaction status responses for correlation ids: {:?} and {:?}",
-        protocol_tx_result, bet_tx_result
+        funding_uuid, funding_txid
     );
-    // Handle any errors from waiting for responses
-    let protocol_tx_status = protocol_tx_result.map_err(|e| {
-        http_errors::internal_server_error(&format!(
-            "Failed to wait for protocol transaction response: {e:?}"
-        ))
-    })?;
-    let bet_tx_status = bet_tx_result.map_err(|e| {
-        http_errors::internal_server_error(&format!(
-            "Failed to wait for bet transaction response: {e:?}"
-        ))
-    })?;
 
-    let funding_protocol_utxo: Utxo = funding_protocol.clone().into();
-    let funding_bet_utxo: Utxo = funding_bet.clone().into();
+    if funding_tx_status.confirmations == 0 {
+        error!("Transaction {} not confirmed for correlation id: {:?}", funding_txid, funding_uuid);
+        return Err(http_errors::internal_server_error("Transaction not confirmed"));
+    }
+
+    debug!("Protocol and bet transactions confirmed, marking funding UTXOs as mined");
+    let funding_protocol_utxo: Utxo = Utxo {
+        txid: funding_txid.to_string(),
+        vout: 0,
+        amount: protocol_amount,
+        output_type: serde_json::Value::Null,
+    };
+    let funding_bet_utxo: Utxo = Utxo {
+        txid: funding_txid.to_string(),
+        vout: 1,
+        amount: request.amount,
+        output_type: serde_json::Value::Null,
+    };
 
     // Save the funding UTXOs in AddNumbersService
     app_state.add_numbers_service
@@ -325,16 +328,7 @@ pub async fn place_bet(
         })?;
     debug!("Saved my funding UTXOs in AddNumbersService");
 
-    if protocol_tx_status.confirmations > 0 && bet_tx_status.confirmations > 0 {
-        debug!("Protocol and bet transactions confirmed, marking funding UTXOs as mined");
-        // Mark the funding UTXOs as mined
-        app_state.add_numbers_service
-            .update_game_state(program_id, AddNumbersGameStatus::SetupFunding)
-            .map_err(|e| {
-                http_errors::internal_server_error(&format!("Failed to update game state: {e:?}"))
-            })?;
-    }
-
+    
     Ok(Json(PlaceBetResponse {
         funding_protocol_utxo,
         funding_bet_utxo,

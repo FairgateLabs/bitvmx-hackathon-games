@@ -6,7 +6,7 @@ use bitvmx_bitcoin_rpc::bitcoin_client::BitcoinClientApi;
 use bitvmx_client::bitcoin::{Address, PublicKey, Txid};
 use bitvmx_client::bitcoin_coordinator::TransactionStatus;
 use bitvmx_client::program::participant::P2PAddress as BitVMXP2PAddress;
-use bitvmx_client::program::variables::{PartialUtxo, VariableTypes};
+use bitvmx_client::program::variables::VariableTypes;
 use bitvmx_client::bitvmx_wallet::wallet::Destination;
 use bitvmx_client::types::{IncomingBitVMXApiMessages, OutgoingBitVMXApiMessages};
 use tokio::sync::RwLock;
@@ -140,8 +140,7 @@ impl BitVMXService {
     pub async fn send_funds(
         &self,
         destination: &Destination,
-        amount: u64,
-    ) -> Result<(Uuid, PartialUtxo), anyhow::Error> {
+    ) -> Result<(Uuid, Txid), anyhow::Error> {
         let response = self
             .rpc_client
             .send_request(IncomingBitVMXApiMessages::SendFunds(
@@ -152,7 +151,7 @@ impl BitVMXService {
             .await?;
 
         if let OutgoingBitVMXApiMessages::FundsSent(uuid, txid) = response {
-            Ok((uuid, (txid, 0, Some(amount), None)))
+            Ok((uuid, txid))
         } else {
             Err(anyhow::anyhow!(
                 "Expected Funds Sent response, got: {:?}",
