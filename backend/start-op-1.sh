@@ -8,6 +8,7 @@ cd "$CURRENT_PATH";
 # remove bitvmx client tmp data
 rm -rf /tmp/broker_p2p_61180
 rm -rf /tmp/op_1
+rm -rf /tmp/regtest/op_1
 
 # create logs directory if it doesn't exist
 mkdir -p logs/player_1.log
