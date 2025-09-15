@@ -11,10 +11,11 @@ rm -rf /tmp/op_1
 rm -rf /tmp/regtest/op_1
 
 # create logs directory if it doesn't exist
-mkdir -p "$CURRENT_PATH/../logs/player_1.log"
+LOG_PATH="$CURRENT_PATH/../logs/player_1.log"
+mkdir -p "$LOG_PATH"
 
 # remove the log file
-rm -rf "$CURRENT_PATH/../logs/player_1.log/bitvmx"
+rm -rf "$LOG_PATH/bitvmx"
 
 # go to the bitvmx client workspace
 BITVMX_PATH="$CURRENT_PATH/../../../rust-bitvmx-workspace/rust-bitvmx-client"
@@ -22,4 +23,4 @@ cd "$BITVMX_PATH"
 
 # run the bitvmx client with output to both console and file
 RUST_LOG="debug,bitvmx_wallet::wallet=off,bitvmx_bitcoin_rpc=off,bitcoincore_rpc=off,hyper_util=off,libp2p=off,bitvmx_transaction_monitor=off,bitcoin_indexer=off,bitcoin_coordinator=info,p2p_protocol=off,p2p_handler=off,tarpc=off,broker=off" \
-RUST_BACKTRACE=1 cargo run op_1 2>&1 | tee "$CURRENT_PATH/logs/player_1.log/bitvmx"
+RUST_BACKTRACE=1 cargo run op_1 2>&1 | tee "$LOG_PATH/bitvmx"
