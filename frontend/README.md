@@ -8,11 +8,9 @@ This a web application designed for playing various games, such as "Add Numbers"
 yarn install
 ```
  
-# Backend Configuration
+## Backend Configuration
 
 This configuration system allows the frontend to automatically connect to different backends based on the port it's running on.
-
-## Configuration
 
 ### Port Mapping
 
