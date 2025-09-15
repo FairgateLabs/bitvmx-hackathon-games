@@ -231,7 +231,7 @@ impl BitVMXService {
         leader_idx: u16,
     ) -> Result<(), anyhow::Error> {
         self.rpc_client
-            .send_fire_and_forget(IncomingBitVMXApiMessages::Setup(
+            .send_request(IncomingBitVMXApiMessages::Setup(
                 program_id,
                 program_type.to_string(),
                 participants,

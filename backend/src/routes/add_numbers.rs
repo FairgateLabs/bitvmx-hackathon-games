@@ -18,6 +18,7 @@ use bitvmx_client::bitvmx_wallet::wallet::Destination;
 use bitvmx_client::program::participant::P2PAddress as BitVMXP2PAddress;
 use bitvmx_client::program::protocols::dispute::{TIMELOCK_BLOCKS, TIMELOCK_BLOCKS_KEY};
 use bitvmx_client::program::variables::VariableTypes;
+use bitvmx_client::protocol_builder::types::OutputType;
 use bitvmx_client::types::PROGRAM_TYPE_DRP;
 use tracing::{debug, error};
 use uuid::Uuid;
@@ -255,7 +256,10 @@ pub async fn place_bet(
     if game.role == PlayerRole::Player2 {
         app_state
             .add_numbers_service
-            .change_state(program_id, AddNumbersGameStatus::SetupFunding);
+            .change_state(program_id, AddNumbersGameStatus::SetupFunding)
+            .map_err(|e| {
+                http_errors::internal_server_error(&format!("Failed to update game state: {e:?}"))
+            })?;
         return Ok(Json(()));
     }
 
@@ -328,17 +332,42 @@ pub async fn place_bet(
     }
 
     debug!("Protocol and bet transactions confirmed, marking funding UTXOs as mined");
+    let protocol_leaves = app_state
+        .add_numbers_service
+        .protocol_scripts(&aggregated_key);
+
+    let protocol_output_type =
+        OutputType::taproot(protocol_amount, &aggregated_key, &protocol_leaves).map_err(|e| {
+            http_errors::internal_server_error(&format!(
+                "Failed to obtain protocol output type from aggregated key: {e:?}"
+            ))
+        })?;
+    let bet_output_type = OutputType::taproot(protocol_amount, &aggregated_key, &protocol_leaves)
+        .map_err(|e| {
+        http_errors::internal_server_error(&format!(
+            "Failed to obtain protocol output type from aggregated key: {e:?}"
+        ))
+    })?;
+
     let funding_protocol_utxo: Utxo = Utxo {
         txid: funding_txid.to_string(),
         vout: 0,
         amount: protocol_amount,
-        output_type: serde_json::Value::Null,
+        output_type: serde_json::to_value(protocol_output_type).map_err(|e| {
+            http_errors::internal_server_error(&format!(
+                "Failed to convert protocol output type to JSON: {e:?}"
+            ))
+        })?,
     };
     let funding_bet_utxo: Utxo = Utxo {
         txid: funding_txid.to_string(),
         vout: 1,
         amount: request.amount,
-        output_type: serde_json::Value::Null,
+        output_type: serde_json::to_value(bet_output_type).map_err(|e| {
+            http_errors::internal_server_error(&format!(
+                "Failed to convert bet output type to JSON: {e:?}"
+            ))
+        })?,
     };
 
     // Save the funding UTXOs in AddNumbersService
@@ -577,7 +606,7 @@ pub async fn setup_game(
             ))
         })?;
 
-    // Call setup program
+    // Get the participants addresses
     let participants_addresses: Vec<BitVMXP2PAddress> = game
         .bitvmx_program_properties
         .participants_addresses
@@ -585,6 +614,7 @@ pub async fn setup_game(
         .map(|p2p| p2p.clone().into())
         .collect();
 
+    // Setup program in BitVMX
     app_state
         .bitvmx_service
         .program_setup(program_id, PROGRAM_TYPE_DRP, participants_addresses, 1)
