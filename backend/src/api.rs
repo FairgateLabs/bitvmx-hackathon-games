@@ -22,6 +22,7 @@ use crate::state::AppState;
         routes::add_numbers::place_bet,
         routes::add_numbers::setup_funding_utxo,
         routes::add_numbers::start_game,
+        routes::add_numbers::setup_game,
         routes::add_numbers::get_current_game_id,
         routes::add_numbers::submit_sum,
         //BitVMX
@@ -50,6 +51,11 @@ use crate::state::AppState;
             crate::models::PlayerRole,
             crate::models::StartGameRequest,
             crate::models::StartGameResponse,
+            crate::models::SetupGameRequest,
+            crate::models::PlaceBetRequest,
+            crate::models::PlaceBetResponse,
+            crate::models::FundingUtxoRequest,
+            crate::models::FundingUtxosResponse,
         )
     ),
     tags(

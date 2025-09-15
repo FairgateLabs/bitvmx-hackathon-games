@@ -214,9 +214,14 @@ impl AddNumbersService {
             .games
             .write()
             .map_err(|e| anyhow::anyhow!("Failed to write to games: {e:?}"))?;
+
         let game = hash_map
             .get_mut(&program_id)
             .ok_or(anyhow::anyhow!("Game not found"))?;
+
+        if game.status != AddNumbersGameStatus::SetupGame {
+            return Err(anyhow::anyhow!("Game is not in setup game state"));
+        }
 
         // TODO PEDRO: Here you have to :
         // Player 1 send the challenge transaction to start the game.
