@@ -2,8 +2,8 @@ use std::str::FromStr;
 
 use crate::models::{
     AddNumbersGame, AddNumbersGameStatus, ErrorResponse, FundingUtxoRequest, FundingUtxosResponse,
-    MakeGuessRequest, PlaceBetRequest, PlaceBetResponse, PlayerRole, SetupParticipantsRequest,
-    SetupParticipantsResponse, StartGameRequest, StartGameResponse, Utxo,
+    PlaceBetRequest, PlaceBetResponse, PlayerRole, SetupGameRequest, SetupParticipantsRequest,
+    SetupParticipantsResponse, StartGameRequest, StartGameResponse, SubmitSumRequest, Utxo,
 };
 use crate::state::AppState;
 use crate::utils::http_errors;
@@ -29,7 +29,8 @@ pub fn router() -> Router<AppState> {
         .route("/place-bet", post(place_bet))
         .route("/fundings_utxos/{id}", get(get_fundings_utxos))
         .route("/setup-funding-utxo", post(setup_funding_utxo)) // for player 2
-        .route("/start-game", post(start_game)) // for player 1
+        .route("/setup-game", post(setup_game)) // for player 1 and player 2 (send the numbers to sum)
+        .route("/start-game", post(start_game)) // for player 1 (send the challenge transaction to start the game)
         .route("/submit-sum", post(submit_sum))
         .route("/{id}", get(get_game))
         .route("/{id}/guess", post(make_guess))
@@ -111,7 +112,7 @@ pub async fn setup_participants(
     // Setup the game
     app_state
         .add_numbers_service
-        .setup_game(
+        .setup_participants(
             program_id,
             aggregated_id,
             request.participants_addresses,
@@ -161,7 +162,7 @@ pub async fn get_game(
     params(
         ("id" = String, Path, description = "Game ID", example = "123e4567-e89b-12d3-a456-426614174000")
     ),
-    request_body = MakeGuessRequest,
+    request_body = SubmitSumRequest,
     responses(
         (status = 200, description = "Guess made successfully"),
         (status = 400, description = "Invalid operation", body = ErrorResponse),
@@ -172,7 +173,7 @@ pub async fn get_game(
 pub async fn make_guess(
     State(app_state): State<AppState>,
     Path(id): Path<Uuid>,
-    Json(request): Json<MakeGuessRequest>,
+    Json(request): Json<SubmitSumRequest>,
 ) -> Result<Json<AddNumbersGame>, (StatusCode, Json<ErrorResponse>)> {
     let game = app_state
         .add_numbers_service
@@ -229,7 +230,7 @@ pub async fn get_current_game_id(
 pub async fn place_bet(
     State(app_state): State<AppState>,
     Json(request): Json<PlaceBetRequest>,
-) -> Result<Json<PlaceBetResponse>, (StatusCode, Json<ErrorResponse>)> {
+) -> Result<Json<()>, (StatusCode, Json<ErrorResponse>)> {
     // Validate the program ID
     if request.program_id == Uuid::default() {
         return Err(http_errors::bad_request("Program ID cannot be empty"));
@@ -252,8 +253,11 @@ pub async fn place_bet(
         return Err(http_errors::bad_request("Game is not in place bet state"));
     }
 
-    if game.role != PlayerRole::Player1 {
-        return Err(http_errors::bad_request("Only player 1 can place a bet"));
+    if game.role == PlayerRole::Player2 {
+        app_state
+            .add_numbers_service
+            .change_state(program_id, AddNumbersGameStatus::SetupFunding);
+        return Ok(Json(()));
     }
 
     // Get the aggregated key
@@ -351,10 +355,7 @@ pub async fn place_bet(
         })?;
     debug!("Saved my funding UTXOs in AddNumbersService");
 
-    Ok(Json(PlaceBetResponse {
-        funding_protocol_utxo,
-        funding_bet_utxo,
-    }))
+    Ok(Json(()))
 }
 
 #[utoipa::path(
@@ -443,9 +444,40 @@ pub async fn setup_funding_utxo(
 #[utoipa::path(
     post,
     path = "/api/add-numbers/start-game",
-    request_body = StartGameRequest,
+    request_body = SetupGameRequest,
     responses(
         (status = 200, description = "Game started successfully", body = StartGameResponse),
+    ),
+    tag = "AddNumbers"
+)]
+pub async fn start_game(
+    State(app_state): State<AppState>,
+    Json(request): Json<SetupGameRequest>,
+) -> Result<Json<()>, (StatusCode, Json<ErrorResponse>)> {
+    // Validate the program ID
+    if request.program_id == Uuid::default() {
+        return Err(http_errors::bad_request("Invalid program ID"));
+    }
+    let program_id = request.program_id;
+
+    // TODO: PEDRO: Here you have to :
+    // Player 1 send the challenge transaction to start the game.
+    // Player 2 will wait until see the first challenge transaction.
+
+    // Set the game as setup
+    app_state
+        .add_numbers_service
+        .start_game(program_id)
+        .map_err(|e| http_errors::internal_server_error(&format!("Failed to setup game: {e:?}")))?;
+
+    Ok(Json(()))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/add-numbers/setup-game",
+    request_body = StartGameRequest,
+    responses(
         (status = 400, description = "Invalid program ID", body = ErrorResponse),
         (status = 404, description = "Game not found", body = ErrorResponse),
         (status = 500, description = "Failed to set variable aggregated pubkey", body = ErrorResponse),
@@ -458,10 +490,10 @@ pub async fn setup_funding_utxo(
     ),
     tag = "AddNumbers"
 )]
-pub async fn start_game(
+pub async fn setup_game(
     State(app_state): State<AppState>,
-    Json(request): Json<StartGameRequest>,
-) -> Result<Json<StartGameResponse>, (StatusCode, Json<ErrorResponse>)> {
+    Json(request): Json<SetupGameRequest>,
+) -> Result<Json<()>, (StatusCode, Json<ErrorResponse>)> {
     // Validate the program ID
     if request.program_id == Uuid::default() {
         return Err(http_errors::bad_request("Invalid program ID"));
@@ -599,19 +631,19 @@ pub async fn start_game(
     // Set game as started
     app_state
         .add_numbers_service
-        .start_game(program_id, request.number1, request.number2)
+        .setup_game(program_id, request.number1, request.number2)
         .map_err(|e| {
             http_errors::internal_server_error(&format!("Failed to save start game state: {e:?}"))
         })?;
 
     // Return the program ID
-    Ok(Json(StartGameResponse { program_id }))
+    Ok(Json(()))
 }
 
 #[utoipa::path(
     post,
     path = "/api/add-numbers/submit-sum/{id}",
-    request_body = MakeGuessRequest,
+    request_body = SubmitSumRequest,
     responses(
         (status = 200, description = "Sum submitted successfully", body = AddNumbersGame),
         (status = 400, description = "Invalid request", body = ErrorResponse),
@@ -623,10 +655,10 @@ pub async fn start_game(
 )]
 pub async fn submit_sum(
     State(app_state): State<AppState>,
-    Json(request): Json<MakeGuessRequest>,
-) -> Result<Json<AddNumbersGame>, (StatusCode, Json<ErrorResponse>)> {
-    // TOOD: PEDRO Wait until you know the anser
-    let game = app_state
+    Json(request): Json<SubmitSumRequest>,
+) -> Result<Json<()>, (StatusCode, Json<ErrorResponse>)> {
+    // TOOD: PEDRO Wait until you know the answer
+    app_state
         .add_numbers_service
         .make_guess(request.id, request.guess)
         .map_err(|e| match e.to_string().as_str() {
@@ -637,5 +669,5 @@ pub async fn submit_sum(
             _ => http_errors::internal_server_error(&format!("Failed to submit sum: {e:?}")),
         })?;
 
-    Ok(Json(game))
+    Ok(Json(()))
 }

@@ -38,7 +38,7 @@ use crate::state::AppState;
             crate::models::ErrorResponse,
             crate::models::HealthResponse,
             crate::models::AddNumbersGameStatus,
-            crate::models::MakeGuessRequest,
+            crate::models::SubmitSumRequest,
             crate::models::P2PAddress,
             crate::models::OperatorKeys,
             crate::models::SetupParticipantsRequest,

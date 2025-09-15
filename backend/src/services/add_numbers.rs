@@ -23,7 +23,7 @@ impl AddNumbersService {
         }
     }
 
-    pub fn setup_game(
+    pub fn setup_participants(
         &self,
         program_id: Uuid,
         aggregated_id: Uuid,
@@ -119,7 +119,30 @@ impl AddNumbersService {
             .as_secs();
 
         // Update the game status
-        game.status = AddNumbersGameStatus::StartGame;
+        game.status = AddNumbersGameStatus::PlaceBet;
+
+        Ok(())
+    }
+
+    pub fn change_state(
+        &self,
+        program_id: Uuid,
+        status: AddNumbersGameStatus,
+    ) -> Result<(), anyhow::Error> {
+        let mut hash_map = self
+            .games
+            .write()
+            .map_err(|e| anyhow::anyhow!("Failed to write to games: {e:?}"))?;
+        let game = hash_map
+            .get_mut(&program_id)
+            .ok_or(anyhow::anyhow!("Game not found"))?;
+
+        // Update the game status
+        game.updated_at = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        game.status = status;
 
         Ok(())
     }
@@ -158,7 +181,7 @@ impl AddNumbersService {
         Ok(p2tr_address)
     }
 
-    pub fn start_game(
+    pub fn setup_game(
         &self,
         program_id: Uuid,
         number1: u32,
@@ -173,13 +196,34 @@ impl AddNumbersService {
             .ok_or(anyhow::anyhow!("Game not found"))?;
 
         // Validate the game status
-        if game.status != AddNumbersGameStatus::StartGame {
+        if game.status != AddNumbersGameStatus::SetupGame {
             return Err(anyhow::anyhow!("Game is not in start game state"));
         }
 
         game.number1 = Some(number1);
         game.number2 = Some(number2);
+        game.status = AddNumbersGameStatus::StartGame;
+        Ok(())
+    }
+
+    pub fn start_game(&self, program_id: Uuid) -> Result<(), anyhow::Error> {
+        let mut hash_map = self
+            .games
+            .write()
+            .map_err(|e| anyhow::anyhow!("Failed to write to games: {e:?}"))?;
+        let game = hash_map
+            .get_mut(&program_id)
+            .ok_or(anyhow::anyhow!("Game not found"))?;
+
+        // TODO PEDRO: Here you have to :
+        // Player 1 send the challenge transaction to start the game.
+        // Player 2 will wait until see the first challenge transaction.
+
         game.status = AddNumbersGameStatus::SubmitGameData;
+        game.updated_at = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
         Ok(())
     }
 

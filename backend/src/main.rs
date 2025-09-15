@@ -1,5 +1,5 @@
 use bitvmx_client::types::{BITVMX_ID, L2_ID};
-use bitvmx_tictactoe_backend::{api, config, rpc::rpc_client::RpcClient, state::AppState};
+use bitvmx_hackathon_backend::{api, config, rpc::rpc_client::RpcClient, state::AppState};
 use tokio::{signal, sync::broadcast};
 use tracing::{error, info, trace, warn, Instrument};
 use tracing_appender::rolling;

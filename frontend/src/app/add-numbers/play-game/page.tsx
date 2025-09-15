@@ -72,9 +72,6 @@ export default function AddNumbersPage() {
     );
   }
 
-  {
-    console.log("game", !game, game?.status === "SetupParticipants");
-  }
   return (
     <div className="container mx-auto p-6 max-w-4xl">
       <Card>
@@ -103,17 +100,16 @@ export default function AddNumbersPage() {
             role={role!}
             expanded={!game || game?.status === "SetupParticipants"}
           />
-          {game && game.status === "SetupParticipants" && (
+          {!game && (
             <SetupParticipantInput aggregatedId={aggregatedId} role={role!} />
           )}
           {game && game.status !== "PlaceBet" && <AggregatedKey />}
           {game && game.status === "PlaceBet" && <PlaceBet />}
           {game && game.status === "SetupFunding" && <UtxoExchange />}
-          {game && game?.status === "StartGame" && <SetupGame />}
-          {game?.status === "StartGame" && <StartGame />}
 
           {role === EnumPlayerRole.Player1 && (
             <>
+              {game?.status === "SetupGame" && <StartGame />}
               {typeof game?.status === "object" &&
                 "GameComplete" in game?.status &&
                 (game?.status.GameComplete.outcome === "Lose" ? (
@@ -134,7 +130,7 @@ export default function AddNumbersPage() {
 
           {role === EnumPlayerRole.Player2 && (
             <>
-              {game?.status === "SubmitGameData" && <SubmitGameData />}
+              {game?.status === "SetupGame" && <SubmitGameData />}
               {typeof game?.status === "object" &&
                 "GameComplete" in game?.status &&
                 (game?.status.GameComplete.outcome === "Win" ? (

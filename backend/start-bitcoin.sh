@@ -35,7 +35,7 @@ docker run --name $BITCOIND_NAME -d \
         -rpcpassword=rpcpassword \
         -server=1 \
         -txindex=1 \
-        -fallbackfee=0.0002
+        -fallbackfee=0.00001
 
 # Wait for the container to start
 sleep 2

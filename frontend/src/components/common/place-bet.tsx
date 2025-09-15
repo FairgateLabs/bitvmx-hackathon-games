@@ -32,31 +32,54 @@ export function PlaceBet() {
         <CollapsibleContent>
           <div className="space-y-10">
             <p className="text-sm text-gray-700">
-              The amount to bet for this game will be <strong>1 BTC</strong> +
-              protocol fee.
-              <br />
-              In this game setup, Player 1 will cover both the protocol fee and
-              the bet amount. Player 2 is not required to pay anything. The
-              original idea was for each player to pay their share of the
-              protocol fee and the bet amount. However, this approach introduces
-              complexity in constructing the transaction fundings. To keep
-              things simple, Player 1 will handle all payments. <br />
-              When you accept this bet, a funding transaction will be
-              automatically performed by the backend. This transaction will move
-              the required funding amount from your provided wallet to the
-              aggregated wallet that was generated earlier for this game
-              session.
+              {game?.role === "Player1" ? (
+                <>
+                  The amount to bet for this game will be <strong>1 BTC</strong>{" "}
+                  + protocol fee.
+                  <br />
+                  In this game setup, you will cover both the protocol fee and
+                  the bet amount. Player 2 is not required to pay anything. The
+                  original idea was for each player to pay their share of the
+                  protocol fee and the bet amount. However, this approach
+                  introduces complexity in constructing the transaction
+                  fundings. To keep things simple, Player 1 will handle all
+                  payments.
+                  <br />
+                  When you accept this bet, a funding transaction will be
+                  automatically performed by the backend. This transaction will
+                  move the required funding amount from your provided wallet to
+                  the aggregated wallet that was generated earlier for this game
+                  session.
+                </>
+              ) : (
+                <>
+                  As Player 2, you are not required to pay any amount for the
+                  protocol or the bet. Player 1 will handle all the necessary
+                  payments for this game session.
+                  <br />
+                  Please wait for Player 1 to complete the funding transaction.
+                </>
+              )}
             </p>
 
-            <Button
-              onClick={handleAcceptBet}
-              disabled={isPlacingBet}
-              className="w-full bg-gray-600 hover:bg-gray-700"
-            >
-              {isPlacingBet
-                ? "⏳ Setting Up..."
-                : "🔗 Accept to bet 1 BTC + Protocol Fee"}
-            </Button>
+            {game?.role === "Player1" ? (
+              <Button
+                onClick={handleAcceptBet}
+                disabled={isPlacingBet}
+                className="w-full bg-gray-600 hover:bg-gray-700"
+              >
+                {isPlacingBet
+                  ? "⏳ Setting Up..."
+                  : "🔗 Accept to bet 1 BTC + Protocol Fee"}
+              </Button>
+            ) : (
+              <Button
+                disabled
+                className="w-full bg-gray-400 cursor-not-allowed"
+              >
+                Waiting for Player 1 to fund the game...
+              </Button>
+            )}
           </div>
         </CollapsibleContent>
       </Collapsible>

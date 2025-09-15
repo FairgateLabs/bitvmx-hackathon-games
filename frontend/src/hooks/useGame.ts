@@ -2,6 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { getApiBaseUrl } from "../config/backend";
 import { AddNumbersGame } from "../../../backend/bindings/AddNumbersGame";
 import { StartGameRequest } from "../../../backend/bindings/StartGameRequest";
+import { SetupGameRequest } from "../../../backend/bindings/SetupGameRequest";
 import { EnumPlayerRole } from "@/types/game";
 
 function useGameById(id: string) {
@@ -21,7 +22,7 @@ function useGameById(id: string) {
   });
 }
 
-function useCreateGame(data: StartGameRequest) {
+function useStartGame(data: StartGameRequest) {
   return useMutation({
     mutationFn: async () => {
       const baseUrl = getApiBaseUrl();
@@ -37,6 +38,21 @@ function useCreateGame(data: StartGameRequest) {
         throw new Error("Failed to create game");
       }
       return response.json();
+    },
+  });
+}
+
+function useSetupGame(data: SetupGameRequest) {
+  return useMutation({
+    mutationFn: async () => {
+      const baseUrl = getApiBaseUrl();
+      const response = await fetch(`${baseUrl}/api/add-numbers/setup-game`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
     },
   });
 }
@@ -78,10 +94,13 @@ function useCurrentGame() {
   return useQuery({
     queryKey: ["currentGameId"],
     queryFn: fetchCurrentGame,
-    refetchInterval: 5 * 1000, // every 5 seconds
-    refetchIntervalInBackground: true, // keep polling even when tab is not focused
-    staleTime: 0, // data becomes stale immediately after fetch
+    refetchInterval: 8 * 1000, // every 5 seconds
   });
 }
 
-export { useGameById, useCreateGame, useAnswerAddNumber, useCurrentGame };
+export {
+  useGameById,
+  useStartGame as useCreateGame,
+  useAnswerAddNumber,
+  useCurrentGame,
+};

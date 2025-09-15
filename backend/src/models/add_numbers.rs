@@ -13,8 +13,9 @@ pub enum AddNumbersGameStatus {
     SetupParticipants, // it stores program id and creates the aggregated key and stores participants
     PlaceBet,          // It sends funds to the agregated address and returns the utxo
     SetupFunding,      // Add other participants utxos
-    StartGame, // Create the program, uses the aggregated key and participants to send the 2 numbers to sum
-    SubmitGameData, // Participant 2 (Here we send the sum, whenever detect the news then we move to ComputeProgram)
+    SetupGame,         // Create the program sending the numbers to sum.
+    StartGame, // Player 1 will send the challenge transaction to start the game. Player 2 will wait until see the first challenge transaction.
+    SubmitGameData, // After see the first challenge transaction, Player 2 will send the sum to answer the challenge.
     GameComplete {
         outcome: GameOutcome,
         reason: GameReason,
@@ -93,7 +94,7 @@ pub struct AddNumbersResponse {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
-pub struct MakeGuessRequest {
+pub struct SubmitSumRequest {
     #[ts(type = "string")]
     #[schema(value_type = String, example = "123e4567-e89b-12d3-a456-426614174000")]
     pub id: Uuid,
@@ -157,12 +158,22 @@ pub enum PlayerRole {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
+pub struct SetupGameRequest {
+    #[ts(type = "string")]
+    #[schema(value_type = String, example = "123e4567-e89b-12d3-a456-426614174000")]
+    pub program_id: Uuid,
+    #[schema(example = 42)]
+    pub number1: u32,
+    #[schema(example = 58)]
+    pub number2: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
+#[ts(export)]
 pub struct StartGameRequest {
     #[ts(type = "string")]
     #[schema(value_type = String, example = "123e4567-e89b-12d3-a456-426614174000")]
     pub program_id: Uuid,
-    pub number1: u32,
-    pub number2: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
