@@ -103,7 +103,7 @@ export default function AddNumbersPage() {
           {!game && (
             <SetupParticipantInput aggregatedId={aggregatedId} role={role!} />
           )}
-          {game && game.status !== "PlaceBet" && <AggregatedKey />}
+          {game?.bitvmx_program_properties.aggregated_key && <AggregatedKey />}
           {game && game.status === "PlaceBet" && <PlaceBet />}
           {game && game.status === "SetupFunding" && <UtxoExchange />}
 
