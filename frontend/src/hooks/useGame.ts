@@ -100,7 +100,8 @@ function useCurrentGame() {
 
 export {
   useGameById,
-  useStartGame as useCreateGame,
+  useSetupGame,
+  useStartGame,
   useAnswerAddNumber,
   useCurrentGame,
 };

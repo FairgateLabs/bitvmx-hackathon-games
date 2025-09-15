@@ -122,7 +122,7 @@ impl AddNumbersService {
             .as_secs();
 
         // Update the game status
-        game.status = AddNumbersGameStatus::SetupFunding;
+        game.status = AddNumbersGameStatus::SetupGame;
 
         Ok(())
     }

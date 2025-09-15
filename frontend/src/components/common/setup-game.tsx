@@ -8,7 +8,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { GameNumbersToAdd } from "@/types/game";
-import { useCreateGame, useCurrentGame } from "@/hooks/useGame";
+import { useSetupGame, useCurrentGame } from "@/hooks/useGame";
 
 export function SetupGame() {
   const [numbers, setNumbers] = useState<GameNumbersToAdd>({});
@@ -18,7 +18,7 @@ export function SetupGame() {
   const [isOpen, setIsOpen] = useState(true);
   const { data: game } = useCurrentGame();
 
-  const { mutate: createGame } = useCreateGame({
+  const { mutate: createGame } = useSetupGame({
     program_id: game?.program_id ?? "",
     number1: numbers.number1 || 0,
     number2: numbers.number2 || 0,

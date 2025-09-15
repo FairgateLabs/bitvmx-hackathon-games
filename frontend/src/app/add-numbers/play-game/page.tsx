@@ -25,6 +25,7 @@ import { useEffect, useState } from "react";
 import { PlayerRole } from "../../../../../backend/bindings/PlayerRole";
 import { EnumPlayerRole } from "@/types/game";
 import { PlaceBet } from "@/components/common/place-bet";
+import { SetupGame } from "@/components/common/setup-game";
 
 export default function AddNumbersPage() {
   const { data: network } = useNetworkQuery();
@@ -104,11 +105,12 @@ export default function AddNumbersPage() {
           )}
           {game?.bitvmx_program_properties.aggregated_key && <AggregatedKey />}
           {game && game.status === "PlaceBet" && <PlaceBet />}
-          {game && game.status === "SetupFunding" && <FundingExchange />}
+          {((game && game.status === "SetupFunding") ||
+            (game && game.status === "SetupGame")) && <FundingExchange />}
 
           {role === EnumPlayerRole.Player1 && (
             <>
-              {game?.status === "SetupGame" && <StartGame />}
+              {game?.status === "SetupGame" && <SetupGame />}
               {typeof game?.status === "object" &&
                 "GameComplete" in game?.status &&
                 (game?.status.GameComplete.outcome === "Lose" ? (
@@ -129,7 +131,8 @@ export default function AddNumbersPage() {
 
           {role === EnumPlayerRole.Player2 && (
             <>
-              {game?.status === "SetupGame" && <SubmitGameData />}
+              {game?.status === "SetupGame" && <SetupGame />}
+              {game?.status === "SubmitGameData" && <SubmitGameData />}
               {typeof game?.status === "object" &&
                 "GameComplete" in game?.status &&
                 (game?.status.GameComplete.outcome === "Win" ? (
