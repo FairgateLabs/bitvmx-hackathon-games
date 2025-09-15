@@ -62,24 +62,15 @@ export function PlaceBet() {
               )}
             </p>
 
-            {game?.role === "Player1" ? (
-              <Button
-                onClick={handleAcceptBet}
-                disabled={isPlacingBet}
-                className="w-full bg-gray-600 hover:bg-gray-700"
-              >
-                {isPlacingBet
-                  ? "⏳ Setting Up..."
-                  : "🔗 Accept to bet 1 BTC + Protocol Fee"}
-              </Button>
-            ) : (
-              <Button
-                disabled
-                className="w-full bg-gray-400 cursor-not-allowed"
-              >
-                Waiting for Player 1 to fund the game...
-              </Button>
-            )}
+            <Button
+              onClick={handleAcceptBet}
+              disabled={isPlacingBet}
+              className="w-full bg-gray-600 hover:bg-gray-700"
+            >
+              {isPlacingBet
+                ? "⏳ Setting Up..."
+                : "🔗 Accept to bet 1 BTC + Protocol Fee"}
+            </Button>
           </div>
         </CollapsibleContent>
       </Collapsible>

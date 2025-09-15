@@ -9,11 +9,10 @@ import {
 } from "@/components/ui/card";
 import { ChooseRole } from "@/components/common/game-role-selector";
 import { WalletSection } from "@/components/common/wallet-section";
-import { SetupGame } from "@/components/common/setup-game";
 import { NetworkInfo } from "@/components/common/network-info";
 import { SetupParticipantInfo } from "@/components/common/setup-participant-info";
 import { SetupParticipantInput } from "@/components/common/setup-participant-input";
-import { UtxoExchange } from "@/components/common/utxo-exchange";
+import { FundingExchange } from "@/components/common/funding-exchange";
 import { ChooseNetwork } from "@/components/common/choose-network";
 import { StartGame } from "@/components/player1/start-game";
 import { AcceptLoseGame } from "@/components/player1/accept-lose-game";
@@ -105,7 +104,7 @@ export default function AddNumbersPage() {
           )}
           {game?.bitvmx_program_properties.aggregated_key && <AggregatedKey />}
           {game && game.status === "PlaceBet" && <PlaceBet />}
-          {game && game.status === "SetupFunding" && <UtxoExchange />}
+          {game && game.status === "SetupFunding" && <FundingExchange />}
 
           {role === EnumPlayerRole.Player1 && (
             <>

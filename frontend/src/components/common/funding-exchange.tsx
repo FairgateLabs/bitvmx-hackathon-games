@@ -6,25 +6,17 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { useFundingUtxos, useSaveFundingUtxos } from "@/hooks/useFundingUtxos";
+import { useSaveFundingUtxos } from "@/hooks/useFundingUtxos";
 import { EnumPlayerRole } from "@/types/game";
 import { Utxo } from "../../../../backend/bindings/Utxo";
 import { useCurrentGame } from "@/hooks/useGame";
 
-export function UtxoExchange() {
+export function FundingExchange() {
   const [isOpen, setIsOpen] = useState(true);
-  const [otherUtxo, setOtherUtxo] = useState<Partial<Utxo>>({
-    txid: "",
-    vout: 0,
-    amount: BigInt(0),
-  });
   const [jsonInput, setJsonInput] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [jsonError, setJsonError] = useState("");
-
   const { data: currentGame } = useCurrentGame();
-  const role = currentGame?.role;
-  const { data: fundingUtxos } = useFundingUtxos(currentGame?.program_id || "");
   const { mutate: saveFundingUtxos, isPending: isSavingUtxo } =
     useSaveFundingUtxos();
 
@@ -37,26 +29,27 @@ export function UtxoExchange() {
     return amount > BigInt(0);
   };
 
+  const isValidUtxo = (utxo: Utxo): boolean => {
+    return (
+      utxo &&
+      isValidTxid(utxo.txid) &&
+      utxo.vout !== undefined &&
+      utxo.amount !== undefined &&
+      isValidAmount(utxo.amount)
+    );
+  };
+
   const handleJsonPaste = (jsonString: string) => {
     setJsonInput(jsonString);
     setJsonError("");
 
     try {
-      const parsed = JSON.parse(jsonString);
+      const funding_parsed = JSON.parse(jsonString);
 
       if (
-        parsed.txid &&
-        parsed.vout !== undefined &&
-        parsed.amount !== undefined
+        isValidUtxo(funding_parsed.funding_protocol_utxo) &&
+        isValidUtxo(funding_parsed.funding_bet_utxo)
       ) {
-        const utxo: Utxo = {
-          txid: parsed.txid,
-          vout: parsed.vout,
-          amount: parsed.amount,
-          output_type: parsed.output_type || {},
-        };
-
-        setOtherUtxo(utxo);
         setJsonError("");
       } else {
         setJsonError(
@@ -69,37 +62,37 @@ export function UtxoExchange() {
   };
 
   const handleSendOtherUtxo = () => {
-    if (isOtherUtxoValid() && currentGame?.program_id) {
-      saveFundingUtxos(
-        { uuid: currentGame.program_id, otherUtxo: otherUtxo as Utxo },
-        {
-          onSuccess: () => {
-            setSuccessMessage(
-              "Other participant&apos;s UTXO sent successfully!"
-            );
-          },
-          onError: (error) => {
-            console.error("Failed to send other UTXO:", error);
-          },
-        }
-      );
-    }
+    saveFundingUtxos({
+      program_id: currentGame?.program_id || "",
+      funding_protocol_utxo: JSON.parse(jsonInput).funding_protocol_utxo,
+      funding_bet_utxo: JSON.parse(jsonInput).funding_bet_utxo,
+    });
   };
 
   const getMyUtxoJson = () => {
-    if (!fundingUtxos) return "";
-    console.log("fundingUtxos", fundingUtxos);
-    return JSON.stringify(fundingUtxos, null, 2);
+    const funding_data = currentGame?.bitvmx_program_properties;
+    if (!funding_data?.funding_protocol_utxo) return "";
+
+    return JSON.stringify(
+      {
+        funding_protocol_utxo: funding_data.funding_protocol_utxo,
+        funding_bet_utxo: funding_data.funding_bet_utxo,
+      },
+      null,
+      2
+    );
   };
 
-  const isOtherUtxoValid = () => {
-    return (
-      otherUtxo.txid &&
-      isValidTxid(otherUtxo.txid) &&
-      otherUtxo.vout !== undefined &&
-      otherUtxo.amount !== undefined &&
-      isValidAmount(otherUtxo.amount)
-    );
+  const isJsonValid = (jsonInput: string) => {
+    try {
+      const parsed = JSON.parse(jsonInput);
+      return (
+        isValidUtxo(parsed.funding_protocol_utxo) &&
+        isValidUtxo(parsed.funding_bet_utxo)
+      );
+    } catch {
+      return false;
+    }
   };
 
   return (
@@ -112,12 +105,12 @@ export function UtxoExchange() {
         </CollapsibleTrigger>
         <CollapsibleContent>
           <p className="text-sm mb-4">
-            {role === EnumPlayerRole.Player1
+            {currentGame?.role === EnumPlayerRole.Player1
               ? "Share your UTXO information with Player 2, this will be used to fund the game and the bet."
               : "Copy Player 1 UTXO information and paste it here, this will be used to fund the game and the bet."}
           </p>
 
-          {fundingUtxos && (
+          {currentGame?.bitvmx_program_properties.funding_protocol_utxo && (
             <>
               <div className="p-4 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
@@ -141,41 +134,42 @@ export function UtxoExchange() {
             </>
           )}
 
-          {!fundingUtxos && role === EnumPlayerRole.Player2 && (
-            <div className="p-4">
-              <h4 className="font-semibold mb-3">
-                Other Player&apos;s Protocol and Bet UTXO Information
-              </h4>
+          {!currentGame?.bitvmx_program_properties.funding_protocol_utxo &&
+            currentGame?.role === EnumPlayerRole.Player2 && (
+              <div className="p-4">
+                <h4 className="font-semibold mb-3">
+                  Other Player&apos;s Protocol and Bet UTXO Information
+                </h4>
 
-              <div className="mb-4">
-                <textarea
-                  value={jsonInput}
-                  rows={8}
-                  onChange={(e) => handleJsonPaste(e.target.value)}
-                  placeholder='Paste JSON here, e.g., {"txid":"123...","vout":0,"amount":1000,"output_type":{}}'
-                  className="w-full h-20 p-2 text-xs font-mono border rounded resize-none"
-                />
-                {jsonError && (
-                  <p className="text-sm mt-1 text-red-600">{jsonError}</p>
-                )}
-                {!jsonError && otherUtxo.txid && (
-                  <p className="text-sm mt-1 text-green-600">
-                    ✅ Valid UTXO JSON
-                  </p>
-                )}
+                <div className="mb-4">
+                  <textarea
+                    value={jsonInput}
+                    rows={8}
+                    onChange={(e) => handleJsonPaste(e.target.value)}
+                    placeholder='Paste JSON here, e.g., {"txid":"123...","vout":0,"amount":1000,"output_type":{}}'
+                    className="w-full h-20 p-2 text-xs font-mono border rounded resize-none"
+                  />
+                  {jsonError && (
+                    <p className="text-sm mt-1 text-red-600">{jsonError}</p>
+                  )}
+                  {!jsonError && isJsonValid(jsonInput) && (
+                    <p className="text-sm mt-1 text-green-600">
+                      ✅ Valid UTXO JSON
+                    </p>
+                  )}
+                </div>
+
+                <Button
+                  onClick={handleSendOtherUtxo}
+                  disabled={!isJsonValid(jsonInput) || isSavingUtxo}
+                  className="w-full"
+                >
+                  {isSavingUtxo
+                    ? "Saving..."
+                    : "📤 Send Other Player&apos;s UTXO"}
+                </Button>
               </div>
-
-              <Button
-                onClick={handleSendOtherUtxo}
-                disabled={!isOtherUtxoValid() || isSavingUtxo}
-                className="w-full"
-              >
-                {isSavingUtxo
-                  ? "Saving..."
-                  : "📤 Send Other Player&apos;s UTXO"}
-              </Button>
-            </div>
-          )}
+            )}
 
           {successMessage && (
             <div className="p-4 bg-green-50 border border-green-200 rounded-lg">

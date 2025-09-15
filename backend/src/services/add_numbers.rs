@@ -106,8 +106,11 @@ impl AddNumbersService {
             .ok_or(anyhow::anyhow!("Game not found"))?;
 
         // Validate the game status
-        if game.status != AddNumbersGameStatus::PlaceBet {
-            return Err(anyhow::anyhow!("Game is not in place bet state"));
+        if !(game.status == AddNumbersGameStatus::PlaceBet && game.role == PlayerRole::Player1
+            || game.status == AddNumbersGameStatus::SetupFunding
+                && game.role == PlayerRole::Player2)
+        {
+            return Err(anyhow::anyhow!("Game is not in the correct state"));
         }
 
         // Save the funding bet UTXO

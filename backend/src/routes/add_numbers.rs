@@ -27,7 +27,6 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/setup-participants", post(setup_participants))
         .route("/place-bet", post(place_bet))
-        .route("/fundings_utxos/{id}", get(get_fundings_utxos))
         .route("/setup-funding-utxo", post(setup_funding_utxo)) // for player 2
         .route("/setup-game", post(setup_game)) // for player 1 and player 2 (send the numbers to sum)
         .route("/start-game", post(start_game)) // for player 1 (send the challenge transaction to start the game)
@@ -356,38 +355,6 @@ pub async fn place_bet(
     debug!("Saved my funding UTXOs in AddNumbersService");
 
     Ok(Json(()))
-}
-
-#[utoipa::path(
-    get,
-    path = "/api/add-numbers/fundings_utxos/{id}",
-    params(
-        ("id" = String, Path, description = "Game ID", example = "123e4567-e89b-12d3-a456-426614174000")
-    ),
-    responses(
-        (status = 200, description = "Protocol fees and bet UTXO", body = FundingUtxosResponse),
-        (status = 404, description = "Game not found", body = ErrorResponse)
-    ),
-    tag = "AddNumbers"
-)]
-pub async fn get_fundings_utxos(
-    State(app_state): State<AppState>,
-    Path(id): Path<Uuid>,
-) -> Result<Json<FundingUtxosResponse>, (StatusCode, Json<ErrorResponse>)> {
-    // Get the game
-    let game = app_state
-        .add_numbers_service
-        .get_game(id)
-        .map_err(|e| http_errors::internal_server_error(&format!("Failed to get game: {e:?}")))?
-        .ok_or(http_errors::not_found("Game not found"))?;
-
-    let funding_protocol_utxo = game.bitvmx_program_properties.funding_protocol_utxo.clone();
-    let funding_bet_utxo = game.bitvmx_program_properties.funding_bet_utxo.clone();
-
-    Ok(Json(FundingUtxosResponse {
-        funding_protocol_utxo,
-        funding_bet_utxo,
-    }))
 }
 
 #[utoipa::path(
