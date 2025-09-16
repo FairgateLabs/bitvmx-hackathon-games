@@ -2,8 +2,9 @@ use std::str::FromStr;
 
 use crate::models::{
     AddNumbersGame, AddNumbersGameStatus, ErrorResponse, FundingUtxoRequest, FundingUtxosResponse,
-    PlaceBetRequest, PlaceBetResponse, PlayerRole, SetupGameRequest, SetupParticipantsRequest,
-    SetupParticipantsResponse, StartGameRequest, StartGameResponse, SubmitSumRequest, Utxo,
+    PlaceBetRequest, PlaceBetResponse, PlayerRole, SetupGameRequest, SetupGameResponse,
+    SetupParticipantsRequest, SetupParticipantsResponse, StartGameRequest, StartGameResponse,
+    SubmitSumRequest, Utxo,
 };
 use crate::state::AppState;
 use crate::utils::http_errors;
@@ -489,7 +490,7 @@ pub async fn start_game(
 pub async fn setup_game(
     State(app_state): State<AppState>,
     Json(request): Json<SetupGameRequest>,
-) -> Result<Json<()>, (StatusCode, Json<ErrorResponse>)> {
+) -> Result<Json<SetupGameResponse>, (StatusCode, Json<ErrorResponse>)> {
     // Validate the program ID
     if request.program_id == Uuid::default() {
         return Err(http_errors::bad_request("Invalid program ID"));
@@ -634,7 +635,7 @@ pub async fn setup_game(
         })?;
 
     // Return the program ID
-    Ok(Json(()))
+    Ok(Json(SetupGameResponse { program_id }))
 }
 
 #[utoipa::path(
