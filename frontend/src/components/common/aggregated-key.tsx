@@ -8,8 +8,8 @@ import {
 } from "@/components/ui/collapsible";
 import { useCurrentGame } from "@/hooks/useGame";
 
-export function AggregatedKey() {
-  const [isOpen, setIsOpen] = useState(true);
+export function AggregatedKey({ expand = true }) {
+  const [isOpen, setIsOpen] = useState(expand);
   const {
     data: currentGame,
     isLoading: isGameLoading,

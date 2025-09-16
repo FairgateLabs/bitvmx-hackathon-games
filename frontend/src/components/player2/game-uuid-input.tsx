@@ -145,20 +145,6 @@ export function GameUUIDInput({ isExpanded = true }: GameUUIDInputProps) {
                 <h3 className="font-semibold mb-2 text-yellow-800">
                   ⚠️ Complete all inputs to start the game
                 </h3>
-                <p className="text-sm text-yellow-700">
-                  Please enter the game UUID and both numbers to proceed.
-                </p>
-              </div>
-            )}
-
-            {isSuccess && (
-              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                <h3 className="font-semibold mb-2 text-green-800">
-                  ✅ Success
-                </h3>
-                <p className="text-sm text-green-700">
-                  Game joined successfully with the provided UUID and numbers.
-                </p>
               </div>
             )}
           </div>

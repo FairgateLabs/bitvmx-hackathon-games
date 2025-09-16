@@ -25,6 +25,9 @@ import { PlayerRole } from "../../../../../backend/bindings/PlayerRole";
 import { EnumPlayerRole } from "@/types/game";
 import { PlaceBet } from "@/components/common/place-bet";
 import { SetupGame } from "@/components/common/setup-game";
+import { StartGame } from "@/components/player1/start-game";
+import { WaitingAnswer } from "@/components/player1/waiting-answer";
+import { WaitingStartGame } from "@/components/player2/waiting-start-game";
 
 export default function AddNumbersPage() {
   const { data: network } = useNetworkQuery();
@@ -71,6 +74,10 @@ export default function AddNumbersPage() {
     );
   }
 
+  let isFunding =
+    !!game?.bitvmx_program_properties.funding_protocol_utxo &&
+    !!game?.bitvmx_program_properties.funding_bet_utxo;
+
   return (
     <div className="container mx-auto p-6 max-w-4xl">
       <Card>
@@ -102,14 +109,25 @@ export default function AddNumbersPage() {
           {!game && (
             <SetupParticipantInput aggregatedId={aggregatedId} role={role!} />
           )}
-          {game?.bitvmx_program_properties.aggregated_key && <AggregatedKey />}
+          {game?.bitvmx_program_properties.aggregated_key && (
+            <AggregatedKey expand={!isFunding} />
+          )}
           {game && game.status === "PlaceBet" && <PlaceBet />}
           {((game && game.status === "SetupFunding") ||
-            (game && game.status === "SetupGame")) && <FundingExchange />}
+            (game && game.status === "SetupGame") ||
+            isFunding) && (
+            <FundingExchange
+              expand={
+                game?.status === "SetupFunding" || game?.status === "SetupGame"
+              }
+            />
+          )}
+
+          {game?.status === "SetupGame" && <SetupGame />}
 
           {role === EnumPlayerRole.Player1 && (
             <>
-              {game?.status === "SetupGame" && <SetupGame />}
+              {game?.status === "StartGame" && <StartGame />}
               {typeof game?.status === "object" &&
                 "GameComplete" in game?.status &&
                 (game?.status.GameComplete.outcome === "Lose" ? (
@@ -130,7 +148,7 @@ export default function AddNumbersPage() {
 
           {role === EnumPlayerRole.Player2 && (
             <>
-              {game?.status === "SetupGame" && <SetupGame />}
+              {game?.status === "StartGame" && <WaitingStartGame />}
               {game?.status === "SubmitGameData" && <SubmitGameData />}
               {typeof game?.status === "object" &&
                 "GameComplete" in game?.status &&

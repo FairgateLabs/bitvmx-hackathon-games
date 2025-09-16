@@ -11,14 +11,13 @@ import { EnumPlayerRole } from "@/types/game";
 import { Utxo } from "../../../../backend/bindings/Utxo";
 import { useCurrentGame } from "@/hooks/useGame";
 
-export function FundingExchange() {
-  const [isOpen, setIsOpen] = useState(true);
+export function FundingExchange({ expand = true }) {
+  const [isOpen, setIsOpen] = useState(expand);
   const [jsonInput, setJsonInput] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
   const [jsonError, setJsonError] = useState("");
   const { data: currentGame } = useCurrentGame();
-  const { mutate: saveFundingUtxos, isPending: isSavingUtxo } =
-    useSaveFundingUtxos();
+  const { mutate: saveFundingUtxos, isPending } = useSaveFundingUtxos();
 
   const isValidTxid = (txid: string): boolean => {
     const hexRegex = /^[0-9a-fA-F]{64}$/;
@@ -68,7 +67,9 @@ export function FundingExchange() {
       funding_protocol_utxo: JSON.parse(jsonInput).funding_protocol_utxo,
       funding_bet_utxo: JSON.parse(jsonInput).funding_bet_utxo,
     });
-    setIsSuccess(true);
+    setTimeout(() => {
+      setIsSuccess(true);
+    }, 4000);
   };
 
   const getMyUtxoJson = () => {
@@ -114,25 +115,26 @@ export function FundingExchange() {
 
           {currentGame?.bitvmx_program_properties.funding_protocol_utxo && (
             <>
-              <div className="p-4 rounded-lg">
+              <div className="rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-semibold mb-3">
                     Funding Protocol and Bet UTXO
                   </h4>
-                  <CopyButton
-                    text={getMyUtxoJson()}
-                    size="sm"
-                    variant="outline"
-                  >
-                    Copy to Share
-                  </CopyButton>
+                  {currentGame?.role === EnumPlayerRole.Player1 && (
+                    <CopyButton
+                      text={getMyUtxoJson()}
+                      size="sm"
+                      variant="outline"
+                    >
+                      Copy to Share
+                    </CopyButton>
+                  )}
                 </div>
 
                 <pre className="w-full h-50 p-2 text-xs font-mono border rounded resize-none overflow-auto">
                   {JSON.stringify(JSON.parse(getMyUtxoJson()), null, 2)}
                 </pre>
               </div>
-              <div className="border-t border-gray-200 my-4" />
             </>
           )}
 
@@ -140,16 +142,16 @@ export function FundingExchange() {
             currentGame?.role === EnumPlayerRole.Player2 && (
               <div className="p-4">
                 <h4 className="font-semibold mb-3">
-                  Other Player&apos;s Protocol and Bet UTXO Information
+                  Other Player's Protocol and Bet UTXO Information
                 </h4>
 
                 <div className="mb-4">
                   <textarea
                     value={jsonInput}
-                    rows={8}
+                    rows={10}
                     onChange={(e) => handleJsonPaste(e.target.value)}
                     placeholder='Paste JSON here, e.g., {"txid":"123...","vout":0,"amount":1000,"output_type":{}}'
-                    className="w-full h-20 p-2 text-xs font-mono border rounded resize-none"
+                    className="w-full  p-2 text-xs font-mono border rounded resize-none"
                   />
                   {jsonError && (
                     <p className="text-sm mt-1 text-red-600">{jsonError}</p>
@@ -163,33 +165,23 @@ export function FundingExchange() {
 
                 <Button
                   onClick={handleSendOtherUtxo}
-                  disabled={!isJsonValid(jsonInput) || isSavingUtxo}
+                  disabled={!isJsonValid(jsonInput) || isPending}
                   className="w-full"
                 >
-                  {isSavingUtxo
-                    ? "Saving..."
-                    : "📤 Send Other Player&apos;s UTXO"}
+                  {isPending ? "Saving..." : "📤 Send Other Player's UTXO"}
                 </Button>
               </div>
             )}
-
-          {isSuccess && (
-            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-              <h4 className="font-semibold text-green-800">✅ Success</h4>
-              <p className="text-sm text-green-700">
-                UTXO information successfully saved.
-              </p>
-            </div>
-          )}
-
           {!isSuccess && (
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="p-4 mt-3 bg-yellow-50 border border-yellow-200 rounded-lg">
               <h4 className="font-semibold text-yellow-800">
                 ⚠️ UTXO Exchange Required
               </h4>
               <p className="text-sm text-yellow-700">
-                Both players need to create and share their UTXO information to
-                proceed with the game.
+                Both players must generate and share their UTXO information to
+                continue with the game. <br />
+                In this game, Player 2 should copy the UTXO information from
+                Player 1 and paste it into their UTXO form.
               </p>
             </div>
           )}

@@ -12,13 +12,12 @@ import { useSetupGame, useCurrentGame } from "@/hooks/useGame";
 
 export function SetupGame() {
   const [numbers, setNumbers] = useState<GameNumbersToAdd>({});
-  const [isLoading, setIsLoading] = useState(false);
   const [inputsDisabled, setInputsDisabled] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
   const { data: game } = useCurrentGame();
 
-  const { mutate: createGame } = useSetupGame({
+  const { mutate: createGame, isPending } = useSetupGame({
     program_id: game?.program_id ?? "",
     number1: numbers.number1 || 0,
     number2: numbers.number2 || 0,
@@ -26,12 +25,9 @@ export function SetupGame() {
 
   const generateProgram = () => {
     // Placeholder for the actual generate program logic
-    setIsLoading(true);
     createGame();
-    setIsLoading(false);
-    setInputsDisabled(true);
     setIsSuccess(true);
-    console.log("Program generated with numbers:", numbers);
+    setInputsDisabled(true);
   };
 
   const handleNumberChange = (key: string, value: string) => {
@@ -53,7 +49,7 @@ export function SetupGame() {
         </CollapsibleTrigger>
         <CollapsibleContent>
           <p className="text-sm text-gray-700 my-4">
-            Please enter the numbers you wish to use for the game. These will be
+            Enter the numbers you wish to use for the game. These will be
             utilized to create the program for your game session.
           </p>
 
@@ -92,12 +88,12 @@ export function SetupGame() {
               disabled={
                 !numbers.number1 ||
                 !numbers.number2 ||
-                isLoading ||
+                isPending ||
                 inputsDisabled
               }
               className="w-full"
             >
-              {isLoading ? "Generating..." : "🚀 Generate Program"}
+              {isPending ? "Generating..." : "🚀 Generate Program"}
             </Button>
 
             {!isSuccess && (
@@ -106,8 +102,8 @@ export function SetupGame() {
                   ⚠️ Choose the numbers to start the program
                 </h3>
                 <p className="text-sm text-yellow-700">
-                  Please enter the numbers and click the button to send them to
-                  BitVMX for program creation.
+                  Enter the numbers and click the button to send them to BitVMX
+                  for program creation.
                 </p>
               </div>
             )}
@@ -115,7 +111,7 @@ export function SetupGame() {
             {isSuccess && (
               <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                 <h3 className="font-semibold mb-2 text-green-800">
-                  ✅ UUID Generation Successful
+                  ✅ Generation Successful
                 </h3>
                 <p className="text-sm text-green-700">
                   Program generated successfully with the provided numbers.

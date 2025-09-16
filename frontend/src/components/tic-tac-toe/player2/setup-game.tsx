@@ -91,8 +91,8 @@ export function SetupGame() {
                     ⚠️ Enter the numbers and UUID to start the program
                   </h3>
                   <p className="text-sm text-yellow-700">
-                    Please enter the numbers and UUID, then click the button to
-                    submit them to BitVMX for program creation.
+                    Enter the numbers and UUID, then click the button to submit
+                    them to BitVMX for program creation.
                   </p>
                 </div>
               )}

@@ -21,6 +21,13 @@ export function PlaceBet() {
     setIsOpen(true);
   }, []);
 
+  useEffect(() => {
+    if (!isPlacingBet) {
+      // Call the function to get the current game state
+      useCurrentGame();
+    }
+  }, [isPlacingBet]);
+
   return (
     <div className="p-4 rounded-lg border border-gray-200">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
