@@ -14,7 +14,7 @@ fn init_tracing(log_level: String, name: String) -> tracing_appender::non_blocki
         std::fs::create_dir_all(logs_dir).expect("Failed to create logs directory");
     }
     // Log file name
-    let log_file = format!("{logs_dir}/{name}.log");
+    let log_file = format!("{logs_dir}/{name}");
     println!(
         "📝 Logging to: {}",
         std::fs::canonicalize(&log_file)
@@ -23,7 +23,7 @@ fn init_tracing(log_level: String, name: String) -> tracing_appender::non_blocki
     );
 
     // Log appender configuration
-    let file_appender = rolling::never(log_file, "backend");
+    let file_appender = rolling::never(log_file, "backend.log");
     let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
 
     // File log format

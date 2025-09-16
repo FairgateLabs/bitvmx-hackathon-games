@@ -170,6 +170,14 @@ pub struct SetupGameRequest {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
+pub struct SetupGameResponse {
+    #[ts(type = "string")]
+    #[schema(value_type = String, example = "123e4567-e89b-12d3-a456-426614174000")]
+    pub program_id: Uuid,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
+#[ts(export)]
 pub struct StartGameRequest {
     #[ts(type = "string")]
     #[schema(value_type = String, example = "123e4567-e89b-12d3-a456-426614174000")]

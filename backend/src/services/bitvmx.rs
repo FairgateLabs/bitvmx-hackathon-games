@@ -229,8 +229,9 @@ impl BitVMXService {
         program_type: &str,
         participants: Vec<BitVMXP2PAddress>,
         leader_idx: u16,
-    ) -> Result<(), anyhow::Error> {
-        self.rpc_client
+    ) -> Result<Uuid, anyhow::Error> {
+        let response = self
+            .rpc_client
             .send_request(IncomingBitVMXApiMessages::Setup(
                 program_id,
                 program_type.to_string(),
@@ -239,7 +240,22 @@ impl BitVMXService {
             ))
             .await?;
 
-        Ok(())
+        if let OutgoingBitVMXApiMessages::SetupCompleted(uuid) = response {
+            if uuid != program_id {
+                return Err(anyhow::anyhow!(
+                    "Expected SetupCompleted response with program ID: {:?}, got: {:?}",
+                    program_id,
+                    uuid
+                ));
+            }
+        } else {
+            return Err(anyhow::anyhow!(
+                "Expected SetupCompleted response, got: {:?}",
+                response
+            ));
+        }
+
+        Ok(program_id)
     }
 
     pub fn protocol_cost(&self) -> u64 {
