@@ -14,7 +14,7 @@ import { useCurrentGame } from "@/hooks/useGame";
 export function FundingExchange() {
   const [isOpen, setIsOpen] = useState(true);
   const [jsonInput, setJsonInput] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+  const [isSuccess, setIsSuccess] = useState(false);
   const [jsonError, setJsonError] = useState("");
   const { data: currentGame } = useCurrentGame();
   const { mutate: saveFundingUtxos, isPending: isSavingUtxo } =
@@ -62,11 +62,13 @@ export function FundingExchange() {
   };
 
   const handleSendOtherUtxo = () => {
+    setIsSuccess(false);
     saveFundingUtxos({
       program_id: currentGame?.program_id || "",
       funding_protocol_utxo: JSON.parse(jsonInput).funding_protocol_utxo,
       funding_bet_utxo: JSON.parse(jsonInput).funding_bet_utxo,
     });
+    setIsSuccess(true);
   };
 
   const getMyUtxoJson = () => {
@@ -171,14 +173,16 @@ export function FundingExchange() {
               </div>
             )}
 
-          {successMessage && (
+          {isSuccess && (
             <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
               <h4 className="font-semibold text-green-800">✅ Success</h4>
-              <p className="text-sm text-green-700">{successMessage}</p>
+              <p className="text-sm text-green-700">
+                UTXO information successfully saved.
+              </p>
             </div>
           )}
 
-          {!successMessage && (
+          {!isSuccess && (
             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <h4 className="font-semibold text-yellow-800">
                 ⚠️ UTXO Exchange Required

@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { getApiBaseUrl } from "../config/backend";
 import { FundingUtxoRequest } from "../../../backend/bindings/FundingUtxoRequest";
 

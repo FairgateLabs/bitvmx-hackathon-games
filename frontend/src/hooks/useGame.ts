@@ -37,6 +37,7 @@ function useStartGame(data: StartGameRequest) {
       if (!response.ok) {
         throw new Error("Failed to create game");
       }
+
       return response.json();
     },
   });
@@ -46,7 +47,7 @@ function useSetupGame(data: SetupGameRequest) {
   return useMutation({
     mutationFn: async () => {
       const baseUrl = getApiBaseUrl();
-      const response = await fetch(`${baseUrl}/api/add-numbers/setup-game`, {
+      await fetch(`${baseUrl}/api/add-numbers/setup-game`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

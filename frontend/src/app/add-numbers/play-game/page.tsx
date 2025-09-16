@@ -14,7 +14,6 @@ import { SetupParticipantInfo } from "@/components/common/setup-participant-info
 import { SetupParticipantInput } from "@/components/common/setup-participant-input";
 import { FundingExchange } from "@/components/common/funding-exchange";
 import { ChooseNetwork } from "@/components/common/choose-network";
-import { StartGame } from "@/components/player1/start-game";
 import { AcceptLoseGame } from "@/components/player1/accept-lose-game";
 import { SubmitGameData } from "@/components/player2/submit-game-data";
 import { AcceptWinGame } from "@/components/player2/accept-win-game";
