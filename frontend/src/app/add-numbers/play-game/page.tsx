@@ -28,6 +28,7 @@ import { SetupGame } from "@/components/common/setup-game";
 import { StartGame } from "@/components/player1/start-game";
 import { WaitingAnswer } from "@/components/player1/waiting-answer";
 import { WaitingStartGame } from "@/components/player2/waiting-start-game";
+import { WaitingForAnswer } from "@/components/player2/waiting-for-answer";
 
 export default function AddNumbersPage() {
   const { data: network } = useNetworkQuery();
@@ -128,6 +129,7 @@ export default function AddNumbersPage() {
           {role === EnumPlayerRole.Player1 && (
             <>
               {game?.status === "StartGame" && <StartGame />}
+              {game?.status === "SubmitGameData" && <WaitingAnswer />}
               {typeof game?.status === "object" &&
                 "GameComplete" in game?.status &&
                 (game?.status.GameComplete.outcome === "Lose" ? (
@@ -149,7 +151,7 @@ export default function AddNumbersPage() {
           {role === EnumPlayerRole.Player2 && (
             <>
               {game?.status === "StartGame" && <WaitingStartGame />}
-              {game?.status === "SubmitGameData" && <SubmitGameData />}
+              {game?.status !== "SubmitGameData" && <SubmitGameData />}
               {typeof game?.status === "object" &&
                 "GameComplete" in game?.status &&
                 (game?.status.GameComplete.outcome === "Win" ? (

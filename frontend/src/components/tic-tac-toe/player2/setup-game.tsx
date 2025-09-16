@@ -96,17 +96,6 @@ export function SetupGame() {
                   </p>
                 </div>
               )}
-
-              {isSuccess && (
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <h3 className="font-semibold mb-2 text-green-800">
-                    ✅ UUID Generation Successful
-                  </h3>
-                  <p className="text-sm text-green-700">
-                    Program generated successfully.
-                  </p>
-                </div>
-              )}
             </div>
           </CollapsibleContent>
         </div>

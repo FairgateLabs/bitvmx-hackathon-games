@@ -441,7 +441,7 @@ pub async fn setup_funding_utxo(
 #[utoipa::path(
     post,
     path = "/api/add-numbers/start-game",
-    request_body = SetupGameRequest,
+    request_body = StartGameRequest,
     responses(
         (status = 200, description = "Game started successfully", body = StartGameResponse),
     ),
@@ -449,7 +449,7 @@ pub async fn setup_funding_utxo(
 )]
 pub async fn start_game(
     State(app_state): State<AppState>,
-    Json(request): Json<SetupGameRequest>,
+    Json(request): Json<StartGameRequest>,
 ) -> Result<Json<()>, (StatusCode, Json<ErrorResponse>)> {
     // Validate the program ID
     if request.program_id == Uuid::default() {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
 import {
@@ -10,14 +10,16 @@ import { useSaveFundingUtxos } from "@/hooks/useFundingUtxos";
 import { EnumPlayerRole } from "@/types/game";
 import { Utxo } from "../../../../backend/bindings/Utxo";
 import { useCurrentGame } from "@/hooks/useGame";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function FundingExchange({ expand = true }) {
   const [isOpen, setIsOpen] = useState(expand);
   const [jsonInput, setJsonInput] = useState("");
-  const [isSuccess, setIsSuccess] = useState(false);
+  const [isPending, setIsPending] = useState(false);
   const [jsonError, setJsonError] = useState("");
   const { data: currentGame } = useCurrentGame();
-  const { mutate: saveFundingUtxos, isPending } = useSaveFundingUtxos();
+  const queryClient = useQueryClient();
+  const { mutate: saveFundingUtxos } = useSaveFundingUtxos();
 
   const isValidTxid = (txid: string): boolean => {
     const hexRegex = /^[0-9a-fA-F]{64}$/;
@@ -60,16 +62,18 @@ export function FundingExchange({ expand = true }) {
     }
   };
 
+  useEffect(() => {
+    if (isPending) {
+      queryClient.invalidateQueries({ queryKey: ["currentGameId"] });
+    }
+  }, [isPending]);
+
   const handleSendOtherUtxo = () => {
-    setIsSuccess(false);
     saveFundingUtxos({
       program_id: currentGame?.program_id || "",
       funding_protocol_utxo: JSON.parse(jsonInput).funding_protocol_utxo,
       funding_bet_utxo: JSON.parse(jsonInput).funding_bet_utxo,
     });
-    setTimeout(() => {
-      setIsSuccess(true);
-    }, 4000);
   };
 
   const getMyUtxoJson = () => {
@@ -172,7 +176,7 @@ export function FundingExchange({ expand = true }) {
                 </Button>
               </div>
             )}
-          {!isSuccess && (
+          {!isPending && (
             <div className="p-4 mt-3 bg-yellow-50 border border-yellow-200 rounded-lg">
               <h4 className="font-semibold text-yellow-800">
                 ⚠️ UTXO Exchange Required

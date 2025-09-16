@@ -84,14 +84,6 @@ export function SetupGame() {
               >
                 {isLoading ? "Generating..." : "🚀 Generate Program"}
               </Button>
-
-              {isSuccess && (
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <h3 className="font-semibold mb-2 text-green-800">
-                    ✅ UUID Generation Successful
-                  </h3>
-                </div>
-              )}
             </div>
           </CollapsibleContent>
         </div>

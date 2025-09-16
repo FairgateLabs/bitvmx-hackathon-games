@@ -10,10 +10,12 @@ import { AcceptWinGame as AcceptWinGame2 } from "@/components/player2/accept-win
 import { TimeoutLoseGame as TimeoutWinGame2 } from "@/components/player2/timeout-lose-game";
 import { WaitingAnswer } from "@/components/player1/waiting-answer";
 import { WaitingStartGame } from "@/components/player2/waiting-start-game";
+import { TicTacToeBoard } from "@/components/tic-tac-toe/common/tic-tac-toe-board";
 
 export default function TransactionsPage() {
   return (
     <>
+      <TicTacToeBoard onGameEnd={() => {}} />
       <ChallengeWinGame />
       <ChallengeLoseGame />
       <AcceptLoseGame />

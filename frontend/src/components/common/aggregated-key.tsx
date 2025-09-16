@@ -23,18 +23,6 @@ export function AggregatedKey({ expand = true }) {
       </div>
     );
   }
-
-  if (gameError || gameError) {
-    return (
-      <div className="p-4 bg-white border border-red-200 rounded-lg">
-        <p className="text-sm text-red-600">
-          Error loading aggregated key:{" "}
-          {gameError?.message || gameError?.message}
-        </p>
-      </div>
-    );
-  }
-
   return (
     <div className="p-4 bg-white border border-gray-200 rounded-lg">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>

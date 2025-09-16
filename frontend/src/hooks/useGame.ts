@@ -3,10 +3,11 @@ import { getApiBaseUrl } from "../config/backend";
 import { AddNumbersGame } from "../../../backend/bindings/AddNumbersGame";
 import { StartGameRequest } from "../../../backend/bindings/StartGameRequest";
 import { SetupGameRequest } from "../../../backend/bindings/SetupGameRequest";
+import { SubmitSumRequest } from "../../../backend/bindings/SubmitSumRequest";
 import { EnumPlayerRole } from "@/types/game";
 
 function useGameById(id: string) {
-  async function fetchGameById(id: string) {
+  async function fetchGameById() {
     const baseUrl = getApiBaseUrl();
     const response = await fetch(`${baseUrl}/api/add-numbers/${id}`);
     if (!response.ok) {
@@ -18,13 +19,13 @@ function useGameById(id: string) {
 
   return useQuery({
     queryKey: ["gameId", id],
-    queryFn: () => fetchGameById(id),
+    queryFn: () => fetchGameById(),
   });
 }
 
-function useStartGame(data: StartGameRequest) {
+function useStartGame() {
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (data: StartGameRequest) => {
       const baseUrl = getApiBaseUrl();
       const response = await fetch(`${baseUrl}/api/add-numbers/start-game`, {
         method: "POST",
@@ -58,16 +59,16 @@ function useSetupGame(data: SetupGameRequest) {
   });
 }
 
-function useAnswerAddNumber(id: string, number: number) {
+function useAnswerAddNumber(data: SubmitSumRequest) {
   return useMutation({
     mutationFn: async () => {
       const baseUrl = getApiBaseUrl();
-      const response = await fetch(`${baseUrl}/api/add-numbers/guess`, {
+      const response = await fetch(`${baseUrl}/api/add-numbers/submit-sum`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ id, number }),
+        body: JSON.stringify(data),
       });
       if (!response.ok) {
         throw new Error("Failed to send number");

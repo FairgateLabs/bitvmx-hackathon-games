@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,26 +9,22 @@ import {
 } from "@/components/ui/collapsible";
 import { GameNumbersToAdd } from "@/types/game";
 import { useSetupGame, useCurrentGame } from "@/hooks/useGame";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function SetupGame() {
   const [numbers, setNumbers] = useState<GameNumbersToAdd>({});
-  const [inputsDisabled, setInputsDisabled] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
   const { data: game } = useCurrentGame();
-
+  const queryClient = useQueryClient();
   const { mutate: createGame, isPending } = useSetupGame({
     program_id: game?.program_id ?? "",
     number1: numbers.number1 || 0,
     number2: numbers.number2 || 0,
   });
 
-  const generateProgram = () => {
-    // Placeholder for the actual generate program logic
-    createGame();
-    setIsSuccess(true);
-    setInputsDisabled(true);
-  };
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ["currentGameId"] });
+  }, [isPending]);
 
   const handleNumberChange = (key: string, value: string) => {
     const parsedValue = parseInt(value);
@@ -65,7 +61,7 @@ export function SetupGame() {
                     handleNumberChange("number1", e.target.value)
                   }
                   placeholder="Eg: 5"
-                  disabled={inputsDisabled}
+                  disabled={isPending}
                 />
               </div>
               <div className="cursor-pointer">
@@ -78,25 +74,22 @@ export function SetupGame() {
                     handleNumberChange("number2", e.target.value)
                   }
                   placeholder="Eg: 3"
-                  disabled={inputsDisabled}
+                  disabled={isPending}
                 />
               </div>
             </div>
 
             <Button
-              onClick={generateProgram}
+              onClick={() => createGame()}
               disabled={
-                !numbers.number1 ||
-                !numbers.number2 ||
-                isPending ||
-                inputsDisabled
+                !numbers.number1 || !numbers.number2 || isPending || isPending
               }
               className="w-full"
             >
-              {isPending ? "Generating..." : "🚀 Generate Program"}
+              {isPending ? "⏳ Generating Program..." : "🚀 Generate Program"}
             </Button>
 
-            {!isSuccess && (
+            {!isPending && (
               <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <h3 className="font-semibold mb-2 text-yellow-800">
                   ⚠️ Choose the numbers to start the program
@@ -104,17 +97,6 @@ export function SetupGame() {
                 <p className="text-sm text-yellow-700">
                   Enter the numbers and click the button to send them to BitVMX
                   for program creation.
-                </p>
-              </div>
-            )}
-
-            {isSuccess && (
-              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                <h3 className="font-semibold mb-2 text-green-800">
-                  ✅ Generation Successful
-                </h3>
-                <p className="text-sm text-green-700">
-                  Program generated successfully with the provided numbers.
                 </p>
               </div>
             )}

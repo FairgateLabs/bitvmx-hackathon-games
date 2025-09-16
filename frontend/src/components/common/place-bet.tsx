@@ -7,11 +7,13 @@ import {
 } from "@/components/ui/collapsible";
 import { useCurrentGame } from "@/hooks/useGame";
 import { usePlaceBet } from "@/hooks/usePlaceBet";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function PlaceBet() {
   const [isOpen, setIsOpen] = useState(true);
   const { mutate: placeBet, isPending: isPlacingBet } = usePlaceBet();
   const { data: game } = useCurrentGame();
+  const queryClient = useQueryClient();
 
   const handleAcceptBet = () => {
     placeBet({ program_id: game?.program_id ?? "", amount: 1e8 });
@@ -22,10 +24,7 @@ export function PlaceBet() {
   }, []);
 
   useEffect(() => {
-    if (!isPlacingBet) {
-      // Call the function to get the current game state
-      useCurrentGame();
-    }
+    queryClient.invalidateQueries({ queryKey: ["currentGameId"] });
   }, [isPlacingBet]);
 
   return (

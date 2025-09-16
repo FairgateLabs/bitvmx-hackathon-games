@@ -219,8 +219,8 @@ impl AddNumbersService {
             .get_mut(&program_id)
             .ok_or(anyhow::anyhow!("Game not found"))?;
 
-        if game.status != AddNumbersGameStatus::SetupGame {
-            return Err(anyhow::anyhow!("Game is not in setup game state"));
+        if game.status != AddNumbersGameStatus::StartGame {
+            return Err(anyhow::anyhow!("Game is not in start game state"));
         }
 
         // TODO PEDRO: Here you have to :
