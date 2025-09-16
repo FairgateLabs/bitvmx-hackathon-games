@@ -1,4 +1,3 @@
-import { Play } from "lucide-react";
 import { useState } from "react";
 import { GameEndResult, TicTacToeBoard } from "./tic-tac-toe-board";
 import { ChooseAction } from "./choose-actions";

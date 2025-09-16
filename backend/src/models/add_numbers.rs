@@ -29,7 +29,6 @@ pub enum AddNumbersGameStatus {
 pub enum GameOutcome {
     Win,
     Lose,
-    Draw,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, PartialEq)]
@@ -37,7 +36,6 @@ pub enum GameOutcome {
 pub enum GameReason {
     Challenge,
     Timeout,
-    Accept,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]

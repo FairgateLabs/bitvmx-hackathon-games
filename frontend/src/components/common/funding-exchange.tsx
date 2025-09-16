@@ -15,11 +15,10 @@ import { useQueryClient } from "@tanstack/react-query";
 export function FundingExchange({ expand = true }) {
   const [isOpen, setIsOpen] = useState(expand);
   const [jsonInput, setJsonInput] = useState("");
-  const [isPending, setIsPending] = useState(false);
   const [jsonError, setJsonError] = useState("");
   const { data: currentGame } = useCurrentGame();
   const queryClient = useQueryClient();
-  const { mutate: saveFundingUtxos } = useSaveFundingUtxos();
+  const { mutate: saveFundingUtxos, isPending } = useSaveFundingUtxos();
 
   const isValidTxid = (txid: string): boolean => {
     const hexRegex = /^[0-9a-fA-F]{64}$/;
@@ -146,7 +145,7 @@ export function FundingExchange({ expand = true }) {
             currentGame?.role === EnumPlayerRole.Player2 && (
               <div className="p-4">
                 <h4 className="font-semibold mb-3">
-                  Other Player's Protocol and Bet UTXO Information
+                  Other Player&apos;s Protocol and Bet UTXO Information
                 </h4>
 
                 <div className="mb-4">

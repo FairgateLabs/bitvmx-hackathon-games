@@ -256,10 +256,15 @@ impl AddNumbersService {
             .unwrap()
             .as_secs();
 
-        // Update the game status
+        // TODO PEDRO: Here you have to :
+        // Player 2 will send the answer transaction to the program.
+        // Player 1 will wait until see the answer transaction.
+        // Player 2 will wait here also in order to know the outcome and reason of the game.
+
+        // TODO: PEDRO: Update the game status when you know the outcome and reason of the game.
         game.status = AddNumbersGameStatus::GameComplete {
             outcome: GameOutcome::Win,
-            reason: GameReason::Accept,
+            reason: GameReason::Challenge,
         };
 
         Ok(game.clone())

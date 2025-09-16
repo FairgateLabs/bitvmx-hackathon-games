@@ -10,11 +10,7 @@ import { useCurrentGame } from "@/hooks/useGame";
 
 export function AggregatedKey({ expand = true }) {
   const [isOpen, setIsOpen] = useState(expand);
-  const {
-    data: currentGame,
-    isLoading: isGameLoading,
-    error: gameError,
-  } = useCurrentGame();
+  const { data: currentGame, isLoading: isGameLoading } = useCurrentGame();
 
   if (isGameLoading || isGameLoading) {
     return (

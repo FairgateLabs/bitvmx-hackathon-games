@@ -14,9 +14,7 @@ import { SetupParticipantInfo } from "@/components/common/setup-participant-info
 import { SetupParticipantInput } from "@/components/common/setup-participant-input";
 import { FundingExchange } from "@/components/common/funding-exchange";
 import { ChooseNetwork } from "@/components/common/choose-network";
-import { AcceptLoseGame } from "@/components/player1/accept-lose-game";
 import { SubmitGameData } from "@/components/player2/submit-game-data";
-import { AcceptWinGame } from "@/components/player2/accept-win-game";
 import { useCurrentGame } from "@/hooks/useGame";
 import { useNetworkQuery } from "@/hooks/useNetwork";
 import { AggregatedKey } from "@/components/common/aggregated-key";
@@ -28,7 +26,7 @@ import { SetupGame } from "@/components/common/setup-game";
 import { StartGame } from "@/components/player1/start-game";
 import { WaitingAnswer } from "@/components/player1/waiting-answer";
 import { WaitingStartGame } from "@/components/player2/waiting-start-game";
-import { WaitingForAnswer } from "@/components/player2/waiting-for-answer";
+import { GameOutcome } from "@/components/common/game-outcome";
 
 export default function AddNumbersPage() {
   const { data: network } = useNetworkQuery();
@@ -75,9 +73,12 @@ export default function AddNumbersPage() {
     );
   }
 
-  let isFunding =
+  const isFunding =
     !!game?.bitvmx_program_properties.funding_protocol_utxo &&
     !!game?.bitvmx_program_properties.funding_bet_utxo;
+
+  const isGameComplete =
+    typeof game?.status === "object" && "GameComplete" in game?.status;
 
   return (
     <div className="container mx-auto p-6 max-w-4xl">
@@ -130,43 +131,17 @@ export default function AddNumbersPage() {
             <>
               {game?.status === "StartGame" && <StartGame />}
               {game?.status === "SubmitGameData" && <WaitingAnswer />}
-              {typeof game?.status === "object" &&
-                "GameComplete" in game?.status &&
-                (game?.status.GameComplete.outcome === "Lose" ? (
-                  <AcceptLoseGame />
-                ) : game?.status.GameComplete.outcome === "Win" ? (
-                  <div>Game Complete - You Win!</div>
-                ) : (
-                  <div>Game Complete - Draw!</div>
-                ))}
-              {/* {game?.status === "TransferFunds" && (
-                <div>Transferring funds...</div>
-              )} */}
-              {game?.status === "Finished" && (
-                <div>Game Finished - You Win!</div>
-              )}
             </>
           )}
 
           {role === EnumPlayerRole.Player2 && (
             <>
               {game?.status === "StartGame" && <WaitingStartGame />}
-              {game?.status !== "SubmitGameData" && <SubmitGameData />}
-              {typeof game?.status === "object" &&
-                "GameComplete" in game?.status &&
-                (game?.status.GameComplete.outcome === "Win" ? (
-                  <AcceptWinGame />
-                ) : game?.status.GameComplete.outcome === "Lose" ? (
-                  <div>Game Complete - You Lose!</div>
-                ) : (
-                  <div>Game Complete - Draw!</div>
-                ))}
-
-              {game?.status === "Finished" && (
-                <div>Game Finished - You Lose!</div>
-              )}
+              {game?.status == "SubmitGameData" && <SubmitGameData />}
             </>
           )}
+
+          {isGameComplete && <GameOutcome />}
         </CardContent>
       </Card>
     </div>

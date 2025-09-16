@@ -1,14 +1,21 @@
 import { Button } from "@/components/ui/button";
 import { Play } from "lucide-react";
 import { useCurrentGame, useStartGame } from "@/hooks/useGame";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 
 export function StartGame() {
-  const { mutate: startGame, isPending: isStartingGame } = useStartGame();
+  const { mutate: startGame, isPending } = useStartGame();
   const { data: game } = useCurrentGame();
+  const queryClient = useQueryClient();
 
   const handleStartGame = () => {
     startGame({ program_id: game?.program_id ?? "" });
   };
+
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ["currentGameId"] });
+  }, [isPending]);
 
   return (
     <div className="p-4  border border-gray-200 rounded-lg">
@@ -45,7 +52,7 @@ export function StartGame() {
         className="w-full bg-gray-600 hover:bg-gray-700"
       >
         <Play className="h-4 w-4 mr-2" />
-        {isStartingGame ? "Starting Game..." : "Start Game"}
+        {isPending ? "Starting Game..." : "Start Game"}
       </Button>
     </div>
   );

@@ -12,7 +12,6 @@ import { NetworkType } from "@/types/network";
 export function SetupGame() {
   const [isLoading, setIsLoading] = useState(false);
   const [inputsDisabled, setInputsDisabled] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
   const { data: network } = useNetworkQuery();
 
@@ -22,7 +21,6 @@ export function SetupGame() {
     setTimeout(() => {
       setIsLoading(false);
       setInputsDisabled(true);
-      setIsSuccess(true);
     }, 2000);
   };
 
