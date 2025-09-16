@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BackendStatus } from "@/components/common/backend-status";
 import {
   Card,
   CardContent,
@@ -189,136 +190,138 @@ export default function TransactionList() {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-6xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Transactions for game Add Numbers
-        </h1>
-        <p className="text-gray-600">
-          Recent transactions from the Add Numbers game
-        </p>
-      </div>
+    <BackendStatus className="container mx-auto p-6 max-w-6xl">
+      <div className="container mx-auto p-6 max-w-6xl">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Transactions for game Add Numbers
+          </h1>
+          <p className="text-gray-600">
+            Recent transactions from the Add Numbers game
+          </p>
+        </div>
 
-      <div className="space-y-6">
-        {hardcodedTransactions.map((tx) => (
-          <Card key={tx.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg font-mono text-gray-800">
-                    Transaction #{tx.id}
-                  </CardTitle>
-                  <CardDescription className="text-sm text-gray-600">
-                    Block {tx.blockHeight} • {tx.confirmations} confirmations
-                  </CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => toggleJson(tx.id)}
-                  >
-                    {showJson[tx.id] ? (
-                      <>
-                        <EyeOff className="h-4 w-4 mr-2" />
-                        Hide JSON
-                      </>
-                    ) : (
-                      <>
-                        <Eye className="h-4 w-4 mr-2" />
-                        Show JSON
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4 w-full">
-                <div className="space-y-4 w-full">
-                  <div className="text-sm font-medium text-gray-500">
-                    Transaction Hash
+        <div className="space-y-6">
+          {hardcodedTransactions.map((tx) => (
+            <Card key={tx.id} className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg font-mono text-gray-800">
+                      Transaction #{tx.id}
+                    </CardTitle>
+                    <CardDescription className="text-sm text-gray-600">
+                      Block {tx.blockHeight} • {tx.confirmations} confirmations
+                    </CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="font-mono text-sm text-gray-800 break-all">
-                      {formatHash(tx.hash)}
-                    </div>
-                    <CopyButton text={tx.hash} />
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => openExplorer(tx.hash)}
+                      onClick={() => toggleJson(tx.id)}
                     >
-                      <ExternalLink className="h-3 w-3" />
+                      {showJson[tx.id] ? (
+                        <>
+                          <EyeOff className="h-4 w-4 mr-2" />
+                          Hide JSON
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Show JSON
+                        </>
+                      )}
                     </Button>
                   </div>
                 </div>
+              </CardHeader>
 
-                <div className="space-y-1">
-                  <div className="text-sm font-medium text-gray-500">Fee</div>
-                  <div className="text-sm text-gray-800">
-                    {formatBitcoin(tx.fee * 100000000)} BTC
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="text-sm font-medium text-gray-500">
-                    Timestamp
-                  </div>
-                  <div className="text-sm text-gray-800">
-                    {formatTimestamp(tx.timestamp)}
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div className="space-y-2">
-                  <div className="text-sm font-medium text-gray-500">
-                    Inputs
-                  </div>
-                  <div className="text-sm text-gray-800">
-                    {tx.inputs} input{tx.inputs !== 1 ? "s" : ""} •{" "}
-                    {formatBitcoin(tx.totalInput * 100000000)} BTC
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="text-sm font-medium text-gray-500">
-                    Outputs
-                  </div>
-                  <div className="text-sm text-gray-800">
-                    {tx.outputs} output{tx.outputs !== 1 ? "s" : ""} •{" "}
-                    {formatBitcoin(tx.totalOutput * 100000000)} BTC
-                  </div>
-                </div>
-              </div>
-
-              {showJson[tx.id] && (
-                <div className="mt-4">
-                  <div className="flex items-center justify-between mb-2">
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4 w-full">
+                  <div className="space-y-4 w-full">
                     <div className="text-sm font-medium text-gray-500">
-                      Transaction JSON
+                      Transaction Hash
                     </div>
-                    <CopyButton
-                      size="sm"
-                      variant="outline"
-                      text={JSON.stringify(tx.jsonData, null, 2)}
-                    >
-                      Copy JSON
-                    </CopyButton>
+                    <div className="flex items-center gap-2">
+                      <div className="font-mono text-sm text-gray-800 break-all">
+                        {formatHash(tx.hash)}
+                      </div>
+                      <CopyButton text={tx.hash} />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openExplorer(tx.hash)}
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
-                  <textarea
-                    className="w-full h-64 p-3 bg-gray-50 border border-gray-200 rounded-md font-mono text-xs text-gray-700 resize-none"
-                    value={JSON.stringify(tx.jsonData, null, 2)}
-                    readOnly
-                  />
+
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium text-gray-500">Fee</div>
+                    <div className="text-sm text-gray-800">
+                      {formatBitcoin(tx.fee * 100000000)} BTC
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium text-gray-500">
+                      Timestamp
+                    </div>
+                    <div className="text-sm text-gray-800">
+                      {formatTimestamp(tx.timestamp)}
+                    </div>
+                  </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium text-gray-500">
+                      Inputs
+                    </div>
+                    <div className="text-sm text-gray-800">
+                      {tx.inputs} input{tx.inputs !== 1 ? "s" : ""} •{" "}
+                      {formatBitcoin(tx.totalInput * 100000000)} BTC
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium text-gray-500">
+                      Outputs
+                    </div>
+                    <div className="text-sm text-gray-800">
+                      {tx.outputs} output{tx.outputs !== 1 ? "s" : ""} •{" "}
+                      {formatBitcoin(tx.totalOutput * 100000000)} BTC
+                    </div>
+                  </div>
+                </div>
+
+                {showJson[tx.id] && (
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-sm font-medium text-gray-500">
+                        Transaction JSON
+                      </div>
+                      <CopyButton
+                        size="sm"
+                        variant="outline"
+                        text={JSON.stringify(tx.jsonData, null, 2)}
+                      >
+                        Copy JSON
+                      </CopyButton>
+                    </div>
+                    <textarea
+                      className="w-full h-64 p-3 bg-gray-50 border border-gray-200 rounded-md font-mono text-xs text-gray-700 resize-none"
+                      value={JSON.stringify(tx.jsonData, null, 2)}
+                      readOnly
+                    />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
-    </div>
+    </BackendStatus>
   );
 }

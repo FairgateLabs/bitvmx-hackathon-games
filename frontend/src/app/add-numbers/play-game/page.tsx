@@ -17,6 +17,7 @@ import { ChooseNetwork } from "@/components/common/choose-network";
 import { SubmitGameData } from "@/components/player2/submit-game-data";
 import { useCurrentGame } from "@/hooks/useGame";
 import { useNetworkQuery } from "@/hooks/useNetwork";
+import { BackendStatus } from "@/components/common/backend-status";
 import { AggregatedKey } from "@/components/common/aggregated-key";
 import { useEffect, useState } from "react";
 import { PlayerRole } from "../../../../../backend/bindings/PlayerRole";
@@ -48,31 +49,6 @@ export default function AddNumbersPage() {
     }
   }, [game, role]);
 
-  if (isGameLoading && game !== undefined) {
-    return (
-      <div className="container mx-auto p-6 max-w-4xl">
-        <div className="text-center">
-          <p className="text-lg">⏳ Loading game...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!game?.program_id && !network) {
-    return <ChooseNetwork />;
-  }
-
-  if (!game?.program_id && !role) {
-    return (
-      <ChooseRole
-        title="🎮 Add Numbers Game"
-        description="Choose the role you want to play"
-        subtitle="Two players compete by adding numbers. Who are you?"
-        onSelectRole={setRole}
-      />
-    );
-  }
-
   const isFunding =
     !!game?.bitvmx_program_properties.funding_protocol_utxo &&
     !!game?.bitvmx_program_properties.funding_bet_utxo;
@@ -81,69 +57,92 @@ export default function AddNumbersPage() {
     typeof game?.status === "object" && "GameComplete" in game?.status;
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl">
-            {role === EnumPlayerRole.Player1
-              ? "➕ Player 1 - Add Numbers Game"
-              : "🤝 Player 2 - Add Numbers Game"}
-          </CardTitle>
-          <CardDescription>
-            {role === EnumPlayerRole.Player1
-              ? "Create the game and choose the numbers to add"
-              : "Join the game and answer the sum"}
-          </CardDescription>
-        </CardHeader>
+    <BackendStatus>
+      {isGameLoading && game !== undefined ? (
+        <div className="container mx-auto p-6 max-w-4xl">
+          <div className="text-center">
+            <p className="text-lg">⏳ Loading game...</p>
+          </div>
+        </div>
+      ) : !game?.program_id && !network ? (
+        <ChooseNetwork />
+      ) : !game?.program_id && !role ? (
+        <ChooseRole
+          title="🎮 Add Numbers Game"
+          description="Choose the role you want to play"
+          subtitle="Two players compete by adding numbers. Who are you?"
+          onSelectRole={setRole}
+        />
+      ) : (
+        <div className="container mx-auto p-6 max-w-4xl">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl">
+                {role === EnumPlayerRole.Player1
+                  ? "➕ Player 1 - Add Numbers Game"
+                  : "🤝 Player 2 - Add Numbers Game"}
+              </CardTitle>
+              <CardDescription>
+                {role === EnumPlayerRole.Player1
+                  ? "Create the game and choose the numbers to add"
+                  : "Join the game and answer the sum"}
+              </CardDescription>
+            </CardHeader>
 
-        <CardContent className="space-y-6">
-          <NetworkInfo
-            expanded={!game || game?.status === "SetupParticipants"}
-          />
-          <WalletSection
-            expanded={!game || game?.status === "SetupParticipants"}
-          />
-          <SetupParticipantInfo
-            aggregatedId={aggregatedId}
-            role={role!}
-            expanded={!game || game?.status === "SetupParticipants"}
-          />
-          {!game && (
-            <SetupParticipantInput aggregatedId={aggregatedId} role={role!} />
-          )}
-          {game?.bitvmx_program_properties.aggregated_key && (
-            <AggregatedKey expand={!isFunding} />
-          )}
-          {game && game.status === "PlaceBet" && <PlaceBet />}
-          {((game && game.status === "SetupFunding") ||
-            (game && game.status === "SetupGame") ||
-            isFunding) && (
-            <FundingExchange
-              expand={
-                game?.status === "SetupFunding" || game?.status === "SetupGame"
-              }
-            />
-          )}
+            <CardContent className="space-y-6">
+              <NetworkInfo
+                expanded={!game || game?.status === "SetupParticipants"}
+              />
+              <WalletSection
+                expanded={!game || game?.status === "SetupParticipants"}
+              />
+              <SetupParticipantInfo
+                aggregatedId={aggregatedId}
+                role={role!}
+                expanded={!game || game?.status === "SetupParticipants"}
+              />
+              {!game && (
+                <SetupParticipantInput
+                  aggregatedId={aggregatedId}
+                  role={role!}
+                />
+              )}
+              {game?.bitvmx_program_properties.aggregated_key && (
+                <AggregatedKey expand={!isFunding} />
+              )}
+              {game && game.status === "PlaceBet" && <PlaceBet />}
+              {((game && game.status === "SetupFunding") ||
+                (game && game.status === "SetupGame") ||
+                isFunding) && (
+                <FundingExchange
+                  expand={
+                    game?.status === "SetupFunding" ||
+                    game?.status === "SetupGame"
+                  }
+                />
+              )}
 
-          {game?.status === "SetupGame" && <SetupGame />}
+              {game?.status === "SetupGame" && <SetupGame />}
 
-          {role === EnumPlayerRole.Player1 && (
-            <>
-              {game?.status === "StartGame" && <StartGame />}
-              {game?.status === "SubmitGameData" && <WaitingAnswer />}
-            </>
-          )}
+              {role === EnumPlayerRole.Player1 && (
+                <>
+                  {game?.status === "StartGame" && <StartGame />}
+                  {game?.status === "SubmitGameData" && <WaitingAnswer />}
+                </>
+              )}
 
-          {role === EnumPlayerRole.Player2 && (
-            <>
-              {game?.status === "StartGame" && <WaitingStartGame />}
-              {game?.status == "SubmitGameData" && <SubmitGameData />}
-            </>
-          )}
+              {role === EnumPlayerRole.Player2 && (
+                <>
+                  {game?.status === "StartGame" && <WaitingStartGame />}
+                  {game?.status == "SubmitGameData" && <SubmitGameData />}
+                </>
+              )}
 
-          {isGameComplete && <GameOutcome />}
-        </CardContent>
-      </Card>
-    </div>
+              {isGameComplete && <GameOutcome />}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </BackendStatus>
   );
 }
