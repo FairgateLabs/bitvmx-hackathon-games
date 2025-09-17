@@ -3,10 +3,11 @@ use crate::models::{P2PAddress, WalletBalance};
 use crate::rpc::rpc_client::RpcClient;
 use bitvmx_bitcoin_rpc::bitcoin_client::BitcoinClient;
 use bitvmx_bitcoin_rpc::bitcoin_client::BitcoinClientApi;
-use bitvmx_client::bitcoin::{Address, PublicKey, Txid};
+use bitvmx_client::bitcoin::{Address, PublicKey, Transaction, Txid};
 use bitvmx_client::bitcoin_coordinator::TransactionStatus;
 use bitvmx_client::bitvmx_wallet::wallet::Destination;
 use bitvmx_client::program::participant::P2PAddress as BitVMXP2PAddress;
+use bitvmx_client::program::protocols::dispute;
 use bitvmx_client::program::variables::VariableTypes;
 use bitvmx_client::types::{IncomingBitVMXApiMessages, OutgoingBitVMXApiMessages};
 use std::str::FromStr;
@@ -161,7 +162,7 @@ impl BitVMXService {
         }
     }
 
-    pub async fn wait_for_transaction_response(
+    pub async fn wait_transaction_response(
         &self,
         correlation_id: Uuid,
     ) -> Result<TransactionStatus, anyhow::Error> {
@@ -182,6 +183,30 @@ impl BitVMXService {
         } else {
             Err(anyhow::anyhow!(
                 "Expected Transaction response, got: {:?}",
+                response
+            ))
+        }
+    }
+
+    pub async fn wait_transaction_by_name_response(
+        &self,
+        program_id: Uuid,
+        name: &str,
+    ) -> Result<Transaction, anyhow::Error> {
+        debug!(
+            "Waiting for transaction response for program id: {:?} and name: {:?}",
+            program_id, name
+        );
+        let response = self
+            .rpc_client
+            .wait_for_response(RpcClient::tx_name_to_correlation_id(&program_id, name))
+            .await?;
+        if let OutgoingBitVMXApiMessages::TransactionInfo(_uuid, name, tx) = response {
+            info!("Received transaction response for name: {:?}", name);
+            Ok(tx)
+        } else {
+            Err(anyhow::anyhow!(
+                "Expected TransactionInfo response, got: {:?}",
                 response
             ))
         }
@@ -260,6 +285,100 @@ impl BitVMXService {
 
     pub fn protocol_cost(&self) -> u64 {
         bitvmx_client::program::protocols::dispute::protocol_cost()
+    }
+
+    pub async fn start_challenge(&self, program_id: Uuid) -> Result<Transaction, anyhow::Error> {
+        // Dispatch the start challenge transaction
+        let response = self
+            .rpc_client
+            .send_request(IncomingBitVMXApiMessages::DispatchTransactionName(
+                program_id,
+                dispute::START_CH.to_string(),
+            ))
+            .await?;
+
+        if let OutgoingBitVMXApiMessages::TransactionInfo(_uuid, name, tx) = response {
+            if name != dispute::START_CH.to_string() {
+                return Err(anyhow::anyhow!(
+                    "Expected Dispute Started response with name: {:?}, got: {:?}",
+                    dispute::START_CH.to_string(),
+                    name
+                ));
+            }
+            Ok(tx)
+        } else {
+            Err(anyhow::anyhow!(
+                "Expected Dispute Started response, got: {:?}",
+                response
+            ))
+        }
+    }
+
+    /// Get the name of the input transaction
+    pub fn program_input_name(index: u32) -> String {
+        format!("program_input_{index}")
+    }
+
+    /// Set the program input
+    pub async fn set_program_input(
+        &self,
+        program_id: Uuid,
+        index: u32,
+        value: Vec<u8>,
+    ) -> Result<(), anyhow::Error> {
+        self.set_variable(
+            program_id,
+            &Self::program_input_name(index),
+            VariableTypes::Input(value),
+        )
+        .await
+    }
+
+    /// Send the transaction by name
+    pub async fn send_transaction_by_name(
+        &self,
+        program_id: Uuid,
+        tx_name: String,
+    ) -> Result<(Transaction, String), anyhow::Error> {
+        // Dispatch the transaction by name
+        let response = self
+            .rpc_client
+            .send_request(IncomingBitVMXApiMessages::DispatchTransactionName(
+                program_id,
+                tx_name.clone(),
+            ))
+            .await?;
+
+        if let OutgoingBitVMXApiMessages::TransactionInfo(_uuid, name, tx) = response {
+            if name != tx_name {
+                return Err(anyhow::anyhow!(
+                    "Expected Transaction Info response with name: {:?}, got: {:?}",
+                    tx_name,
+                    name
+                ));
+            }
+            Ok((tx, name))
+        } else {
+            Err(anyhow::anyhow!(
+                "Expected Transaction Info response, got: {:?}",
+                response
+            ))
+        }
+    }
+
+    /// Get the name of the input transaction
+    pub fn input_tx_name(index: u32) -> String {
+        format!("INPUT_{index}")
+    }
+
+    /// Send the challenge input transaction
+    pub async fn send_challenge_input(
+        &self,
+        program_id: Uuid,
+        index: u32,
+    ) -> Result<(Transaction, String), anyhow::Error> {
+        let tx_name = Self::input_tx_name(index);
+        self.send_transaction_by_name(program_id, tx_name).await
     }
 
     // ----- Start internal methods -----
