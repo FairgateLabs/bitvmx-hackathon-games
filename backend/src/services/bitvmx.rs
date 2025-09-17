@@ -162,6 +162,15 @@ impl BitVMXService {
         }
     }
 
+    pub async fn send_funds_wait_confirmation(
+        &self,
+        destination: &Destination,
+    ) -> Result<TransactionStatus, anyhow::Error> {
+        let (uuid, _) = self.send_funds(destination).await?;
+        let tx_status = self.wait_transaction_response(uuid).await?;
+        Ok(tx_status)
+    }
+
     pub async fn wait_transaction_response(
         &self,
         correlation_id: Uuid,
@@ -402,7 +411,7 @@ impl BitVMXService {
         }
         let bitcoin_config = self.bitcoin_config.clone();
 
-        // corre una rutina bloqueante sin trabar el runtime
+        // run a blocking routine without blocking the runtime
         tokio::task::spawn_blocking(move || {
             let bitcoin_client = BitcoinClient::new(
                 &bitcoin_config.url,
@@ -412,7 +421,7 @@ impl BitVMXService {
             .unwrap();
             // each block gives a 50 BTC reward
             bitcoin_client
-                .mine_blocks_to_address(1, &wallet_address)
+                .mine_blocks_to_address(2, &wallet_address)
                 .unwrap();
             bitcoin_client.mine_blocks(100).unwrap();
         })
@@ -472,16 +481,38 @@ impl BitVMXService {
         let response = self
             .rpc_client
             .send_request(IncomingBitVMXApiMessages::GetPubKey(speedup_key_id, true))
-            .await?;
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to get funding key: {e:?}"))?;
 
+        let funding_pubkey: PublicKey;
         if let OutgoingBitVMXApiMessages::PubKey(_uuid, funding_key) = response {
-            self.bitvmx_info.write().await.funding_key = Some(funding_key.to_string());
+            funding_pubkey = funding_key;
+            self.bitvmx_info.write().await.funding_key = Some(funding_pubkey.to_string());
         } else {
             return Err(anyhow::anyhow!(
                 "Expected Funding PubKey response, got: {:?}",
                 response
             ));
         }
+
+        let amount = 100_000_000; // 1 BTC
+        let tx_status = self
+            .send_funds_wait_confirmation(&Destination::P2WPKH(funding_pubkey, amount))
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to send funds: {e:?}"))?;
+
+        self.rpc_client
+            .send_request(IncomingBitVMXApiMessages::SetFundingUtxo(
+                bitvmx_client::protocol_builder::types::Utxo {
+                    txid: tx_status.tx_id,
+                    vout: 0,
+                    amount: amount,
+                    pub_key: funding_pubkey,
+                },
+            ))
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to set funding utxo: {e:?}"))?;
+
         trace!("Updated funding key in store");
         Ok(())
     }
@@ -492,6 +523,9 @@ impl BitVMXService {
 
         self.set_p2p_address().await?;
 
+        // Set wallet address
+        self.set_wallet_address().await?;
+
         // If keys do not exist, setup keys
         if self.get_pub_key().await?.is_none() {
             debug!("No keys found, creating them");
@@ -501,8 +535,6 @@ impl BitVMXService {
             // Set funding key
             self.set_funding_key().await?;
         }
-
-        self.set_wallet_address().await?;
 
         Ok(())
     }

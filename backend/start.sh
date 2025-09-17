@@ -54,7 +54,7 @@ echo "BitVMX 2 started with PID: $!"
 sleep 1
 
 # Wait a bit before launching the players
-echo "⏳ Waiting 5 second for bitvmx to synchronize..."
+echo "⏳ Waiting 10 second for bitvmx to synchronize..."
 sleep 5
 
 bash scripts/start-player-1.sh & pids+=($!)

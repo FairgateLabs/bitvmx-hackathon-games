@@ -199,8 +199,8 @@ pub async fn get_protocol_cost(
     tag = "BitVMX"
 )]
 pub async fn get_protocol(
-    State(app_state): State<AppState>,
-    Path(id): Path<Uuid>,
+    State(_app_state): State<AppState>,
+    Path(_id): Path<Uuid>,
 ) -> Result<Json<()>, (StatusCode, Json<ErrorResponse>)> {
     // let protocol = app_state
     //     .bitvmx_service

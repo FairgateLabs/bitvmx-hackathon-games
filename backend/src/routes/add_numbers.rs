@@ -437,13 +437,14 @@ pub async fn start_game(
         .map_err(|e| http_errors::internal_server_error(&format!("Failed to get game: {e:?}")))?
         .ok_or(http_errors::not_found("Game not found"))?;
 
-    if game.status != AddNumbersGameStatus::SetupGame {
-        return Err(http_errors::bad_request("Game is not in setup game state"));
+    if game.status != AddNumbersGameStatus::StartGame {
+        return Err(http_errors::bad_request("Game is not in start game state"));
     }
 
     if game.role != PlayerRole::Player1 {
         return Err(http_errors::bad_request("Invalid game role"));
     }
+
     // Player 1 send the challenge transaction to start the game.
     let challenge_tx = app_state
         .bitvmx_service
