@@ -17,6 +17,7 @@ pub fn router() -> Router<AppState> {
         .route("/wallet-balance", get(wallet_balance))
         .route("/transaction/{txid}", get(get_transaction))
         .route("/protocol-cost", get(get_protocol_cost))
+        .route("/protocol/{id}", get(get_protocol))
 }
 
 /// Get BitVMX P2P address information
@@ -185,4 +186,28 @@ pub async fn get_protocol_cost(
     let protocol_cost = app_state.bitvmx_service.protocol_cost();
 
     Ok(Json(ProtocolCostResponse { protocol_cost }))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/bitvmx/protocol/{id}",
+    responses(
+        (status = 200, description = "Protocol fetched successfully", body = String),
+        (status = 404, description = "Protocol not found", body = ErrorResponse),
+        (status = 500, description = "Failed to fetch protocol", body = ErrorResponse)
+    ),
+    tag = "BitVMX"
+)]
+pub async fn get_protocol(
+    State(app_state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<()>, (StatusCode, Json<ErrorResponse>)> {
+    // let protocol = app_state
+    //     .bitvmx_service
+    //     .fetch_protocol(id)
+    //     .map_err(|e| match e.to_string().as_str() {
+    //         "Protocol not found" => http_errors::not_found("Protocol not found"),
+    //         _ => http_errors::internal_server_error(&format!("Failed to fetch protocol: {e:?}")),
+    //     })?;
+    Ok(Json(()))
 }

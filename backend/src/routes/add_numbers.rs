@@ -32,7 +32,7 @@ pub fn router() -> Router<AppState> {
         .route("/setup-funding-utxo", post(setup_funding_utxo)) // for player 2
         .route("/setup-game", post(setup_game)) // for player 1 and player 2 (send the numbers to sum)
         .route("/start-game", post(start_game)) // for player 1 (send the challenge transaction to start the game)
-        .route("/submit-sum", post(submit_sum))
+        .route("/submit-sum", post(submit_sum)) // Player 2 will send the sum to answer the challenge once he see the challenge transaction.
         .route("/{id}", get(get_game))
         .route("/{id}/guess", post(make_guess))
         .route("/current-game-id", get(get_current_game_id))
@@ -655,7 +655,8 @@ pub async fn submit_sum(
     State(app_state): State<AppState>,
     Json(request): Json<SubmitSumRequest>,
 ) -> Result<Json<()>, (StatusCode, Json<ErrorResponse>)> {
-    // TOOD: PEDRO Wait until you know the answer
+    // TOOD: PEDRO
+    // Esperar hasta que ves la transaccion challenge , y luego envias tu respuesta.
     app_state
         .add_numbers_service
         .make_guess(request.id, request.guess)
