@@ -12,7 +12,9 @@ use bitvmx_client::program::variables::VariableTypes;
 use bitvmx_client::types::{IncomingBitVMXApiMessages, OutgoingBitVMXApiMessages};
 use std::str::FromStr;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::sync::RwLock;
+use tokio::time::sleep;
 use tracing::{debug, info, trace};
 use uuid::Uuid;
 
@@ -150,7 +152,8 @@ impl BitVMXService {
                 destination.clone(),
                 None, // fee rate not needed for regtest
             ))
-            .await?;
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to send funds: {e:?}"))?;
 
         if let OutgoingBitVMXApiMessages::FundsSent(uuid, txid) = response {
             Ok((uuid, txid))
@@ -182,7 +185,9 @@ impl BitVMXService {
         let response = self
             .rpc_client
             .wait_for_response(correlation_id.to_string())
-            .await?;
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to wait for transaction response: {e:?}"))?;
+
         if let OutgoingBitVMXApiMessages::Transaction(_uuid, transaction_status, _) = response {
             info!(
                 "Received transaction response for correlation id: {:?}",
@@ -390,28 +395,72 @@ impl BitVMXService {
         self.send_transaction_by_name(program_id, tx_name).await
     }
 
-    // ----- Start internal methods -----
-
-    /// Update P2P address
-    async fn set_wallet_address(&self) -> Result<(), anyhow::Error> {
+    pub async fn get_funding_address(&self) -> Result<Address, anyhow::Error> {
         let response = self
             .rpc_client
             .send_request(IncomingBitVMXApiMessages::GetFundingAddress(Uuid::new_v4()))
             .await?;
-
-        let wallet_address: Address;
         if let OutgoingBitVMXApiMessages::FundingAddress(_uuid, address) = response {
-            wallet_address = address.assume_checked();
-            self.bitvmx_info.write().await.wallet_address = Some(wallet_address.clone());
+            Ok(address.assume_checked())
+        } else {
+            Err(anyhow::anyhow!(
+                "Expected Funding Address response, got: {:?}",
+                response
+            ))
+        }
+    }
+
+    pub async fn get_funding_balance(&self) -> Result<u64, anyhow::Error> {
+        let response = self
+            .rpc_client
+            .send_request(IncomingBitVMXApiMessages::GetFundingBalance(Uuid::new_v4()))
+            .await?;
+
+        if let OutgoingBitVMXApiMessages::FundingBalance(_uuid, balance) = response {
+            Ok(balance)
+        } else if let OutgoingBitVMXApiMessages::WalletNotReady(uuid) = response {
+            Err(anyhow::anyhow!(
+                "Wallet not ready correlation id: {:?}",
+                uuid
+            ))
+        } else {
+            Err(anyhow::anyhow!(
+                "Expected Funding Balance response, got: {:?}",
+                response
+            ))
+        }
+    }
+
+    pub async fn get_or_generate_pub_key(&self, is_new: bool) -> Result<PublicKey, anyhow::Error> {
+        let pub_key_id = Uuid::new_v4();
+        let response = self
+            .rpc_client
+            .send_request(IncomingBitVMXApiMessages::GetPubKey(pub_key_id, is_new))
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to get pub key: {e:?}"))?;
+
+        if let OutgoingBitVMXApiMessages::PubKey(_uuid, pub_key) = response {
+            Ok(pub_key)
         } else {
             return Err(anyhow::anyhow!(
-                "Expected Funding Address response, got: {:?}",
+                "Expected Operator PubKey response, got: {:?}",
                 response
             ));
         }
-        let bitcoin_config = self.bitcoin_config.clone();
+    }
 
+    // ----- Start internal methods -----
+
+    /// Update P2P address
+    async fn set_wallet_address(&self) -> Result<(), anyhow::Error> {
+        let wallet_address: Address = self.get_funding_address().await?;
+        self.bitvmx_info.write().await.wallet_address = Some(wallet_address.clone());
+
+        debug!("Adding funds for wallet address: {:?}", wallet_address);
+
+        let bitcoin_config = self.bitcoin_config.clone();
         // run a blocking routine without blocking the runtime
+        // fund the wallet address with 2 blocks coinbase (mine 100 blocks for maturity)
         tokio::task::spawn_blocking(move || {
             let bitcoin_client = BitcoinClient::new(
                 &bitcoin_config.url,
@@ -425,7 +474,20 @@ impl BitVMXService {
                 .unwrap();
             bitcoin_client.mine_blocks(100).unwrap();
         })
-        .await?;
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to mine blocks for funding wallet address: {e:?}"))?;
+
+        debug!("Mined 2 blocks and 100 blocks, waiting for bitvmx to process them");
+        // wait for bitvmx to process the blocks
+        sleep(Duration::from_secs(2)).await;
+        debug!("Waited 2 seconds");
+
+        let balance = self.get_funding_balance().await?;
+        debug!("Funding balance: {:?}", balance);
+
+        if balance < 100_000_000 {
+            return Err(anyhow::anyhow!("Funding balance is less than 1 BTC"));
+        }
 
         trace!("Updated wallet address in store");
         Ok(())
@@ -456,20 +518,9 @@ impl BitVMXService {
     /// Update pub key
     async fn set_pub_key(&self) -> Result<(), anyhow::Error> {
         debug!("Create operator key from BitVMX");
-        let pub_key_id = Uuid::new_v4();
-        let response = self
-            .rpc_client
-            .send_request(IncomingBitVMXApiMessages::GetPubKey(pub_key_id, true))
-            .await?;
+        let pub_key = self.get_or_generate_pub_key(true).await?;
+        self.bitvmx_info.write().await.pub_key = Some(pub_key.to_string());
 
-        if let OutgoingBitVMXApiMessages::PubKey(_uuid, pub_key) = response {
-            self.bitvmx_info.write().await.pub_key = Some(pub_key.to_string());
-        } else {
-            return Err(anyhow::anyhow!(
-                "Expected Operator PubKey response, got: {:?}",
-                response
-            ));
-        }
         trace!("Updated pub key in store");
         Ok(())
     }
@@ -477,29 +528,33 @@ impl BitVMXService {
     /// Update funding key
     async fn set_funding_key(&self) -> Result<(), anyhow::Error> {
         debug!("Create funding key for speedups from BitVMX");
-        let speedup_key_id = Uuid::new_v4();
-        let response = self
-            .rpc_client
-            .send_request(IncomingBitVMXApiMessages::GetPubKey(speedup_key_id, true))
-            .await
-            .map_err(|e| anyhow::anyhow!("Failed to get funding key: {e:?}"))?;
+        let funding_pubkey = self.get_or_generate_pub_key(true).await?;
+        self.bitvmx_info.write().await.funding_key = Some(funding_pubkey.to_string());
+        trace!("Updated funding key in store");
 
-        let funding_pubkey: PublicKey;
-        if let OutgoingBitVMXApiMessages::PubKey(_uuid, funding_key) = response {
-            funding_pubkey = funding_key;
-            self.bitvmx_info.write().await.funding_key = Some(funding_pubkey.to_string());
-        } else {
-            return Err(anyhow::anyhow!(
-                "Expected Funding PubKey response, got: {:?}",
-                response
-            ));
-        }
-
+        // Send 1 BTC to the funding key
         let amount = 100_000_000; // 1 BTC
-        let tx_status = self
-            .send_funds_wait_confirmation(&Destination::P2WPKH(funding_pubkey, amount))
-            .await
-            .map_err(|e| anyhow::anyhow!("Failed to send funds: {e:?}"))?;
+        let (uuid, _txid) = self
+            .send_funds(&Destination::P2WPKH(funding_pubkey, amount))
+            .await?;
+
+        // mine 1 block to ensure it's confirmed
+        // run a blocking routine without blocking the runtime
+        let bitcoin_config = self.bitcoin_config.clone();
+        tokio::task::spawn_blocking(move || {
+            let bitcoin_client = BitcoinClient::new(
+                &bitcoin_config.url,
+                &bitcoin_config.username,
+                &bitcoin_config.password,
+            )
+            .map_err(|e| anyhow::anyhow!("Failed to create bitcoin client: {e:?}"))?;
+            bitcoin_client.mine_blocks(1).unwrap();
+        })
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to mine 1 block for confirmation: {e:?}"))?;
+
+        // Wait for the transaction confirmation reponse to use the utxo
+        let tx_status = self.wait_transaction_response(uuid).await?;
 
         self.rpc_client
             .send_request(IncomingBitVMXApiMessages::SetFundingUtxo(
