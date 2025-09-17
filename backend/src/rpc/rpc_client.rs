@@ -7,6 +7,7 @@ use std::sync::Arc;
 use tokio::sync::broadcast::{Receiver, Sender};
 use tokio::task::JoinHandle;
 use tracing::{debug, info, trace, Instrument};
+use uuid::Uuid;
 
 use std::time::Duration;
 use tokio::sync::{mpsc, oneshot, Mutex};
@@ -286,6 +287,11 @@ impl RpcClient {
         }
     }
 
+    /// Convert the transaction name to a correlation ID
+    pub fn tx_name_to_correlation_id(program_id: &Uuid, name: &str) -> String {
+        format!("{program_id}_{name}")
+    }
+
     /// Convert the message to send to BitVMX to a correlation ID
     fn request_to_correlation_id(
         &self,
@@ -321,7 +327,9 @@ impl RpcClient {
             IncomingBitVMXApiMessages::DispatchTransaction(uuid, _transaction) => {
                 Ok(uuid.to_string())
             }
-            IncomingBitVMXApiMessages::DispatchTransactionName(uuid, _name) => Ok(uuid.to_string()),
+            IncomingBitVMXApiMessages::DispatchTransactionName(uuid, name) => {
+                Ok(Self::tx_name_to_correlation_id(uuid, name))
+            }
             IncomingBitVMXApiMessages::SetupKey(uuid, _addresses, _operator_key, _funding_key) => {
                 Ok(uuid.to_string())
             }
@@ -374,8 +382,8 @@ impl RpcClient {
                 Ok(uuid.to_string())
             }
             OutgoingBitVMXApiMessages::AggregatedPubkeyNotReady(uuid) => Ok(uuid.to_string()),
-            OutgoingBitVMXApiMessages::TransactionInfo(uuid, _name, _transaction) => {
-                Ok(uuid.to_string())
+            OutgoingBitVMXApiMessages::TransactionInfo(uuid, name, _transaction) => {
+                Ok(Self::tx_name_to_correlation_id(uuid, name))
             }
             OutgoingBitVMXApiMessages::ZKPResult(uuid, _zkp_result, _zkp_proof) => {
                 Ok(uuid.to_string())
