@@ -178,6 +178,7 @@ pub async fn get_current_game_id(
     Ok(Json(game))
 }
 
+/// Place a bet for the add numbers game
 #[utoipa::path(
     post,
     path = "/api/add-numbers/place-bet",
@@ -354,6 +355,7 @@ pub async fn place_bet(
     Ok(Json(()))
 }
 
+/// Setup the game for the add numbers game
 #[utoipa::path(
     post,
     path = "/api/add-numbers/setup-funding-utxo",
@@ -472,6 +474,7 @@ pub async fn start_game(
     path = "/api/add-numbers/setup-game",
     request_body = StartGameRequest,
     responses(
+        (status = 200, description = "Game setup successfully", body = SetupGameResponse),
         (status = 400, description = "Invalid program ID", body = ErrorResponse),
         (status = 404, description = "Game not found", body = ErrorResponse),
         (status = 500, description = "Failed to set variable aggregated pubkey", body = ErrorResponse),
@@ -631,12 +634,13 @@ pub async fn setup_game(
     Ok(Json(SetupGameResponse { program_id }))
 }
 
+/// Submit the sum for the add numbers game
 #[utoipa::path(
     post,
-    path = "/api/add-numbers/submit-sum/{id}",
+    path = "/api/add-numbers/submit-sum",
     request_body = SubmitSumRequest,
     responses(
-        (status = 200, description = "Sum submitted successfully", body = AddNumbersGame),
+        (status = 200, description = "Sum submitted successfully", body = SubmitSumResponse),
         (status = 400, description = "Invalid request", body = ErrorResponse),
         (status = 404, description = "Game not found", body = ErrorResponse),
         (status = 500, description = "Failed to get game", body = ErrorResponse),
