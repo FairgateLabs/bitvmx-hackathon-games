@@ -3,7 +3,8 @@ use crate::models::{
     P2PAddress, PlayerRole, Utxo,
 };
 use crate::utils::bitcoin;
-use bitvmx_client::bitcoin::{Address, PublicKey, Transaction};
+use bitvmx_client::bitcoin::{Address, PublicKey};
+use bitvmx_client::bitcoin_coordinator::TransactionStatus;
 use bitvmx_client::bitvmx_wallet::wallet::Destination;
 use bitvmx_client::protocol_builder::scripts::{self, ProtocolScript};
 use std::collections::HashMap;
@@ -215,7 +216,7 @@ impl AddNumbersService {
     pub fn start_game(
         &self,
         program_id: Uuid,
-        challenge_tx: Transaction,
+        challenge_tx: &TransactionStatus,
     ) -> Result<(), anyhow::Error> {
         let mut hash_map = self
             .games
@@ -245,8 +246,8 @@ impl AddNumbersService {
         &self,
         id: Uuid,
         guess: u32,
-        challenge_input_tx: Transaction,
-        challenge_result_tx: Transaction,
+        challenge_input_tx: TransactionStatus,
+        challenge_result_tx: TransactionStatus,
     ) -> Result<AddNumbersGame, anyhow::Error> {
         let mut hash_map = self
             .games

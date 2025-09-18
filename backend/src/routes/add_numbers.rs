@@ -457,7 +457,7 @@ pub async fn start_game(
     // Set the game as setup
     app_state
         .add_numbers_service
-        .start_game(program_id, challenge_tx.clone())
+        .start_game(program_id, &challenge_tx)
         .map_err(|e| http_errors::internal_server_error(&format!("Failed to setup game: {e:?}")))?;
 
     Ok(Json(StartGameResponse {
