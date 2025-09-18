@@ -52,8 +52,8 @@ echo "BitVMX 2 started with PID: $!"
 sleep 1
 
 # Wait a bit before launching the players
-echo "⏳ Waiting 3 second for bitvmx to synchronize..."
-sleep 3
+echo "⏳ Waiting 5 second for bitvmx to synchronize..."
+sleep 5
 
 # Start players backend
 echo "Starting player 1..."
@@ -61,10 +61,18 @@ bash scripts/start-player-1.sh & pids+=($!)
 echo "Player 1 started with PID: $!"
 sleep 1
 
+# Wait a bit before launching the players
+echo "⏳ Waiting 3 second for player 1 to synchronize..."
+sleep 3
+
 echo "Starting player 2..."
 bash scripts/start-player-2.sh & pids+=($!)
 echo "Player 2 started with PID: $!"
 sleep 1
+
+# Wait a bit before launching the players
+echo "⏳ Waiting 3 second for player 2 to synchronize..."
+sleep 3
 
 # Start auto mine
 echo "Starting auto mine..."

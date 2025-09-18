@@ -352,7 +352,7 @@ impl RpcClient {
             IncomingBitVMXApiMessages::SubscribeToRskPegin() => {
                 Ok("subscribe_rsk_pegin".to_string())
             }
-            IncomingBitVMXApiMessages::GetSPVProof(_txid) => Ok(format!("get_spv_proof_{_txid}")),
+            IncomingBitVMXApiMessages::GetSPVProof(_txid) => Ok(format!("spv_proof_{_txid}")),
             IncomingBitVMXApiMessages::DispatchTransaction(uuid, _transaction) => {
                 Ok(uuid.to_string())
             }
@@ -395,11 +395,12 @@ impl RpcClient {
     ) -> Result<String, anyhow::Error> {
         match response {
             OutgoingBitVMXApiMessages::Pong() => Ok("ping".to_string()),
-            OutgoingBitVMXApiMessages::Transaction(uuid, _transaction_status, _transaction) => {
-                Ok(uuid.to_string())
-            }
+            OutgoingBitVMXApiMessages::Transaction(uuid, _transaction_status, name) => match name {
+                Some(name) => Ok(Self::tx_name_to_correlation_id(uuid, name)),
+                None => Ok(uuid.to_string()),
+            },
             OutgoingBitVMXApiMessages::PeginTransactionFound(_txid, _transaction_status) => {
-                Ok("subscribe_rsk_pegin".to_string())
+                Ok("rsk_pegin".to_string())
             }
             OutgoingBitVMXApiMessages::SpendingUTXOTransactionFound(
                 uuid,
@@ -434,14 +435,23 @@ impl RpcClient {
             ) => Ok(uuid.to_string()),
             OutgoingBitVMXApiMessages::Variable(uuid, _key, _value) => Ok(uuid.to_string()),
             OutgoingBitVMXApiMessages::Witness(uuid, _key, _witness) => Ok(uuid.to_string()),
+            OutgoingBitVMXApiMessages::NotFound(uuid, _key) => Ok(uuid.to_string()),
             OutgoingBitVMXApiMessages::HashedMessage(uuid, _name, _vout, _leaf, _) => {
                 Ok(uuid.to_string())
             }
-            OutgoingBitVMXApiMessages::NotFound(uuid, _key) => Ok(uuid.to_string()),
-            OutgoingBitVMXApiMessages::FundsSent(uuid, _txid) => Ok(uuid.to_string()),
-            OutgoingBitVMXApiMessages::FundingBalance(uuid, _balance) => Ok(uuid.to_string()),
-            OutgoingBitVMXApiMessages::WalletNotReady(uuid) => Ok(uuid.to_string()),
+            OutgoingBitVMXApiMessages::ProofReady(uuid) => Ok(uuid.to_string()),
+            OutgoingBitVMXApiMessages::ProofNotReady(uuid) => Ok(uuid.to_string()),
+            OutgoingBitVMXApiMessages::ProofGenerationError(uuid, _error) => Ok(uuid.to_string()),
+            OutgoingBitVMXApiMessages::SPVProof(txid, _spv_proof) => {
+                Ok(format!("spv_proof_{txid}"))
+            }
+            OutgoingBitVMXApiMessages::Encrypted(uuid, _encrypted_message) => Ok(uuid.to_string()),
+            OutgoingBitVMXApiMessages::Decrypted(uuid, _decrypted_message) => Ok(uuid.to_string()),
             OutgoingBitVMXApiMessages::FundingAddress(uuid, _address) => Ok(uuid.to_string()),
+            OutgoingBitVMXApiMessages::FundingBalance(uuid, _balance) => Ok(uuid.to_string()),
+            OutgoingBitVMXApiMessages::FundsSent(uuid, _txid) => Ok(uuid.to_string()),
+            OutgoingBitVMXApiMessages::WalletNotReady(uuid) => Ok(uuid.to_string()),
+            OutgoingBitVMXApiMessages::WalletError(uuid, _error) => Ok(uuid.to_string()),
             _ => Err(anyhow::anyhow!(
                 "unhandled response message type: {:?}",
                 response
