@@ -3,7 +3,7 @@ use crate::models::{
     P2PAddress, PlayerRole, Utxo,
 };
 use crate::utils::bitcoin;
-use bitvmx_client::bitcoin::{Address, PublicKey};
+use bitvmx_client::bitcoin::{Address, PublicKey, Transaction};
 use bitvmx_client::bitvmx_wallet::wallet::Destination;
 use bitvmx_client::protocol_builder::scripts::{self, ProtocolScript};
 use std::collections::HashMap;
@@ -56,6 +56,9 @@ impl AddNumbersService {
                 participants_keys,
                 funding_protocol_utxo: None,
                 funding_bet_utxo: None,
+                challenge_tx: serde_json::Value::Null,
+                challenge_input_tx: serde_json::Value::Null,
+                challenge_result_tx: serde_json::Value::Null,
             },
         };
 
@@ -209,7 +212,11 @@ impl AddNumbersService {
         Ok(())
     }
 
-    pub fn start_game(&self, program_id: Uuid) -> Result<(), anyhow::Error> {
+    pub fn start_game(
+        &self,
+        program_id: Uuid,
+        challenge_tx: Transaction,
+    ) -> Result<(), anyhow::Error> {
         let mut hash_map = self
             .games
             .write()
@@ -222,11 +229,10 @@ impl AddNumbersService {
         if game.status != AddNumbersGameStatus::StartGame {
             return Err(anyhow::anyhow!("Game is not in start game state"));
         }
-
-        // TODO PEDRO: Here you have to :
-        // Player 1 send the challenge transaction to start the game.
-        // Player 2 will wait until see the first challenge transaction.
-
+        game.bitvmx_program_properties.challenge_tx =
+            serde_json::to_value(challenge_tx).map_err(|e| {
+                anyhow::anyhow!("Failed to convert challenge transaction to JSON: {e:?}")
+            })?;
         game.status = AddNumbersGameStatus::SubmitGameData;
         game.updated_at = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -235,11 +241,18 @@ impl AddNumbersService {
         Ok(())
     }
 
-    pub fn make_guess(&self, id: Uuid, guess: u32) -> Result<AddNumbersGame, anyhow::Error> {
+    pub fn make_guess(
+        &self,
+        id: Uuid,
+        guess: u32,
+        challenge_input_tx: Transaction,
+        challenge_result_tx: Transaction,
+    ) -> Result<AddNumbersGame, anyhow::Error> {
         let mut hash_map = self
             .games
             .write()
             .map_err(|e| anyhow::anyhow!("Failed to write to games: {e:?}"))?;
+
         let game = hash_map
             .get_mut(&id)
             .ok_or(anyhow::anyhow!("Game not found"))?;
@@ -248,6 +261,15 @@ impl AddNumbersService {
         if game.status != AddNumbersGameStatus::SubmitGameData {
             return Err(anyhow::anyhow!("Game is not in waiting for guess state"));
         }
+
+        game.bitvmx_program_properties.challenge_input_tx =
+            serde_json::to_value(challenge_input_tx).map_err(|e| {
+                anyhow::anyhow!("Failed to convert challenge input transaction to JSON: {e:?}")
+            })?;
+        game.bitvmx_program_properties.challenge_result_tx =
+            serde_json::to_value(challenge_result_tx).map_err(|e| {
+                anyhow::anyhow!("Failed to convert challenge result transaction to JSON: {e:?}")
+            })?;
 
         // Make the guess
         game.guess = Some(guess);

@@ -40,30 +40,47 @@ bash scripts/start-bitcoin.sh
 echo "⏳ Waiting 5 second for bitcoind to start..."
 sleep 5
 
-echo "Starting auto mine..."
-bash scripts/start-bitcoin-mine.sh & pids+=($!)
-echo "Auto mine started with PID: $!"
-
+# Start bitvmx clients
 echo "Starting bitvmx 1..."
 bash scripts/start-op-1.sh & pids+=($!)
 echo "BitVMX 1 started with PID: $!"
 sleep 1
+
 echo "Starting bitvmx 2..."
 bash scripts/start-op-2.sh & pids+=($!)
 echo "BitVMX 2 started with PID: $!"
 sleep 1
 
 # Wait a bit before launching the players
-echo "⏳ Waiting 5 second for bitvmx to synchronize..."
-sleep 5
+echo "⏳ Waiting 3 second for bitvmx to synchronize..."
+sleep 3
 
+# Start players backend
+echo "Starting player 1..."
 bash scripts/start-player-1.sh & pids+=($!)
 echo "Player 1 started with PID: $!"
 sleep 1
 
+echo "Starting player 2..."
 bash scripts/start-player-2.sh & pids+=($!)
 echo "Player 2 started with PID: $!"
 sleep 1
+
+# Start auto mine
+echo "Starting auto mine..."
+bash scripts/start-bitcoin-mine.sh & pids+=($!)
+echo "Auto mine started with PID: $!"
+sleep 1
+
+
+# Show logs in real-time
+echo "📋 Monitoring logs (press Ctrl+C to stop all processes)..."
+echo "📁 Log files:"
+echo "   - BitVMX 1: logs/player_1.log/bitvmx"
+echo "   - BitVMX 2: logs/player_2.log/bitvmx" 
+echo "   - Player 1: logs/player_1.log/backend"
+echo "   - Player 2: logs/player_2.log/backend"
+echo ""
 
 # Wait for all, abort if any fails
 echo "⏳ Waiting for all processes to complete..."

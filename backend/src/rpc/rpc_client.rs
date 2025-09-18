@@ -6,7 +6,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tokio::sync::broadcast::{Receiver, Sender};
 use tokio::task::JoinHandle;
-use tracing::{debug, info, trace, Instrument};
+use tracing::{debug, info, trace, warn, Instrument};
+use uuid::Uuid;
 
 use std::time::Duration;
 use tokio::sync::{mpsc, oneshot, Mutex};
@@ -197,23 +198,34 @@ impl RpcClient {
         tokio::spawn(
             async move {
                 info!("Start rpc sender");
-                while let Some((_id, msg)) = rx.recv().await {
-                    // Serialize the message
-                    let serialized_msg = serde_json::to_string(&msg)?;
-                    // Send the message to BitVMX
-                    match service.client.send_msg(my_id, to_id, serialized_msg).await {
-                        Ok(resp) => trace!("Sent message to BitVMX: {:?} result: {:?}", msg, resp),
-                        Err(e) => {
-                            return Err(anyhow::anyhow!("Send message to BitVMX failed: {e}"));
+                loop {
+                    tokio::select! {
+                        _ = shutdown_rx.recv() => {
+                            warn!("Shutting down rpc sender...");
+                            break;
+                        }
+                        msg_opt = rx.recv() => {
+                            match msg_opt {
+                                Some((_sender_id, msg)) => {
+                                    // Serialize the message
+                                    let serialized_msg = serde_json::to_string(&msg)?;
+                                    // Send the message to BitVMX
+                                    match service.client.send_msg(my_id, to_id, serialized_msg).await {
+                                        Ok(resp) => trace!("Sent message to BitVMX: {:?} result: {:?}", msg, resp),
+                                        Err(e) => {
+                                            return Err(anyhow::anyhow!("Send message to BitVMX failed: {e}"));
+                                        }
+                                    }
+                                    sleep(std::time::Duration::from_millis(10)).await;
+                                }
+                                None => {
+                                    info!("Channel closed, exiting loop");
+                                    break;
+                                }
+                            }
                         }
                     }
-                    if shutdown_rx.try_recv().is_ok() {
-                        trace!("Shutting down...");
-                        break;
-                    }
-                    sleep(std::time::Duration::from_millis(10)).await;
                 }
-                info!("Channel closed, exiting loop");
                 Ok::<_, anyhow::Error>(()) // coercion to Result
             }
             .instrument(tracing::info_span!("rpc_sender")),
@@ -231,30 +243,44 @@ impl RpcClient {
                 info!("Start rpc listener");
                 let mut first_time = true;
                 loop {
-                    if shutdown_rx.try_recv().is_ok() {
-                        trace!("Shutting down...");
-                        break;
-                    }
+                    tokio::select! {
+                        _ = shutdown_rx.recv() => {
+                            warn!("Shutting down rpc listener...");
+                            break;
+                        }
+                        result = tokio::time::timeout(
+                            Duration::from_millis(10),
+                            service.client.get_msg(my_id)
+                        ) => {
+                            match result {
+                                Ok(msg_result) => {
+                                    match msg_result {
+                                        Ok(Some(msg)) => {
+                                            trace!("Received message from BitVMX: {:?}", msg);
+                                            service.handle_response(msg.msg).await?;
+                                            service.client.ack(my_id, msg.uid).await?;
+                                        }
+                                        Ok(None) => {
+                                            // No message received, continue loop
+                                        }
+                                        Err(e) => {
+                                            return Err(anyhow::anyhow!(
+                                                "Get message from BitVMX failed: {e}"
+                                            ));
+                                        }
+                                    }
 
-                    match service.client.get_msg(my_id).await {
-                        Ok(Some(msg)) => {
-                            trace!("Received message from BitVMX: {:?}", msg);
-                            service.handle_response(msg.msg).await?;
-                            service.client.ack(my_id, msg.uid).await?;
-                        }
-                        Ok(None) => {
-                            // No message received, sleep and continue loop
-                        }
-                        Err(e) => {
-                            return Err(anyhow::anyhow!("Get message from BitVMX failed: {e}"));
+                                    if first_time {
+                                        first_time = false;
+                                        service.set_ready();
+                                    }
+                                }
+                                Err(_timeout) => {
+                                    // Timeout occurred, continue loop to check shutdown signal
+                                }
+                            }
                         }
                     }
-
-                    if first_time {
-                        first_time = false;
-                        service.set_ready();
-                    }
-                    sleep(std::time::Duration::from_millis(10)).await;
                 }
                 Ok::<_, anyhow::Error>(()) // coercion to Result
             }
@@ -275,15 +301,23 @@ impl RpcClient {
     /// Wait for the RPC client to be ready
     pub async fn wait_for_ready(&self, mut shutdown_rx: Receiver<()>) {
         loop {
-            if shutdown_rx.try_recv().is_ok() {
-                trace!("Exiting wait for ready loop...");
-                break;
+            tokio::select! {
+                _ = shutdown_rx.recv() => {
+                    trace!("Exiting wait for ready loop...");
+                    break;
+                }
+                _ = tokio::time::sleep(Duration::from_millis(10)) => {
+                    if self.is_ready() {
+                        break;
+                    }
+                }
             }
-            if self.is_ready() {
-                break;
-            }
-            tokio::time::sleep(Duration::from_millis(10)).await;
         }
+    }
+
+    /// Convert the transaction name to a correlation ID
+    pub fn tx_name_to_correlation_id(program_id: &Uuid, name: &str) -> String {
+        format!("{program_id}_{name}")
     }
 
     /// Convert the message to send to BitVMX to a correlation ID
@@ -321,7 +355,9 @@ impl RpcClient {
             IncomingBitVMXApiMessages::DispatchTransaction(uuid, _transaction) => {
                 Ok(uuid.to_string())
             }
-            IncomingBitVMXApiMessages::DispatchTransactionName(uuid, _name) => Ok(uuid.to_string()),
+            IncomingBitVMXApiMessages::DispatchTransactionName(uuid, name) => {
+                Ok(Self::tx_name_to_correlation_id(uuid, name))
+            }
             IncomingBitVMXApiMessages::SetupKey(uuid, _addresses, _operator_key, _funding_key) => {
                 Ok(uuid.to_string())
             }
@@ -374,8 +410,8 @@ impl RpcClient {
                 Ok(uuid.to_string())
             }
             OutgoingBitVMXApiMessages::AggregatedPubkeyNotReady(uuid) => Ok(uuid.to_string()),
-            OutgoingBitVMXApiMessages::TransactionInfo(uuid, _name, _transaction) => {
-                Ok(uuid.to_string())
+            OutgoingBitVMXApiMessages::TransactionInfo(uuid, name, _transaction) => {
+                Ok(Self::tx_name_to_correlation_id(uuid, name))
             }
             OutgoingBitVMXApiMessages::ZKPResult(uuid, _zkp_result, _zkp_proof) => {
                 Ok(uuid.to_string())

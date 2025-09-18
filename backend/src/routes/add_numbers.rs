@@ -4,7 +4,7 @@ use crate::models::{
     AddNumbersGame, AddNumbersGameStatus, ErrorResponse, FundingUtxoRequest, FundingUtxosResponse,
     PlaceBetRequest, PlaceBetResponse, PlayerRole, SetupGameRequest, SetupGameResponse,
     SetupParticipantsRequest, SetupParticipantsResponse, StartGameRequest, StartGameResponse,
-    SubmitSumRequest, Utxo,
+    SubmitSumRequest, SubmitSumResponse, Utxo,
 };
 use crate::state::AppState;
 use crate::utils::http_errors;
@@ -17,7 +17,9 @@ use axum::{
 use bitvmx_client::bitcoin::PublicKey;
 use bitvmx_client::bitvmx_wallet::wallet::Destination;
 use bitvmx_client::program::participant::P2PAddress as BitVMXP2PAddress;
-use bitvmx_client::program::protocols::dispute::{TIMELOCK_BLOCKS, TIMELOCK_BLOCKS_KEY};
+use bitvmx_client::program::protocols::dispute::{
+    ACTION_PROVER_WINS, TIMELOCK_BLOCKS, TIMELOCK_BLOCKS_KEY,
+};
 use bitvmx_client::program::variables::VariableTypes;
 use bitvmx_client::protocol_builder::types::OutputType;
 use bitvmx_client::types::PROGRAM_TYPE_DRP;
@@ -34,7 +36,6 @@ pub fn router() -> Router<AppState> {
         .route("/start-game", post(start_game)) // for player 1 (send the challenge transaction to start the game)
         .route("/submit-sum", post(submit_sum)) // Player 2 will send the sum to answer the challenge once he see the challenge transaction.
         .route("/{id}", get(get_game))
-        .route("/{id}/guess", post(make_guess))
         .route("/current-game-id", get(get_current_game_id))
 }
 
@@ -156,40 +157,6 @@ pub async fn get_game(
     Ok(Json(game.clone()))
 }
 
-/// Make a guess for the sum
-#[utoipa::path(
-    post,
-    path = "/api/add-numbers/{id}/guess",
-    params(
-        ("id" = String, Path, description = "Game ID", example = "123e4567-e89b-12d3-a456-426614174000")
-    ),
-    request_body = SubmitSumRequest,
-    responses(
-        (status = 200, description = "Guess made successfully"),
-        (status = 400, description = "Invalid operation", body = ErrorResponse),
-        (status = 404, description = "Game not found", body = ErrorResponse)
-    ),
-    tag = "AddNumbers"
-)]
-pub async fn make_guess(
-    State(app_state): State<AppState>,
-    Path(id): Path<Uuid>,
-    Json(request): Json<SubmitSumRequest>,
-) -> Result<Json<AddNumbersGame>, (StatusCode, Json<ErrorResponse>)> {
-    let game = app_state
-        .add_numbers_service
-        .make_guess(id, request.guess)
-        .map_err(|error| {
-            http_errors::error_response(
-                StatusCode::BAD_REQUEST,
-                "INVALID_OPERATION",
-                &error.to_string(),
-            )
-        })?;
-
-    Ok(Json(game))
-}
-
 #[utoipa::path( get,
     path = "/api/add-numbers/current-game-id",
     responses(
@@ -211,6 +178,7 @@ pub async fn get_current_game_id(
     Ok(Json(game))
 }
 
+/// Place a bet for the add numbers game
 #[utoipa::path(
     post,
     path = "/api/add-numbers/place-bet",
@@ -309,7 +277,7 @@ pub async fn place_bet(
     debug!("Waiting for transaction status responses");
     let funding_tx_status = app_state
         .bitvmx_service
-        .wait_for_transaction_response(funding_uuid)
+        .wait_transaction_response(funding_uuid)
         .await
         .map_err(|e| {
             http_errors::internal_server_error(&format!(
@@ -387,6 +355,7 @@ pub async fn place_bet(
     Ok(Json(()))
 }
 
+/// Setup the game for the add numbers game
 #[utoipa::path(
     post,
     path = "/api/add-numbers/setup-funding-utxo",
@@ -444,30 +413,61 @@ pub async fn setup_funding_utxo(
     request_body = StartGameRequest,
     responses(
         (status = 200, description = "Game started successfully", body = StartGameResponse),
+        (status = 400, description = "Invalid program ID", body = ErrorResponse),
+        (status = 404, description = "Game not found", body = ErrorResponse),
+        (status = 500, description = "Failed to get game", body = ErrorResponse),
+        (status = 500, description = "Failed to start game", body = ErrorResponse)
     ),
     tag = "AddNumbers"
 )]
 pub async fn start_game(
     State(app_state): State<AppState>,
     Json(request): Json<StartGameRequest>,
-) -> Result<Json<()>, (StatusCode, Json<ErrorResponse>)> {
+) -> Result<Json<StartGameResponse>, (StatusCode, Json<ErrorResponse>)> {
     // Validate the program ID
     if request.program_id == Uuid::default() {
         return Err(http_errors::bad_request("Invalid program ID"));
     }
     let program_id = request.program_id;
 
-    // TODO: PEDRO: Here you have to :
+    // Get the game
+    let game = app_state
+        .add_numbers_service
+        .get_game(program_id)
+        .map_err(|e| http_errors::internal_server_error(&format!("Failed to get game: {e:?}")))?
+        .ok_or(http_errors::not_found("Game not found"))?;
+
+    if game.status != AddNumbersGameStatus::StartGame {
+        return Err(http_errors::bad_request("Game is not in start game state"));
+    }
+
+    if game.role != PlayerRole::Player1 {
+        return Err(http_errors::bad_request("Invalid game role"));
+    }
+
     // Player 1 send the challenge transaction to start the game.
-    // Player 2 will wait until see the first challenge transaction.
+    let challenge_tx = app_state
+        .bitvmx_service
+        .start_challenge(program_id)
+        .await
+        .map_err(|e| {
+            http_errors::internal_server_error(&format!("Failed to start challenge: {e:?}"))
+        })?;
 
     // Set the game as setup
     app_state
         .add_numbers_service
-        .start_game(program_id)
+        .start_game(program_id, challenge_tx.clone())
         .map_err(|e| http_errors::internal_server_error(&format!("Failed to setup game: {e:?}")))?;
 
-    Ok(Json(()))
+    Ok(Json(StartGameResponse {
+        program_id,
+        challenge_tx: serde_json::to_value(challenge_tx).map_err(|e| {
+            http_errors::internal_server_error(&format!(
+                "Failed to convert challenge transaction to JSON: {e:?}"
+            ))
+        })?,
+    }))
 }
 
 #[utoipa::path(
@@ -475,6 +475,7 @@ pub async fn start_game(
     path = "/api/add-numbers/setup-game",
     request_body = StartGameRequest,
     responses(
+        (status = 200, description = "Game setup successfully", body = SetupGameResponse),
         (status = 400, description = "Invalid program ID", body = ErrorResponse),
         (status = 404, description = "Game not found", body = ErrorResponse),
         (status = 500, description = "Failed to set variable aggregated pubkey", body = ErrorResponse),
@@ -515,14 +516,10 @@ pub async fn setup_game(
     // Set program input 0, the two numbers to sum
     app_state
         .bitvmx_service
-        .set_variable(
-            program_id,
-            "program_input_0",
-            VariableTypes::Input(concatenated_bytes.clone()),
-        )
+        .set_program_input(program_id, 0, concatenated_bytes)
         .await
         .map_err(|e| {
-            http_errors::internal_server_error(&format!("Failed to set variable: {e:?}"))
+            http_errors::internal_server_error(&format!("Failed to set program input: {e:?}"))
         })?;
 
     // Set aggregated key
@@ -638,12 +635,13 @@ pub async fn setup_game(
     Ok(Json(SetupGameResponse { program_id }))
 }
 
+/// Submit the sum for the add numbers game
 #[utoipa::path(
     post,
-    path = "/api/add-numbers/submit-sum/{id}",
+    path = "/api/add-numbers/submit-sum",
     request_body = SubmitSumRequest,
     responses(
-        (status = 200, description = "Sum submitted successfully", body = AddNumbersGame),
+        (status = 200, description = "Sum submitted successfully", body = SubmitSumResponse),
         (status = 400, description = "Invalid request", body = ErrorResponse),
         (status = 404, description = "Game not found", body = ErrorResponse),
         (status = 500, description = "Failed to get game", body = ErrorResponse),
@@ -654,12 +652,73 @@ pub async fn setup_game(
 pub async fn submit_sum(
     State(app_state): State<AppState>,
     Json(request): Json<SubmitSumRequest>,
-) -> Result<Json<()>, (StatusCode, Json<ErrorResponse>)> {
-    // TOOD: PEDRO
-    // Esperar hasta que ves la transaccion challenge , y luego envias tu respuesta.
+) -> Result<Json<SubmitSumResponse>, (StatusCode, Json<ErrorResponse>)> {
+    // Validate the program ID
+    if request.id == Uuid::default() {
+        return Err(http_errors::bad_request("Invalid program ID"));
+    }
+    let program_id = request.id;
+
+    // Get the game
+    let game = app_state
+        .add_numbers_service
+        .get_game(program_id)
+        .map_err(|e| http_errors::internal_server_error(&format!("Failed to get game: {e:?}")))?
+        .ok_or(http_errors::not_found("Game not found"))?;
+
+    if game.role != PlayerRole::Player1 {
+        return Err(http_errors::bad_request("Invalid game role"));
+    }
+    // TODO fix the state
+    // if game.status != AddNumbersGameStatus::SubmitGameData {
+    //     return Err(http_errors::bad_request(
+    //         "Game is not in submit game data state",
+    //     ));
+    // }
+
+    // The input index is 1 because the first input is the numbers to sum
+    let input_index = 1;
+
+    // Player 2 sets the input transaction with the sum in BitVMX
+    app_state
+        .bitvmx_service
+        .set_program_input(
+            program_id,
+            input_index,
+            request.guess.to_be_bytes().to_vec(),
+        )
+        .await
+        .map_err(|e| {
+            http_errors::internal_server_error(&format!("Failed to set program input: {e:?}"))
+        })?;
+
+    // Send the input transaction to BitVMX
+    let (challenge_input_tx, _challenge_input_tx_name) = app_state
+        .bitvmx_service
+        .send_challenge_input(program_id, input_index)
+        .await
+        .map_err(|e| {
+            http_errors::internal_server_error(&format!("Failed to send challenge input: {e:?}"))
+        })?;
+
+    // Wait for the challenge result
+    let challenge_result_tx = app_state
+        .bitvmx_service
+        .wait_transaction_by_name_response(program_id, ACTION_PROVER_WINS)
+        .await
+        .map_err(|e| {
+            http_errors::internal_server_error(&format!("Failed to send challenge input: {e:?}"))
+        })?;
+
+    // TOOD: PEDRO Wait until you know the answer
     app_state
         .add_numbers_service
-        .make_guess(request.id, request.guess)
+        .make_guess(
+            request.id,
+            request.guess,
+            challenge_input_tx.clone(),
+            challenge_result_tx.clone(),
+        )
         .map_err(|e| match e.to_string().as_str() {
             "Game not found" => http_errors::not_found("Game not found"),
             "Game is not in waiting for guess state" => {
@@ -668,5 +727,17 @@ pub async fn submit_sum(
             _ => http_errors::internal_server_error(&format!("Failed to submit sum: {e:?}")),
         })?;
 
-    Ok(Json(()))
+    Ok(Json(SubmitSumResponse {
+        program_id,
+        challenge_input_tx: serde_json::to_value(challenge_input_tx).map_err(|e| {
+            http_errors::internal_server_error(&format!(
+                "Failed to convert challenge input transaction to JSON: {e:?}"
+            ))
+        })?,
+        challenge_result_tx: serde_json::to_value(challenge_result_tx).map_err(|e| {
+            http_errors::internal_server_error(&format!(
+                "Failed to convert challenge result transaction to JSON: {e:?}"
+            ))
+        })?,
+    }))
 }

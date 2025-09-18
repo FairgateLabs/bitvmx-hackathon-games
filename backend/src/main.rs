@@ -1,6 +1,6 @@
 use bitvmx_client::types::{BITVMX_ID, L2_ID};
 use bitvmx_hackathon_backend::{api, config, rpc::rpc_client::RpcClient, state::AppState};
-use tokio::{signal, sync::broadcast};
+use tokio::{signal, sync::broadcast, task::JoinError};
 use tracing::{error, info, trace, warn, Instrument};
 use tracing_appender::rolling;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -80,8 +80,9 @@ async fn main() -> anyhow::Result<()> {
 
     // 6. Spawn setup task that waits for RPC to be ready
     let app_state_setup = app_state.clone();
+    let shutdown_tx_setup = shutdown_tx.clone();
     let shutdown_rx_setup = shutdown_tx.subscribe();
-    let setup_task = tokio::task::spawn(
+    let _ = tokio::task::spawn(
         async move {
             // Wait for the RPC client to be ready
             app_state_setup
@@ -91,8 +92,15 @@ async fn main() -> anyhow::Result<()> {
 
             // Setup does multiple things so we should not lock the service,
             // but since this is just a one time task at the beginning, we can do it here
-            app_state_setup.bitvmx_service.initial_setup().await?;
-            info!("BitVMX RPC setup successful");
+            let result = app_state_setup.bitvmx_service.initial_setup().await;
+            if let Err(e) = result {
+                error!("❌ setup: Error: {e}");
+                // Send shutdown signal to all tasks and exit
+                let _ = shutdown_tx_setup.send(());
+                return Err(e);
+            } else {
+                info!("✅ setup: BitVMX setup completed successfully");
+            }
 
             Ok::<_, anyhow::Error>(()) // coercion to Result
         }
@@ -127,45 +135,9 @@ async fn main() -> anyhow::Result<()> {
 
     // 8. Run tasks in parallel with tokio::select!
     tokio::select! {
-        res = rpc_sender_task => match res {
-            Ok(Ok(())) => warn!("rpc_sender: Finished without errors"),
-            Ok(Err(e)) => {
-                error!("❌ rpc_sender: Error: {}", e);
-                // Send shutdown signal to all tasks and exit
-                let _ = shutdown_tx.send(());
-            },
-            Err(e) => {
-                error!("💥 rpc_sender: Panic: {}", e);
-                // Send shutdown signal to all tasks and exit
-                let _ = shutdown_tx.send(());
-            },
-        },
-        res = rpc_listener_task => match res {
-            Ok(Ok(())) => warn!("rpc_listener: Finished without errors"),
-            Ok(Err(e)) => {
-                error!("❌ rpc_listener: Error: {}", e);
-                // Send shutdown signal to all tasks and exit
-                let _ = shutdown_tx.send(());
-            },
-            Err(e) => {
-                error!("💥 rpc_listener: Panic: {}", e);
-                // Send shutdown signal to all tasks and exit
-                let _ = shutdown_tx.send(());
-            },
-        },
-        res = axum_task => match res {
-            Ok(Ok(())) => warn!("axum_server: API Finished without errors"),
-            Ok(Err(e)) => {
-                error!("❌ axum_server: Error: {}", e);
-                // Send shutdown signal to all tasks and exit
-                let _ = shutdown_tx.send(());
-            },
-            Err(e) => {
-                error!("💥 axum_server: Panic: {}", e);
-                // Send shutdown signal to all tasks and exit
-                let _ = shutdown_tx.send(());
-            },
-        },
+        res = rpc_sender_task => task_result(res, "rpc_sender", &shutdown_tx),
+        res = rpc_listener_task => task_result(res, "rpc_listener", &shutdown_tx),
+        res = axum_task => task_result(res, "axum_server", &shutdown_tx),
         _ = signal::ctrl_c() => {
             info!("Ctrl-C received, shutting down...");
             // Send shutdown signal to all tasks
@@ -173,12 +145,25 @@ async fn main() -> anyhow::Result<()> {
         },
     }
 
-    // 9. Check if setup task finished correctly
-    if let Err(e) = setup_task.await? {
-        error!("❌ setup: Error: {e}");
-        // Send shutdown signal to all tasks and exit
-        let _ = shutdown_tx.send(());
-    }
-
     Ok(())
+}
+
+fn task_result(
+    task: Result<Result<(), anyhow::Error>, JoinError>,
+    name: &str,
+    shutdown_tx: &broadcast::Sender<()>,
+) {
+    match task {
+        Ok(Ok(())) => warn!("{name}: Finished without errors"),
+        Ok(Err(e)) => {
+            error!("❌ {name}: Error: {}", e);
+            // Send shutdown signal to all tasks and exit
+            let _ = shutdown_tx.send(());
+        }
+        Err(e) => {
+            error!("💥 {name}: Panic: {}", e);
+            // Send shutdown signal to all tasks and exit
+            let _ = shutdown_tx.send(());
+        }
+    }
 }

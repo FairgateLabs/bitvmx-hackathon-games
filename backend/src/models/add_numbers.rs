@@ -82,6 +82,9 @@ pub struct BitVMXProgramProperties {
     pub participants_keys: Vec<String>,
     pub funding_protocol_utxo: Option<Utxo>,
     pub funding_bet_utxo: Option<Utxo>,
+    pub challenge_tx: serde_json::Value,
+    pub challenge_input_tx: serde_json::Value,
+    pub challenge_result_tx: serde_json::Value,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
@@ -97,6 +100,16 @@ pub struct SubmitSumRequest {
     #[schema(value_type = String, example = "123e4567-e89b-12d3-a456-426614174000")]
     pub id: Uuid,
     pub guess: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
+#[ts(export)]
+pub struct SubmitSumResponse {
+    #[ts(type = "string")]
+    #[schema(value_type = String, example = "123e4567-e89b-12d3-a456-426614174000")]
+    pub program_id: Uuid,
+    pub challenge_input_tx: serde_json::Value,
+    pub challenge_result_tx: serde_json::Value,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
@@ -188,4 +201,5 @@ pub struct StartGameResponse {
     #[ts(type = "string")]
     #[schema(value_type = String, example = "123e4567-e89b-12d3-a456-426614174000")]
     pub program_id: Uuid,
+    pub challenge_tx: serde_json::Value,
 }
