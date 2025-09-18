@@ -363,7 +363,9 @@ impl RpcClient {
                 Ok(uuid.to_string())
             }
             IncomingBitVMXApiMessages::GetAggregatedPubkey(uuid) => Ok(uuid.to_string()),
-            IncomingBitVMXApiMessages::GetProtocolVisualization(uuid) => Ok(uuid.to_string()),
+            IncomingBitVMXApiMessages::GetProtocolVisualization(uuid) => {
+                Ok(format!("protocol_visualization_{}", uuid))
+            }
             IncomingBitVMXApiMessages::GetKeyPair(uuid) => Ok(uuid.to_string()),
             IncomingBitVMXApiMessages::GetPubKey(uuid, _new_key) => Ok(uuid.to_string()),
             IncomingBitVMXApiMessages::SignMessage(uuid, _payload_to_sign, _public_key_to_use) => {
@@ -413,8 +415,8 @@ impl RpcClient {
                 Ok(uuid.to_string())
             }
             OutgoingBitVMXApiMessages::AggregatedPubkeyNotReady(uuid) => Ok(uuid.to_string()),
-            OutgoingBitVMXApiMessages::ProtocolVisualization(_visualization) => {
-                Ok("protocol_visualization".to_string())
+            OutgoingBitVMXApiMessages::ProtocolVisualization(uuid, _visualization) => {
+                Ok(format!("protocol_visualization_{}", uuid))
             }
             OutgoingBitVMXApiMessages::TransactionInfo(uuid, _name, _transaction) => {
                 Ok(uuid.to_string())

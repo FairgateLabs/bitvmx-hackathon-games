@@ -10,7 +10,9 @@ use bitvmx_client::program::variables::VariableTypes;
 use bitvmx_client::types::{IncomingBitVMXApiMessages, OutgoingBitVMXApiMessages};
 use std::str::FromStr;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::sync::RwLock;
+use tokio::time::sleep;
 use tracing::{debug, info, instrument, trace};
 use uuid::Uuid;
 
@@ -129,7 +131,7 @@ impl BitVMXService {
                 program_id,
             ))
             .await?;
-        if let OutgoingBitVMXApiMessages::ProtocolVisualization(visualization) = response {
+        if let OutgoingBitVMXApiMessages::ProtocolVisualization(_, visualization) = response {
             info!("Obtained protocol visualization: {:?}", visualization);
             Ok(visualization)
         } else {
@@ -482,6 +484,8 @@ impl BitVMXService {
         self.bitcoin_service
             .mine_blocks_to_address(2, wallet_address.clone())
             .await?;
+
+        sleep(Duration::from_secs(3)).await;
 
         let balance = self.get_funding_balance().await?;
         info!("Funding balance: {:?}", balance);
