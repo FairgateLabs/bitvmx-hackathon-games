@@ -31,6 +31,7 @@ use crate::state::AppState;
         routes::bitvmx::wallet_balance,
         routes::bitvmx::get_transaction,
         routes::bitvmx::get_protocol_cost,
+        routes::bitvmx::get_protocol_visualization,
     ),
     components(
         schemas(

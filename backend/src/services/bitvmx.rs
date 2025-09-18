@@ -121,6 +121,28 @@ impl BitVMXService {
         }
     }
 
+    pub async fn get_protocol_visualization(
+        &self,
+        program_id: Uuid,
+    ) -> Result<String, anyhow::Error> {
+        info!("Get protocol visualization from BitVMX");
+        let response = self
+            .rpc_client
+            .send_request(IncomingBitVMXApiMessages::GetProtocolVisualization(
+                program_id,
+            ))
+            .await?;
+        if let OutgoingBitVMXApiMessages::ProtocolVisualization(visualization) = response {
+            info!("Obtained protocol visualization: {:?}", visualization);
+            Ok(visualization)
+        } else {
+            Err(anyhow::anyhow!(
+                "Expected ProtocolVisualization response, got: {:?}",
+                response
+            ))
+        }
+    }
+
     pub async fn wallet_balance(&self) -> Result<WalletBalance, anyhow::Error> {
         let address = self.get_wallet_address().await?;
         let response = self

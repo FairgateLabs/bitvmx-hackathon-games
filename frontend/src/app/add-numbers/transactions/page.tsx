@@ -12,6 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Eye, EyeOff } from "lucide-react";
 import { CopyButton } from "@/components/ui/copy-button";
+import { useProtocolVisualization } from "@/hooks/useProtocolVisualization";
+import { useCurrentGame } from "@/hooks/useGame";
 
 interface BitcoinTransaction {
   id: string;
@@ -163,7 +165,7 @@ const hardcodedTransactions: BitcoinTransaction[] = [
 
 export default function TransactionList() {
   const [showJson, setShowJson] = useState<{ [key: string]: boolean }>({});
-
+  const { data: currentGame } = useCurrentGame();
   const toggleJson = (txId: string) => {
     setShowJson((prev) => ({
       ...prev,
@@ -188,6 +190,12 @@ export default function TransactionList() {
     const explorerUrl = `https://blockstream.info/tx/${hash}`;
     window.open(explorerUrl, "_blank");
   };
+
+  const { data: protocolVisualization } = useProtocolVisualization(
+    currentGame?.program_id
+  );
+
+  console.log("protocolVisualization", protocolVisualization);
 
   return (
     <BackendStatus className="container mx-auto p-6 max-w-6xl">

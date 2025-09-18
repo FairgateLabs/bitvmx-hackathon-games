@@ -1,5 +1,6 @@
 use crate::rpc::chained_map::ChainedMap;
-use bitvmx_broker::rpc::{async_client::AsyncClient, BrokerConfig};
+use bitvmx_broker::rpc::async_client::AsyncClient;
+use bitvmx_broker::rpc::BrokerConfig;
 use bitvmx_client::types::{IncomingBitVMXApiMessages, OutgoingBitVMXApiMessages};
 use std::net::IpAddr;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -362,6 +363,7 @@ impl RpcClient {
                 Ok(uuid.to_string())
             }
             IncomingBitVMXApiMessages::GetAggregatedPubkey(uuid) => Ok(uuid.to_string()),
+            IncomingBitVMXApiMessages::GetProtocolVisualization(uuid) => Ok(uuid.to_string()),
             IncomingBitVMXApiMessages::GetKeyPair(uuid) => Ok(uuid.to_string()),
             IncomingBitVMXApiMessages::GetPubKey(uuid, _new_key) => Ok(uuid.to_string()),
             IncomingBitVMXApiMessages::SignMessage(uuid, _payload_to_sign, _public_key_to_use) => {
@@ -410,8 +412,11 @@ impl RpcClient {
                 Ok(uuid.to_string())
             }
             OutgoingBitVMXApiMessages::AggregatedPubkeyNotReady(uuid) => Ok(uuid.to_string()),
-            OutgoingBitVMXApiMessages::TransactionInfo(uuid, name, _transaction) => {
-                Ok(Self::tx_name_to_correlation_id(uuid, name))
+            OutgoingBitVMXApiMessages::ProtocolVisualization(_visualization) => {
+                Ok("protocol_visualization".to_string())
+            }
+            OutgoingBitVMXApiMessages::TransactionInfo(uuid, _name, _transaction) => {
+                Ok(uuid.to_string())
             }
             OutgoingBitVMXApiMessages::ZKPResult(uuid, _zkp_result, _zkp_proof) => {
                 Ok(uuid.to_string())

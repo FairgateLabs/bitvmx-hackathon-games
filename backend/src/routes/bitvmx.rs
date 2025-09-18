@@ -1,11 +1,12 @@
 use crate::models::{
     AggregatedKeyResponse, ErrorResponse, OperatorKeys, P2PAddress, ProtocolCostResponse,
-    TransactionResponse, WalletBalance,
+    ProtocolVisualizationResponse, TransactionResponse, WalletBalance,
 };
 use crate::state::AppState;
 use crate::utils::http_errors;
 use axum::{extract::Path, extract::State, routing::get, Json, Router};
 use http::StatusCode;
+use tracing::info;
 use uuid::Uuid;
 
 pub fn router() -> Router<AppState> {
@@ -16,8 +17,11 @@ pub fn router() -> Router<AppState> {
         .route("/aggregated-key/{uuid}", get(get_aggregated_key))
         .route("/wallet-balance", get(wallet_balance))
         .route("/transaction/{txid}", get(get_transaction))
-        .route("/protocol-cost", get(get_protocol_cost))
-        .route("/protocol/{id}", get(get_protocol))
+        .route("/protocol/cost", get(get_protocol_cost))
+        .route(
+            "/protocol/visualization/{uuid}",
+            get(get_protocol_visualization),
+        )
 }
 
 /// Get BitVMX P2P address information
@@ -174,7 +178,7 @@ pub async fn get_transaction(
 /// Get Bitcoin transaction dispatched by BitVMX
 #[utoipa::path(
     get,
-    path = "/api/bitvmx/protocol-cost",
+    path = "/api/bitvmx/protocol/cost",
     responses(
         (status = 200, description = "Protocol cost", body = ProtocolCostResponse),
     ),
@@ -188,26 +192,38 @@ pub async fn get_protocol_cost(
     Ok(Json(ProtocolCostResponse { protocol_cost }))
 }
 
+/// Get BitVMX protocol visualization
 #[utoipa::path(
     get,
-    path = "/api/bitvmx/protocol/{id}",
+    path = "/api/bitvmx/protocol/visualization/{uuid}",
+    params(
+        ("uuid" = String, Path, description = "Aggregated key UUID")
+    ),
     responses(
-        (status = 200, description = "Protocol fetched successfully", body = String),
-        (status = 404, description = "Protocol not found", body = ErrorResponse),
-        (status = 500, description = "Failed to fetch protocol", body = ErrorResponse)
+        (status = 200, description = "Protocol visualization", body = String),
+        (status = 404, description = "Protocol visualization not found", body = ErrorResponse),
+        (status = 500, description = "Failed to get protocol visualization", body = ErrorResponse)
     ),
     tag = "BitVMX"
 )]
-pub async fn get_protocol(
-    State(_app_state): State<AppState>,
-    Path(_id): Path<Uuid>,
-) -> Result<Json<()>, (StatusCode, Json<ErrorResponse>)> {
-    // let protocol = app_state
-    //     .bitvmx_service
-    //     .fetch_protocol(id)
-    //     .map_err(|e| match e.to_string().as_str() {
-    //         "Protocol not found" => http_errors::not_found("Protocol not found"),
-    //         _ => http_errors::internal_server_error(&format!("Failed to fetch protocol: {e:?}")),
-    //     })?;
-    Ok(Json(()))
+pub async fn get_protocol_visualization(
+    State(app_state): State<AppState>,
+    Path(program_id): Path<Uuid>,
+) -> Result<Json<ProtocolVisualizationResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let visualization = app_state
+        .bitvmx_service
+        .get_protocol_visualization(program_id)
+        .await
+        .map_err(|e| {
+            http_errors::internal_server_error(&format!(
+                "Failed to get protocol visualization: {e:?}"
+            ))
+        })?;
+
+    let response = ProtocolVisualizationResponse {
+        visualization: visualization.clone(),
+    };
+
+    info!("HOLAAAAAAAAAAAAAA: {:?}", response);
+    Ok(Json(response))
 }
