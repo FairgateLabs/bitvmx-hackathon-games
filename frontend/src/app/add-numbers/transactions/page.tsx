@@ -10,10 +10,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Eye, EyeOff } from "lucide-react";
+import { ExternalLink, Eye, EyeOff, BarChart3 } from "lucide-react";
 import { CopyButton } from "@/components/ui/copy-button";
 import { useProtocolVisualization } from "@/hooks/useProtocolVisualization";
 import { useCurrentGame } from "@/hooks/useGame";
+import { ProtocolVisualizationPopup } from "@/components/common/protocol-visualization-popup";
 
 interface BitcoinTransaction {
   id: string;
@@ -165,6 +166,7 @@ const hardcodedTransactions: BitcoinTransaction[] = [
 
 export default function TransactionList() {
   const [showJson, setShowJson] = useState<{ [key: string]: boolean }>({});
+  const [isProtocolPopupOpen, setIsProtocolPopupOpen] = useState(false);
   const { data: currentGame } = useCurrentGame();
   const toggleJson = (txId: string) => {
     setShowJson((prev) => ({
@@ -187,26 +189,35 @@ export default function TransactionList() {
 
   const openExplorer = (hash: string) => {
     // For now, using a mock explorer URL - replace with actual Bitcoin explorer
-    const explorerUrl = `https://blockstream.info/tx/${hash}`;
+    const explorerUrl = `http://localhost:4000/tx/${hash}`;
     window.open(explorerUrl, "_blank");
   };
 
-  const { data: protocolVisualization } = useProtocolVisualization(
-    currentGame?.program_id
-  );
-
-  console.log("protocolVisualization", protocolVisualization);
+  const { data: protocolVisualization, isLoading: isProtocolLoading } =
+    useProtocolVisualization(currentGame?.program_id);
 
   return (
-    <BackendStatus className="container mx-auto p-6 max-w-6xl">
-      <div className="container mx-auto p-6 max-w-6xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Transactions for game Add Numbers
-          </h1>
-          <p className="text-gray-600">
-            Recent transactions from the Add Numbers game
-          </p>
+    <BackendStatus>
+      <div className="container mx-auto p-6 max-w-4xl">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Transactions for game Add Numbers
+            </h1>
+            <p className="text-gray-600">
+              Recent transactions from the Add Numbers game
+            </p>
+          </div>
+          {currentGame?.program_id && (
+            <Button
+              onClick={() => setIsProtocolPopupOpen(true)}
+              className="flex items-center gap-2"
+              variant="outline"
+            >
+              <BarChart3 className="h-4 w-4" />
+              View Protocol Visualization
+            </Button>
+          )}
         </div>
 
         <div className="space-y-6">
@@ -330,6 +341,14 @@ export default function TransactionList() {
           ))}
         </div>
       </div>
+
+      {/* Protocol Visualization Popup */}
+      <ProtocolVisualizationPopup
+        isOpen={isProtocolPopupOpen}
+        onClose={() => setIsProtocolPopupOpen(false)}
+        visualization={protocolVisualization || null}
+        isLoading={isProtocolLoading}
+      />
     </BackendStatus>
   );
 }
