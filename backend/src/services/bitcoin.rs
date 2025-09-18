@@ -1,3 +1,6 @@
+use std::thread::sleep;
+use std::time::Duration;
+
 use crate::config::BitcoinConfig;
 use bitvmx_bitcoin_rpc::bitcoin_client::BitcoinClient;
 use bitvmx_bitcoin_rpc::bitcoin_client::BitcoinClientApi;
@@ -69,7 +72,9 @@ impl BitcoinService {
             // mine 100 blocks for maturity
             // we split it to make it easier for the client to process
             bitcoin_client.mine_blocks(50).unwrap();
+            sleep(Duration::from_secs(3));
             bitcoin_client.mine_blocks(50).unwrap();
+            sleep(Duration::from_secs(3));
         })
         .await
         .map_err(|e| anyhow::anyhow!("Failed to mine blocks for funding wallet address: {e:?}"))?;

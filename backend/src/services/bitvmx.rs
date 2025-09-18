@@ -10,9 +10,7 @@ use bitvmx_client::program::variables::VariableTypes;
 use bitvmx_client::types::{IncomingBitVMXApiMessages, OutgoingBitVMXApiMessages};
 use std::str::FromStr;
 use std::sync::Arc;
-use std::time::Duration;
 use tokio::sync::RwLock;
-use tokio::time::sleep;
 use tracing::{debug, info, instrument, trace};
 use uuid::Uuid;
 
@@ -484,10 +482,6 @@ impl BitVMXService {
         self.bitcoin_service
             .mine_blocks_to_address(2, wallet_address.clone())
             .await?;
-
-        // wait for bitvmx to process the blocks
-        sleep(Duration::from_secs(5)).await;
-        trace!("Waited 5 seconds");
 
         let balance = self.get_funding_balance().await?;
         info!("Funding balance: {:?}", balance);
