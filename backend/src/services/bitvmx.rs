@@ -481,13 +481,15 @@ impl BitVMXService {
         .await
         .map_err(|e| anyhow::anyhow!("Failed to mine blocks for funding wallet address: {e:?}"))?;
 
-        debug!("Mined 2 blocks and 100 blocks, waiting for bitvmx to process them");
+        trace!(
+            "Mined 2 blocks coinbase and 100 blocks maturity, waiting for bitvmx to process them"
+        );
         // wait for bitvmx to process the blocks
-        sleep(Duration::from_secs(2)).await;
-        debug!("Waited 2 seconds");
+        sleep(Duration::from_secs(5)).await;
+        trace!("Waited 5 seconds");
 
         let balance = self.get_funding_balance().await?;
-        debug!("Funding balance: {:?}", balance);
+        info!("Funding balance: {:?}", balance);
 
         if balance < 100_000_000 {
             return Err(anyhow::anyhow!("Funding balance is less than 1 BTC"));
