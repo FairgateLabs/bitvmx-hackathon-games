@@ -462,16 +462,20 @@ impl BitVMXService {
         // run a blocking routine without blocking the runtime
         // fund the wallet address with 2 blocks coinbase (mine 100 blocks for maturity)
         tokio::task::spawn_blocking(move || {
+            // create the bitcoin client
             let bitcoin_client = BitcoinClient::new(
                 &bitcoin_config.url,
                 &bitcoin_config.username,
                 &bitcoin_config.password,
             )
             .unwrap();
+
             // each block gives a 50 BTC reward
             bitcoin_client
                 .mine_blocks_to_address(2, &wallet_address)
                 .unwrap();
+
+            // mine 100 blocks for maturity
             bitcoin_client.mine_blocks(100).unwrap();
         })
         .await
@@ -519,6 +523,7 @@ impl BitVMXService {
     async fn set_pub_key(&self) -> Result<(), anyhow::Error> {
         debug!("Create operator key from BitVMX");
         let pub_key = self.get_or_generate_pub_key(true).await?;
+        info!("Operator key: {:?}", pub_key);
         self.bitvmx_info.write().await.pub_key = Some(pub_key.to_string());
 
         trace!("Updated pub key in store");
@@ -529,6 +534,7 @@ impl BitVMXService {
     async fn set_funding_key(&self) -> Result<(), anyhow::Error> {
         debug!("Create funding key for speedups from BitVMX");
         let funding_pubkey = self.get_or_generate_pub_key(true).await?;
+        info!("Funding key: {:?}", funding_pubkey);
         self.bitvmx_info.write().await.funding_key = Some(funding_pubkey.to_string());
         trace!("Updated funding key in store");
 
@@ -547,7 +553,8 @@ impl BitVMXService {
                 &bitcoin_config.username,
                 &bitcoin_config.password,
             )
-            .map_err(|e| anyhow::anyhow!("Failed to create bitcoin client: {e:?}"))?;
+            .map_err(|e| anyhow::anyhow!("Failed to create bitcoin client: {e:?}"))
+            .unwrap();
             bitcoin_client.mine_blocks(1).unwrap();
         })
         .await
@@ -589,6 +596,8 @@ impl BitVMXService {
 
             // Set funding key
             self.set_funding_key().await?;
+        } else {
+            return Err(anyhow::anyhow!("Keys already exist!!! cannot setup"));
         }
 
         Ok(())
