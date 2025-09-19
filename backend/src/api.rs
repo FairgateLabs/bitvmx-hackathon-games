@@ -17,12 +17,12 @@ use crate::state::AppState;
         routes::health::health_check,
         // AddNumbers Program
         routes::add_numbers::get_game,
+        routes::add_numbers::get_current_game,
         routes::add_numbers::setup_participants,
         routes::add_numbers::place_bet,
         routes::add_numbers::setup_funding_utxo,
+        routes::add_numbers::setup_game,
         routes::add_numbers::start_game,
-        routes::add_numbers::setup_game,    
-        routes::add_numbers::get_current_game_id,
         routes::add_numbers::submit_sum,
         //BitVMX
         routes::bitvmx::comm_info,
@@ -36,6 +36,7 @@ use crate::state::AppState;
         schemas(
             crate::models::ErrorResponse,
             crate::models::HealthResponse,
+            crate::models::AddNumbersGame,
             crate::models::AddNumbersGameStatus,
             crate::models::GameOutcome,
             crate::models::GameReason,
