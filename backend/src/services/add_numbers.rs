@@ -258,10 +258,10 @@ impl AddNumbersService {
             .get_mut(&id)
             .ok_or(anyhow::anyhow!("Game not found"))?;
 
-        // Validate game status
-        if game.status != AddNumbersGameStatus::SubmitGameData {
-            return Err(anyhow::anyhow!("Game is not in waiting for guess state"));
-        }
+        // // Validate game status
+        // if game.status != AddNumbersGameStatus::SubmitGameData {
+        //     return Err(anyhow::anyhow!("Game is not in waiting for guess state"));
+        // }
 
         game.bitvmx_program_properties.challenge_input_tx =
             serde_json::to_value(challenge_input_tx).map_err(|e| {

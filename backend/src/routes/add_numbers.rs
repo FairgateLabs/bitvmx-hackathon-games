@@ -666,7 +666,7 @@ pub async fn submit_sum(
         .map_err(|e| http_errors::internal_server_error(&format!("Failed to get game: {e:?}")))?
         .ok_or(http_errors::not_found("Game not found"))?;
 
-    if game.role != PlayerRole::Player1 {
+    if game.role != PlayerRole::Player2 {
         return Err(http_errors::bad_request("Invalid game role"));
     }
     // TODO fix the state
@@ -700,6 +700,10 @@ pub async fn submit_sum(
         .map_err(|e| {
             http_errors::internal_server_error(&format!("Failed to send challenge input: {e:?}"))
         })?;
+    debug!(
+        "Challenge input transaction: {:?}",
+        challenge_input_tx.tx_id
+    );
 
     // Wait for the challenge result
     let challenge_result_tx = app_state

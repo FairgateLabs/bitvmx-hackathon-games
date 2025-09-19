@@ -1,6 +1,6 @@
 use crate::models::{
-    AggregatedKeyResponse, ErrorResponse, OperatorKeys, P2PAddress, ProtocolCostResponse,
-    ProtocolVisualizationResponse, TransactionResponse, WalletBalance,
+    AggregatedKeyResponse, ErrorResponse, OperatorKeys, P2PAddress, ProtocolVisualizationResponse,
+    TransactionResponse, WalletBalance,
 };
 use crate::state::AppState;
 use crate::utils::http_errors;
@@ -17,7 +17,6 @@ pub fn router() -> Router<AppState> {
         .route("/aggregated-key/{uuid}", get(get_aggregated_key))
         .route("/wallet-balance", get(wallet_balance))
         .route("/transaction/{txid}", get(get_transaction))
-        .route("/protocol/cost", get(get_protocol_cost))
         .route(
             "/protocol/visualization/{uuid}",
             get(get_protocol_visualization),
@@ -173,23 +172,6 @@ pub async fn get_transaction(
         block_height,
         block_hash,
     }))
-}
-
-/// Get Bitcoin transaction dispatched by BitVMX
-#[utoipa::path(
-    get,
-    path = "/api/bitvmx/protocol/cost",
-    responses(
-        (status = 200, description = "Protocol cost", body = ProtocolCostResponse),
-    ),
-    tag = "BitVMX"
-)]
-pub async fn get_protocol_cost(
-    State(app_state): State<AppState>,
-) -> Result<Json<ProtocolCostResponse>, (StatusCode, Json<ErrorResponse>)> {
-    let protocol_cost = app_state.bitvmx_service.protocol_cost();
-
-    Ok(Json(ProtocolCostResponse { protocol_cost }))
 }
 
 /// Get BitVMX protocol visualization
