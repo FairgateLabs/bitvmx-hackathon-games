@@ -81,7 +81,7 @@ function useAnswerAddNumber(data: SubmitSumRequest) {
 function useCurrentGame() {
   async function fetchCurrentGame(): Promise<AddNumbersGame | null> {
     const baseUrl = getApiBaseUrl();
-    const response = await fetch(`${baseUrl}/api/add-numbers/current-game-id`);
+    const response = await fetch(`${baseUrl}/api/add-numbers/current-game`);
     if (!response.ok) {
       return null;
     }

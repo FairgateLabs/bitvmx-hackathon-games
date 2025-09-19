@@ -83,7 +83,7 @@ impl AddNumbersService {
         Ok(hash_map.get(&id).cloned())
     }
 
-    pub fn get_current_game_id(&self) -> Result<Option<AddNumbersGame>, anyhow::Error> {
+    pub fn get_current_game(&self) -> Result<Option<AddNumbersGame>, anyhow::Error> {
         let hash_map = self
             .games
             .read()

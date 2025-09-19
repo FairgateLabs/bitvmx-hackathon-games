@@ -29,14 +29,36 @@ use uuid::Uuid;
 pub fn router() -> Router<AppState> {
     // Base path is /api/add-numbers/
     Router::new()
+        .route("/{id}", get(get_game))
+        .route("/current-game", get(get_current_game))
         .route("/setup-participants", post(setup_participants))
         .route("/place-bet", post(place_bet))
         .route("/setup-funding-utxo", post(setup_funding_utxo)) // for player 2
         .route("/setup-game", post(setup_game)) // for player 1 and player 2 (send the numbers to sum)
         .route("/start-game", post(start_game)) // for player 1 (send the challenge transaction to start the game)
         .route("/submit-sum", post(submit_sum)) // Player 2 will send the sum to answer the challenge once he see the challenge transaction.
-        .route("/{id}", get(get_game))
-        .route("/current-game-id", get(get_current_game_id))
+}
+
+/// Get the current game
+#[utoipa::path( get,
+    path = "/api/add-numbers/current-game",
+    responses(
+        (status = 200, description = "Current game", body = Option<AddNumbersGame>),
+        (status = 500, description = "Failed to get current game", body = ErrorResponse)
+    ),
+    tag = "AddNumbers"
+)]
+pub async fn get_current_game(
+    State(app_state): State<AppState>,
+) -> Result<Json<Option<AddNumbersGame>>, (StatusCode, Json<ErrorResponse>)> {
+    let game = app_state
+        .add_numbers_service
+        .get_current_game()
+        .map_err(|e| {
+            http_errors::internal_server_error(&format!("Failed to get current game: {e:?}"))
+        })?;
+
+    Ok(Json(game))
 }
 
 /// Create a new add numbers game
@@ -155,27 +177,6 @@ pub async fn get_game(
         .ok_or(http_errors::not_found("Game not found"))?;
 
     Ok(Json(game.clone()))
-}
-
-#[utoipa::path( get,
-    path = "/api/add-numbers/current-game-id",
-    responses(
-        (status = 200, description = "Current game ID", body = String),
-        (status = 500, description = "Failed to get current game ID", body = ErrorResponse)
-    ),
-    tag = "AddNumbers"
-)]
-pub async fn get_current_game_id(
-    State(app_state): State<AppState>,
-) -> Result<Json<Option<AddNumbersGame>>, (StatusCode, Json<ErrorResponse>)> {
-    let game = app_state
-        .add_numbers_service
-        .get_current_game_id()
-        .map_err(|e| {
-            http_errors::internal_server_error(&format!("Failed to get current game ID: {e:?}"))
-        })?;
-
-    Ok(Json(game))
 }
 
 /// Place a bet for the add numbers game
