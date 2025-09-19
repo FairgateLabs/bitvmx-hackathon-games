@@ -76,7 +76,7 @@ sleep 3
 
 # Start auto mine
 echo "Starting auto mine..."
-bash scripts/start-bitcoin-mine.sh & pids+=($!)
+bash scripts/start-auto-mine.sh & pids+=($!)
 echo "Auto mine started with PID: $!"
 sleep 1
 
@@ -84,8 +84,8 @@ sleep 1
 # Show logs in real-time
 echo "📋 Monitoring logs (press Ctrl+C to stop all processes)..."
 echo "📁 Log files:"
-echo "   - BitVMX 1: logs/player_1.log/bitvmx"
-echo "   - BitVMX 2: logs/player_2.log/bitvmx" 
+echo "   - BitVMX 1: logs/op_1.log/bitvmx"
+echo "   - BitVMX 2: logs/op_2.log/bitvmx" 
 echo "   - Player 1: logs/player_1.log/backend"
 echo "   - Player 2: logs/player_2.log/backend"
 echo ""
