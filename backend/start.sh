@@ -3,37 +3,14 @@ set -e
 
 pids=()
 
-cleanup() {
-    echo "⚠️ Cleaning up processes with SIGKILL..."
-    
-    # Kill tracked background processes
-    for pid in "${pids[@]}"; do
-        if kill -0 "$pid" 2>/dev/null; then
-            echo "🔴 Sending SIGKILL to tracked process $pid"
-            kill -9 "$pid" 2>/dev/null || true
-        fi
-    done
-    
-    # Also kill any remaining background jobs from this shell
-    echo "🔴 Killing all background jobs..."
-    jobs -p | xargs -r kill -9 2>/dev/null || true
-    
-    # Kill any child processes of this script
-    echo "🔴 Killing child processes..."
-    pkill -P $$ 2>/dev/null || true
-}
-
-# Function to handle Ctrl+C and propagate it to child processes
-handle_interrupt() {
-    echo "🛑 Interrupt received, stopping all processes..."
-    cleanup
-    exit 130  # Standard exit code for Ctrl+C
-}
-
 # Set up signal handling
 trap handle_interrupt INT TERM
 echo "🔧 Signal handlers set up for INT and TERM"
 
+# Build bitvmx
+bash scripts/build-bitvmx.sh
+
+# Start bitcoin
 bash scripts/start-bitcoin.sh
 
 # Wait for the container to start
@@ -51,9 +28,20 @@ bash scripts/start-op-2.sh & pids+=($!)
 echo "BitVMX 2 started with PID: $!"
 sleep 1
 
-# Wait a bit before launching the players
+# Wait a bit for bitvmx to synchronize
 echo "⏳ Waiting 5 second for bitvmx to synchronize..."
 sleep 5
+
+# Start bitvmx dispatcher
+echo "Starting bitvmx dispatcher 1..."
+bash scripts/start-dispatcher-1.sh & pids+=($!)
+echo "BitVMX dispatcher 1 started with PID: $!"
+sleep 1
+
+echo "Starting bitvmx dispatcher 2..."
+bash scripts/start-dispatcher-2.sh & pids+=($!)
+echo "BitVMX dispatcher 2 started with PID: $!"
+sleep 1
 
 # Start players backend
 echo "Starting player 1..."
@@ -101,3 +89,34 @@ for pid in "${pids[@]}"; do
     }
 done
 echo "✅ All processes completed successfully"
+
+# =============================================================================
+# FUNCTIONS
+# =============================================================================
+
+# Function to handle Ctrl+C and propagate it to child processes
+handle_interrupt() {
+    echo "🛑 Interrupt received, stopping all processes..."
+    cleanup
+    exit 130  # Standard exit code for Ctrl+C
+}
+
+cleanup() {
+    echo "⚠️ Cleaning up processes with SIGKILL..."
+    
+    # Kill tracked background processes
+    for pid in "${pids[@]}"; do
+        if kill -0 "$pid" 2>/dev/null; then
+            echo "🔴 Sending SIGKILL to tracked process $pid"
+            kill -9 "$pid" 2>/dev/null || true
+        fi
+    done
+    
+    # Also kill any remaining background jobs from this shell
+    echo "🔴 Killing all background jobs..."
+    jobs -p | xargs -r kill -9 2>/dev/null || true
+    
+    # Kill any child processes of this script
+    echo "🔴 Killing child processes..."
+    pkill -P $$ 2>/dev/null || true
+}

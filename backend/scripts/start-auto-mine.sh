@@ -1,4 +1,4 @@
-# Start auto mine 1 block per 10 seconds
+# Start auto mine 1 block per 5 seconds
 BITCOIND_NAME=bitcoin-regtest
 BLOCKS_TIME=5
 docker exec $BITCOIND_NAME sh -c \
