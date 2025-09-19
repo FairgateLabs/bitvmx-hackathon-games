@@ -57,9 +57,7 @@ impl AddNumbersService {
                 participants_keys,
                 funding_protocol_utxo: None,
                 funding_bet_utxo: None,
-                challenge_tx: serde_json::Value::Null,
-                challenge_input_tx: serde_json::Value::Null,
-                challenge_result_tx: serde_json::Value::Null,
+                dispute_tx: vec![],
             },
         };
 
@@ -216,6 +214,7 @@ impl AddNumbersService {
     pub fn start_game(
         &self,
         program_id: Uuid,
+        challenge_tx_name: String,
         challenge_tx: &TransactionStatus,
     ) -> Result<(), anyhow::Error> {
         let mut hash_map = self
@@ -230,15 +229,19 @@ impl AddNumbersService {
         if game.status != AddNumbersGameStatus::StartGame {
             return Err(anyhow::anyhow!("Game is not in start game state"));
         }
-        game.bitvmx_program_properties.challenge_tx =
-            serde_json::to_value(challenge_tx).map_err(|e| {
-                anyhow::anyhow!("Failed to convert challenge transaction to JSON: {e:?}")
-            })?;
+        let challenge_tx_status = serde_json::to_value(challenge_tx).map_err(|e| {
+            anyhow::anyhow!("Failed to convert challenge transaction to JSON: {e:?}")
+        })?;
+        game.bitvmx_program_properties
+            .dispute_tx
+            .push((challenge_tx_name, challenge_tx_status));
+
         game.status = AddNumbersGameStatus::SubmitGameData;
         game.updated_at = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs();
+
         Ok(())
     }
 
@@ -246,8 +249,10 @@ impl AddNumbersService {
         &self,
         id: Uuid,
         guess: u32,
-        challenge_input_tx: TransactionStatus,
+        challenge_input_tx_name: String,
         challenge_result_tx: TransactionStatus,
+        challenge_result_tx_name: String,
+        challenge_input_tx: TransactionStatus,
     ) -> Result<AddNumbersGame, anyhow::Error> {
         let mut hash_map = self
             .games
@@ -263,14 +268,20 @@ impl AddNumbersService {
         //     return Err(anyhow::anyhow!("Game is not in waiting for guess state"));
         // }
 
-        game.bitvmx_program_properties.challenge_input_tx =
-            serde_json::to_value(challenge_input_tx).map_err(|e| {
-                anyhow::anyhow!("Failed to convert challenge input transaction to JSON: {e:?}")
-            })?;
-        game.bitvmx_program_properties.challenge_result_tx =
+        let challenge_input_tx_status = serde_json::to_value(challenge_input_tx).map_err(|e| {
+            anyhow::anyhow!("Failed to convert challenge input transaction to JSON: {e:?}")
+        })?;
+        game.bitvmx_program_properties
+            .dispute_tx
+            .push((challenge_input_tx_name, challenge_input_tx_status));
+        let challenge_result_tx_status =
             serde_json::to_value(challenge_result_tx).map_err(|e| {
                 anyhow::anyhow!("Failed to convert challenge result transaction to JSON: {e:?}")
             })?;
+
+        game.bitvmx_program_properties
+            .dispute_tx
+            .push((challenge_result_tx_name, challenge_result_tx_status));
 
         // Make the guess
         game.guess = Some(guess);

@@ -313,7 +313,7 @@ impl BitVMXService {
     pub async fn start_challenge(
         &self,
         program_id: Uuid,
-    ) -> Result<TransactionStatus, anyhow::Error> {
+    ) -> Result<(String, TransactionStatus), anyhow::Error> {
         let tx_name = dispute::START_CH.to_string();
         // Dispatch the start challenge transaction
         let response = self
@@ -325,7 +325,7 @@ impl BitVMXService {
             .await?;
 
         let (transaction_status, _) = Self::transaction_response(response, Some(&tx_name))?;
-        Ok(transaction_status)
+        Ok((tx_name, transaction_status))
     }
 
     /// Get the name of the input transaction

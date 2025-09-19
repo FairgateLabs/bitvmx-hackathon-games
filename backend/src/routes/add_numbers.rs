@@ -447,7 +447,7 @@ pub async fn start_game(
     }
 
     // Player 1 send the challenge transaction to start the game.
-    let challenge_tx = app_state
+    let (challenge_tx_name, challenge_tx) = app_state
         .bitvmx_service
         .start_challenge(program_id)
         .await
@@ -458,7 +458,7 @@ pub async fn start_game(
     // Set the game as setup
     app_state
         .add_numbers_service
-        .start_game(program_id, &challenge_tx)
+        .start_game(program_id, challenge_tx_name, &challenge_tx)
         .map_err(|e| http_errors::internal_server_error(&format!("Failed to setup game: {e:?}")))?;
 
     Ok(Json(StartGameResponse {
@@ -694,7 +694,7 @@ pub async fn submit_sum(
         })?;
 
     // Send the input transaction to BitVMX
-    let (challenge_input_tx, _challenge_input_tx_name) = app_state
+    let (challenge_input_tx, challenge_input_tx_name) = app_state
         .bitvmx_service
         .send_challenge_input(program_id, input_index)
         .await
@@ -721,7 +721,9 @@ pub async fn submit_sum(
         .make_guess(
             request.id,
             request.guess,
+            challenge_input_tx_name,
             challenge_input_tx.clone(),
+            ACTION_PROVER_WINS.to_string(),
             challenge_result_tx.clone(),
         )
         .map_err(|e| match e.to_string().as_str() {

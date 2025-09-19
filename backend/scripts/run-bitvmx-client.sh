@@ -52,6 +52,7 @@ cd "$CURRENT_PATH/../";
 
 # go to the bitvmx client folder
 BITVMX_PATH="$CURRENT_PATH/../../../rust-bitvmx-workspace/rust-bitvmx-client"
+cd "$BITVMX_PATH"
 
 # get the config file information
 CONFIG_PATH="$BITVMX_PATH/config/$CONFIG_FILE.yaml"
@@ -69,7 +70,6 @@ mkdir -p "$LOG_PATH"
 rm -rf "$LOG_PATH/bitvmx.log"
 
 # run the bitvmx client with output to both console and file
-cd "$BITVMX_PATH"
 RUST_LOG="debug,bitvmx_wallet::wallet=off,bitvmx_bitcoin_rpc=off,bitcoincore_rpc=off,hyper_util=off,libp2p=off,bitvmx_transaction_monitor=off,bitcoin_indexer=off,bitcoin_coordinator=info,p2p_protocol=off,p2p_handler=off,tarpc=off,broker=off" \
 RUST_BACKTRACE=1 target/release/bitvmx-client $CONFIG_FILE 2>&1 | while IFS= read -r line; do echo "$line"; echo "$line" | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})*)?[mGKHF]//g' >> "$LOG_PATH/bitvmx.log"; done
 

@@ -61,11 +61,12 @@ rm -rf "$LOG_PATH/bitvmx-dispatcher.log"
 CURRENT_PATH=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 cd "$CURRENT_PATH/../";
 
-# go to the bitvmx workspace
-BITVMX_PATH="$CURRENT_PATH/../../../rust-bitvmx-workspace"
+# go to the bitvmx client folder
+BITVMX_PATH="$CURRENT_PATH/../../../rust-bitvmx-workspace/rust-bitvmx-client"
+cd "$BITVMX_PATH"
 
 # go to the job dispatcher folder
-RUST_BACKTRACE=1 "$BITVMX_PATH/rust-bitvmx-job-dispatcher/target/release/bitvmx-emulator-dispatcher" --ip $IP --port $BROKER_PORT 2>&1 | while IFS= read -r line; do echo "$line"; echo "$line" | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})*)?[mGKHF]//g' >> "$LOG_PATH/bitvmx-dispatcher.log"; done
+RUST_BACKTRACE=1 "../rust-bitvmx-job-dispatcher/target/release/bitvmx-emulator-dispatcher" --ip $IP --port $BROKER_PORT 2>&1 | while IFS= read -r line; do echo "$line"; echo "$line" | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})*)?[mGKHF]//g' >> "$LOG_PATH/bitvmx-dispatcher.log"; done
 
 
 # =============================================================================

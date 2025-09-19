@@ -82,9 +82,7 @@ pub struct BitVMXProgramProperties {
     pub participants_keys: Vec<String>,
     pub funding_protocol_utxo: Option<Utxo>,
     pub funding_bet_utxo: Option<Utxo>,
-    pub challenge_tx: serde_json::Value,
-    pub challenge_input_tx: serde_json::Value,
-    pub challenge_result_tx: serde_json::Value,
+    pub dispute_tx: Vec<(String, serde_json::Value)>, // (tx_name, tx_status)
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
