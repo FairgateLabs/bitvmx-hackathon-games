@@ -136,12 +136,12 @@ export function SetupParticipantInput({
       return;
 
     const operator_keys =
-      role === EnumPlayerRole.Player1
+      role === EnumPlayerRole.Player2
         ? [operatorKey?.pub_key ?? "", parsedData.publicKey]
         : [parsedData.publicKey, operatorKey?.pub_key ?? ""];
 
     const participants_addresses =
-      role === EnumPlayerRole.Player1
+      role === EnumPlayerRole.Player2
         ? [
             {
               address: peerConnectionInfo?.address ?? "",

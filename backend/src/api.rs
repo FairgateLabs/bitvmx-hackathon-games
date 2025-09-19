@@ -30,7 +30,6 @@ use crate::state::AppState;
         routes::bitvmx::get_aggregated_key,
         routes::bitvmx::wallet_balance,
         routes::bitvmx::get_transaction,
-        routes::bitvmx::get_protocol_cost,
         routes::bitvmx::get_protocol_visualization,
     ),
     components(
@@ -48,7 +47,6 @@ use crate::state::AppState;
             crate::models::WalletBalance,
             crate::models::Utxo,
             crate::models::TransactionResponse,
-            crate::models::ProtocolCostResponse,
             crate::models::PlayerRole,
             crate::models::BitVMXProgramProperties,
             crate::models::AddNumbersGame,

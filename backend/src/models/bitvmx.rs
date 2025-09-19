@@ -120,13 +120,6 @@ pub struct TransactionResponse {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
-pub struct ProtocolCostResponse {
-    /// The program ID
-    pub protocol_cost: u64,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
-#[ts(export)]
 pub struct ProtocolVisualizationResponse {
     /// The program ID
     pub visualization: String,

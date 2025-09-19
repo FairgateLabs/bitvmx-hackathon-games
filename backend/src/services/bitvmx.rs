@@ -88,7 +88,10 @@ impl BitVMXService {
         let response = self.rpc_client.send_request(message).await?;
 
         if let OutgoingBitVMXApiMessages::AggregatedPubkey(_uuid, aggregated_pubkey) = response {
-            trace!("Obtained aggregated key: {:?}", aggregated_pubkey);
+            trace!(
+                "Obtained aggregated key: {:?}",
+                aggregated_pubkey.to_string()
+            );
             Ok(aggregated_pubkey)
         } else {
             Err(anyhow::anyhow!(
@@ -108,7 +111,10 @@ impl BitVMXService {
             ))
             .await?;
         if let OutgoingBitVMXApiMessages::AggregatedPubkey(_uuid, aggregated_pubkey) = response {
-            trace!("Obtained aggregated key: {:?}", aggregated_pubkey);
+            trace!(
+                "Obtained aggregated key: {:?}",
+                aggregated_pubkey.to_string()
+            );
             Ok(aggregated_pubkey)
         } else if let OutgoingBitVMXApiMessages::AggregatedPubkeyNotReady(uuid) = response {
             Err(anyhow::anyhow!("Aggregated key not ready: {:?}", uuid))
@@ -163,6 +169,7 @@ impl BitVMXService {
         }
     }
 
+    #[instrument(skip(self))]
     pub async fn send_funds(
         &self,
         destination: &Destination,
@@ -526,7 +533,11 @@ impl BitVMXService {
     async fn set_pub_key(&self) -> Result<(), anyhow::Error> {
         debug!("Create operator key from BitVMX");
         let (_uuid, pub_key) = self.generate_new_pub_key().await?;
-        info!("Operator key: {:?}", pub_key);
+        info!(
+            "Operator compressed {} public key: {:?}",
+            pub_key.to_string(),
+            pub_key
+        );
         self.bitvmx_info.write().await.pub_key = Some(pub_key.to_string());
 
         trace!("Updated pub key in store");
@@ -538,7 +549,11 @@ impl BitVMXService {
     async fn set_funding_key(&self) -> Result<(), anyhow::Error> {
         debug!("Create funding key for speedups from BitVMX");
         let (_uuid, funding_pubkey) = self.generate_new_pub_key().await?;
-        info!("Funding key: {:?}", funding_pubkey);
+        info!(
+            "Funding  compressed {} public key: {:?}",
+            funding_pubkey.to_string(),
+            funding_pubkey
+        );
         self.bitvmx_info.write().await.funding_key = Some(funding_pubkey.to_string());
         trace!("Updated funding key in store");
 
