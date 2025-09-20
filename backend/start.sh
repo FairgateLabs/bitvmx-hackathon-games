@@ -50,8 +50,8 @@ echo "Player 1 started with PID: $!"
 sleep 1
 
 # Wait a bit before launching the players
-echo "⏳ Waiting 3 second for player 1 to synchronize..."
-sleep 3
+echo "⏳ Waiting 1 second for player 1 to synchronize..."
+sleep 1
 
 echo "Starting player 2..."
 bash scripts/start-player-2.sh & pids+=($!)
@@ -59,8 +59,8 @@ echo "Player 2 started with PID: $!"
 sleep 1
 
 # Wait a bit before launching the players
-echo "⏳ Waiting 3 second for player 2 to synchronize..."
-sleep 3
+echo "⏳ Waiting 1 second for player 2 to synchronize..."
+sleep 1
 
 # Start auto mine
 echo "Starting auto mine..."
@@ -68,6 +68,9 @@ bash scripts/start-auto-mine.sh & pids+=($!)
 echo "Auto mine started with PID: $!"
 sleep 1
 
+# Wait a bit before launching the players
+echo "⏳ Waiting 5 second for everyone to synchronize..."
+sleep 5
 
 # Show logs in real-time
 echo "📋 Monitoring logs (press Ctrl+C to stop all processes)..."
