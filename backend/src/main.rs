@@ -66,8 +66,8 @@ async fn main() -> anyhow::Result<()> {
     // 3. Create shutdown signals
     let (shutdown_tx, _) = broadcast::channel::<()>(1);
 
-    // 4. Connect to BitVMX RPC, spawn sender and listener tasks
-    let (rpc_client, rpc_sender_task, rpc_listener_task) = RpcClient::connect(
+    // 4. Connect to BitVMX RPC, spawn listener task
+    let (rpc_client, rpc_listener_task) = RpcClient::connect(
         L2_ID,
         BITVMX_ID,
         config.bitvmx.broker_port,
@@ -135,7 +135,6 @@ async fn main() -> anyhow::Result<()> {
 
     // 8. Run tasks in parallel with tokio::select!
     tokio::select! {
-        res = rpc_sender_task => task_result(res, "rpc_sender", &shutdown_tx),
         res = rpc_listener_task => task_result(res, "rpc_listener", &shutdown_tx),
         res = axum_task => task_result(res, "axum_server", &shutdown_tx),
         _ = signal::ctrl_c() => {

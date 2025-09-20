@@ -1,6 +1,7 @@
 use crate::models::{P2PAddress, WalletBalance};
 use crate::rpc::rpc_client::RpcClient;
 use crate::services::BitcoinService;
+use crate::stores::BitvmxStore;
 use bitvmx_client::bitcoin::{Address, PublicKey, Txid};
 use bitvmx_client::bitcoin_coordinator::TransactionStatus;
 use bitvmx_client::bitvmx_wallet::wallet::Destination;
@@ -11,36 +12,22 @@ use bitvmx_client::types::{IncomingBitVMXApiMessages, OutgoingBitVMXApiMessages}
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::RwLock;
 use tokio::time::sleep;
 use tracing::{debug, info, instrument, trace};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
-pub struct BitVMXInfo {
-    pub p2p_address: Option<P2PAddress>,
-    pub pub_key: Option<String>,
-    pub funding_key: Option<String>,
-    pub wallet_address: Option<Address>,
-}
-
-#[derive(Debug, Clone)]
-pub struct BitVMXService {
-    pub bitvmx_info: Arc<RwLock<BitVMXInfo>>,
+pub struct BitvmxService {
+    pub bitvmx_store: Arc<BitvmxStore>,
     pub bitcoin_service: Arc<BitcoinService>,
     /// BitVMX RPC client
     pub rpc_client: Arc<RpcClient>,
 }
 
-impl BitVMXService {
+impl BitvmxService {
     pub fn new(rpc_client: Arc<RpcClient>, bitcoin_service: Arc<BitcoinService>) -> Self {
         Self {
-            bitvmx_info: Arc::new(RwLock::new(BitVMXInfo {
-                p2p_address: None,
-                pub_key: None,
-                funding_key: None,
-                wallet_address: None,
-            })),
+            bitvmx_store: Arc::new(BitvmxStore::new()),
             bitcoin_service: bitcoin_service.clone(),
             rpc_client,
         }
@@ -48,29 +35,25 @@ impl BitVMXService {
 
     /// Get pub key
     pub async fn get_pub_key(&self) -> Result<Option<String>, anyhow::Error> {
-        let bitvmx_info = self.bitvmx_info.read().await;
-        Ok(bitvmx_info.pub_key.clone())
+        let bitvmx_pub_key = self.bitvmx_store.get_pub_key().await?;
+        Ok(bitvmx_pub_key.clone())
     }
 
     /// Get funding key
     pub async fn get_funding_key(&self) -> Result<Option<String>, anyhow::Error> {
-        let bitvmx_info = self.bitvmx_info.read().await;
-        Ok(bitvmx_info.funding_key.clone())
+        let bitvmx_funding_key = self.bitvmx_store.get_funding_key().await?;
+        Ok(bitvmx_funding_key.clone())
     }
 
     /// Get P2P address
     pub async fn get_p2p_address(&self) -> Result<Option<P2PAddress>, anyhow::Error> {
-        let bitvmx_info = self.bitvmx_info.read().await;
-        Ok(bitvmx_info.p2p_address.clone())
+        let bitvmx_p2p_address = self.bitvmx_store.get_p2p_address().await?;
+        Ok(bitvmx_p2p_address.clone())
     }
 
-    pub async fn get_wallet_address(&self) -> Result<Address, anyhow::Error> {
-        let bitvmx_info = self.bitvmx_info.read().await;
-        let wallet_address = bitvmx_info
-            .wallet_address
-            .clone()
-            .ok_or(anyhow::anyhow!("Wallet address not found"))?;
-        Ok(wallet_address)
+    pub async fn get_wallet_address(&self) -> Result<Option<Address>, anyhow::Error> {
+        let bitvmx_wallet_address = self.bitvmx_store.get_wallet_address().await?;
+        Ok(bitvmx_wallet_address)
     }
 
     /// Create aggregated key
@@ -150,7 +133,10 @@ impl BitVMXService {
 
     #[instrument(skip(self))]
     pub async fn wallet_balance(&self) -> Result<WalletBalance, anyhow::Error> {
-        let address = self.get_wallet_address().await?;
+        let address = self
+            .get_wallet_address()
+            .await?
+            .ok_or(anyhow::anyhow!("Wallet address not found"))?;
         let response = self
             .rpc_client
             .send_request(IncomingBitVMXApiMessages::GetFundingBalance(Uuid::new_v4()))
@@ -471,7 +457,9 @@ impl BitVMXService {
     #[instrument(skip(self))]
     async fn set_wallet_address(&self) -> Result<(), anyhow::Error> {
         let wallet_address: Address = self.get_funding_address().await?;
-        self.bitvmx_info.write().await.wallet_address = Some(wallet_address.clone());
+        self.bitvmx_store
+            .set_wallet_address(wallet_address.clone())
+            .await?;
 
         debug!("Adding funds for wallet address: {:?}", wallet_address);
 
@@ -492,25 +480,38 @@ impl BitVMXService {
         Ok(())
     }
 
-    /// Update P2P address
-    #[instrument(skip(self))]
-    async fn set_p2p_address(&self) -> Result<(), anyhow::Error> {
-        // Set P2P address
+    pub async fn get_comm_info(&self) -> Result<BitVMXP2PAddress, anyhow::Error> {
         let response = self
             .rpc_client
             .send_request(IncomingBitVMXApiMessages::GetCommInfo())
             .await?;
         if let OutgoingBitVMXApiMessages::CommInfo(comm_info) = response {
-            self.bitvmx_info.write().await.p2p_address = Some(P2PAddress {
-                address: comm_info.address.clone(),
-                peer_id: comm_info.peer_id.to_string(),
-            });
+            Ok(comm_info)
         } else {
-            return Err(anyhow::anyhow!(
+            Err(anyhow::anyhow!(
                 "Expected Comm Info response, got: {:?}",
                 response
-            ));
+            ))
         }
+    }
+
+    /// Update P2P address
+    #[instrument(skip(self))]
+    async fn set_p2p_address(&self) -> Result<(), anyhow::Error> {
+        trace!("Get comm info from BitVMX");
+        let comm_info = self.get_comm_info().await?;
+        info!(
+            "Operator P2P address: {:?} and peer id: {:?}",
+            comm_info.address.to_string(),
+            comm_info.peer_id.to_string()
+        );
+        // Set P2P address
+        self.bitvmx_store
+            .set_p2p_address(P2PAddress {
+                address: comm_info.address.clone(),
+                peer_id: comm_info.peer_id.to_string(),
+            })
+            .await?;
         trace!("Updated P2P address in store");
         Ok(())
     }
@@ -518,14 +519,14 @@ impl BitVMXService {
     /// Update pub key
     #[instrument(skip(self))]
     async fn set_pub_key(&self) -> Result<(), anyhow::Error> {
-        debug!("Create operator key from BitVMX");
+        trace!("Create operator key from BitVMX");
         let (_uuid, pub_key) = self.generate_new_pub_key().await?;
         info!(
             "Operator compressed {} public key: {:?}",
             pub_key.to_string(),
             pub_key
         );
-        self.bitvmx_info.write().await.pub_key = Some(pub_key.to_string());
+        self.bitvmx_store.set_pub_key(pub_key).await?;
 
         trace!("Updated pub key in store");
         Ok(())
@@ -534,14 +535,14 @@ impl BitVMXService {
     /// Update funding key
     #[instrument(skip(self))]
     async fn set_funding_key(&self) -> Result<(), anyhow::Error> {
-        debug!("Create funding key for speedups from BitVMX");
+        trace!("Create funding key for speedups from BitVMX");
         let (_uuid, funding_pubkey) = self.generate_new_pub_key().await?;
         info!(
             "Funding  compressed {} public key: {:?}",
             funding_pubkey.to_string(),
             funding_pubkey
         );
-        self.bitvmx_info.write().await.funding_key = Some(funding_pubkey.to_string());
+        self.bitvmx_store.set_funding_key(funding_pubkey).await?;
         trace!("Updated funding key in store");
 
         // Send 1 BTC to the funding key
@@ -561,7 +562,7 @@ impl BitVMXService {
                 bitvmx_client::protocol_builder::types::Utxo {
                     txid: tx_status.tx_id,
                     vout: 0,
-                    amount: amount,
+                    amount,
                     pub_key: funding_pubkey,
                 },
             ))

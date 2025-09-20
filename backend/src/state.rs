@@ -1,7 +1,7 @@
 use crate::config::Config;
 use crate::rpc::rpc_client::RpcClient;
 use crate::services::BitcoinService;
-use crate::services::{bitvmx::BitVMXService, AddNumbersService};
+use crate::services::{bitvmx::BitvmxService, AddNumbersService};
 use std::sync::Arc;
 
 /// Shared application state that can be accessed by both Axum routes and BitVMX RPC
@@ -14,7 +14,7 @@ pub struct AppState {
     pub add_numbers_service: Arc<AddNumbersService>,
 
     /// BitVMX service
-    pub bitvmx_service: Arc<BitVMXService>,
+    pub bitvmx_service: Arc<BitvmxService>,
 
     /// Bitcoin service
     pub bitcoin_service: Arc<BitcoinService>,
@@ -27,11 +27,16 @@ impl AppState {
     /// Create a new application state
     pub fn new(config: Config, rpc_client: Arc<RpcClient>) -> Self {
         let bitcoin_service = Arc::new(BitcoinService::new(config.bitcoin.clone()));
+        let bitvmx_service = Arc::new(BitvmxService::new(
+            rpc_client.clone(),
+            bitcoin_service.clone(),
+        ));
+        let add_numbers_service = Arc::new(AddNumbersService::new(bitvmx_service.clone()));
         Self {
             config: Arc::new(config.clone()),
-            add_numbers_service: Arc::new(AddNumbersService::new()),
+            add_numbers_service: add_numbers_service.clone(),
             bitcoin_service: bitcoin_service.clone(),
-            bitvmx_service: Arc::new(BitVMXService::new(rpc_client.clone(), bitcoin_service)),
+            bitvmx_service: bitvmx_service.clone(),
             rpc_client,
         }
     }
