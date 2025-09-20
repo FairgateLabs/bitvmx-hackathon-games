@@ -14,6 +14,9 @@ use std::time::Duration;
 use tokio::sync::{mpsc, oneshot, Mutex};
 use tokio::time::sleep;
 
+const TIMEOUT: u64 = 120; // 2 minutes
+const SLEEP_TIME: u64 = 10; // 10 milliseconds
+
 /// BitVMX RPC Client with async message queue
 #[derive(Debug, Clone)]
 pub struct RpcClient {
@@ -75,6 +78,31 @@ impl RpcClient {
         Ok(rx)
     }
 
+    async fn get_response(
+        &self,
+        correlation_id: &str,
+        rx: oneshot::Receiver<OutgoingBitVMXApiMessages>,
+    ) -> Result<OutgoingBitVMXApiMessages, anyhow::Error> {
+        // Wait for response with timeout
+        let response = tokio::time::timeout(Duration::from_secs(TIMEOUT), rx)
+            .await
+            .map_err(|_| {
+                anyhow::anyhow!(
+                    "Request timed out after {} seconds for correlation_id: {}",
+                    TIMEOUT,
+                    correlation_id
+                )
+            })?
+            .map_err(|_| {
+                anyhow::anyhow!(
+                    "Channel closed while waiting for response for correlation_id: {}",
+                    correlation_id
+                )
+            })?;
+
+        Ok(response)
+    }
+
     pub async fn wait_for_response(
         &self,
         correlation_id: String,
@@ -84,38 +112,13 @@ impl RpcClient {
             correlation_id
         );
         let rx = self.add_response_handler(&correlation_id).await?;
-        let response = rx.await?;
+        let response = self.get_response(&correlation_id, rx).await?;
         debug!(
             "Received from BitVMX response: {:?} message: {:?}",
             correlation_id, response
         );
         Ok(response)
     }
-
-    // #[tracing::instrument(skip(self, callback))]
-    // pub async fn wait_for_response_callback<F, Fut>(
-    //     &self,
-    //     correlation_id: String,
-    //     callback: F,
-    // ) where
-    //     F: FnOnce(Result<OutgoingBitVMXApiMessages, anyhow::Error>) -> Fut + Send + 'static,
-    //     Fut: std::future::Future<Output = ()> + Send + 'static,
-    // {
-    //     debug!(
-    //         "Waiting for BitVMX response with callback for correlation id: {:?}",
-    //         correlation_id
-    //     );
-    //     let rx = self.add_response_handler(&correlation_id).await?;
-
-    //     // TODO spawn a task to call the callback
-    //     let response = rx.await.unwrap();
-    //     callback(response);
-    //     debug!(
-    //         "Received from BitVMX response: {:?} message: {:?}",
-    //         correlation_id, response
-    //     );
-    //     Ok(response)
-    // }
 
     pub async fn send_request(
         &self,
@@ -128,11 +131,9 @@ impl RpcClient {
         );
         let rx = self.add_response_handler(&correlation_id).await?;
 
-        self.outgoing
-            .send((correlation_id.clone(), message))
-            .await?;
-        // TODO add timeout
-        let response = rx.await?;
+        self.send_message(&correlation_id, message).await?;
+
+        let response = self.get_response(&correlation_id, rx).await?;
         debug!(
             "Received from BitVMX response: {:?} message: {:?}",
             correlation_id, response
@@ -140,20 +141,30 @@ impl RpcClient {
         Ok(response)
     }
 
+    async fn send_message(
+        &self,
+        correlation_id: &str,
+        message: IncomingBitVMXApiMessages,
+    ) -> Result<(), anyhow::Error> {
+        self.outgoing
+            .send((correlation_id.to_string(), message))
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to send message: {e}"))?;
+        Ok(())
+    }
+
     pub async fn send_fire_and_forget(
         &self,
         message: IncomingBitVMXApiMessages,
-    ) -> Result<(), anyhow::Error> {
+    ) -> Result<String, anyhow::Error> {
         let correlation_id = self.request_to_correlation_id(&message)?;
         debug!(
             "Sending fire-and-forget to BitVMX request: {:?} message: {:?}",
             correlation_id, message
         );
+        self.send_message(&correlation_id, message).await?;
 
-        self.outgoing
-            .send((correlation_id.clone(), message))
-            .await?;
-        Ok(())
+        Ok(correlation_id)
     }
 
     async fn handle_response(&self, resp: String) -> Result<(), anyhow::Error> {
@@ -222,7 +233,7 @@ impl RpcClient {
                                             return Err(anyhow::anyhow!("Send message to BitVMX failed: {e}"));
                                         }
                                     }
-                                    sleep(std::time::Duration::from_millis(10)).await;
+                                    sleep(std::time::Duration::from_millis(SLEEP_TIME)).await;
                                 }
                                 None => {
                                     info!("Channel closed, exiting loop");
@@ -255,7 +266,7 @@ impl RpcClient {
                             break;
                         }
                         result = tokio::time::timeout(
-                            Duration::from_millis(10),
+                            Duration::from_millis(SLEEP_TIME),
                             service.client.get_msg(my_id)
                         ) => {
                             match result {
@@ -312,7 +323,7 @@ impl RpcClient {
                     trace!("Exiting wait for ready loop...");
                     break;
                 }
-                _ = tokio::time::sleep(Duration::from_millis(10)) => {
+                _ = tokio::time::sleep(Duration::from_millis(SLEEP_TIME)) => {
                     if self.is_ready() {
                         break;
                     }
@@ -336,8 +347,8 @@ impl RpcClient {
             IncomingBitVMXApiMessages::Ping() => Ok("ping".to_string()),
             IncomingBitVMXApiMessages::SetVar(uuid, _key, _value) => Ok(uuid.to_string()),
             IncomingBitVMXApiMessages::SetWitness(uuid, _address, _witness) => Ok(uuid.to_string()),
-            IncomingBitVMXApiMessages::SetFundingUtxo(_utxo) => {
-                Ok(format!("set_funding_utxo_{}", _utxo.txid))
+            IncomingBitVMXApiMessages::SetFundingUtxo(utxo) => {
+                Ok(format!("set_funding_utxo_{}_{}", utxo.txid, utxo.vout))
             }
             IncomingBitVMXApiMessages::GetVar(uuid, _key) => Ok(uuid.to_string()),
             IncomingBitVMXApiMessages::GetWitness(uuid, _address) => Ok(uuid.to_string()),

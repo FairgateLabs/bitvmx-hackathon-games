@@ -199,13 +199,13 @@ impl BitVMXService {
         destination: &Destination,
     ) -> Result<TransactionStatus, anyhow::Error> {
         let (uuid, _) = self.send_funds(destination).await?;
-        let tx_status = self.wait_transaction_response(uuid).await?;
+        let tx_status = self.wait_transaction_response(uuid.to_string()).await?;
         Ok(tx_status)
     }
 
     pub async fn wait_transaction_response(
         &self,
-        correlation_id: Uuid,
+        correlation_id: String,
     ) -> Result<TransactionStatus, anyhow::Error> {
         debug!(
             "Waiting for transaction response for correlation id: {:?}",
@@ -213,7 +213,7 @@ impl BitVMXService {
         );
         let response = self
             .rpc_client
-            .wait_for_response(correlation_id.to_string())
+            .wait_for_response(correlation_id)
             .await
             .map_err(|e| anyhow::anyhow!("Failed to wait for transaction response: {e:?}"))?;
 
@@ -222,23 +222,20 @@ impl BitVMXService {
         Ok(transaction_status)
     }
 
-    #[instrument(skip(self))]
     pub async fn wait_transaction_by_name_response(
         &self,
         program_id: Uuid,
         name: &str,
     ) -> Result<TransactionStatus, anyhow::Error> {
-        debug!(
-            "Waiting for transaction response for program id: {:?} and name: {:?}",
-            program_id, name
+        trace!(
+            "Waiting for transaction by name response for program id: {:?} and name: {:?}",
+            program_id,
+            name
         );
-        let response = self
-            .rpc_client
-            .wait_for_response(RpcClient::tx_name_to_correlation_id(&program_id, name))
-            .await?;
+        let correlation_id = RpcClient::tx_name_to_correlation_id(&program_id, name);
+        let tx_status = self.wait_transaction_response(correlation_id).await?;
 
-        let (transaction_status, _) = Self::transaction_response(response, Some(name))?;
-        Ok(transaction_status)
+        Ok(tx_status)
     }
 
     pub async fn get_transaction(&self, txid: String) -> Result<TransactionStatus, anyhow::Error> {
@@ -482,7 +479,7 @@ impl BitVMXService {
             .mine_blocks_to_address(2, wallet_address.clone())
             .await?;
 
-        sleep(Duration::from_secs(3)).await;
+        sleep(Duration::from_secs(5)).await;
 
         let balance = self.get_funding_balance().await?;
         info!("Funding balance: {:?}", balance);
@@ -557,10 +554,10 @@ impl BitVMXService {
         self.bitcoin_service.mine_blocks(1).await?;
 
         // Wait for the transaction confirmation reponse to use the utxo
-        let tx_status = self.wait_transaction_response(uuid).await?;
+        let tx_status = self.wait_transaction_response(uuid.to_string()).await?;
 
         self.rpc_client
-            .send_request(IncomingBitVMXApiMessages::SetFundingUtxo(
+            .send_fire_and_forget(IncomingBitVMXApiMessages::SetFundingUtxo(
                 bitvmx_client::protocol_builder::types::Utxo {
                     txid: tx_status.tx_id,
                     vout: 0,
