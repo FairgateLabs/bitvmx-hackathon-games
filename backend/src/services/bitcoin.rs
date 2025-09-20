@@ -72,9 +72,9 @@ impl BitcoinService {
             // mine 100 blocks for maturity
             // we split it to make it easier for the client to process
             bitcoin_client.mine_blocks(50).unwrap();
-            sleep(Duration::from_secs(3));
+            sleep(Duration::from_secs(5));
             bitcoin_client.mine_blocks(50).unwrap();
-            sleep(Duration::from_secs(3));
+            sleep(Duration::from_secs(5));
         })
         .await
         .map_err(|e| anyhow::anyhow!("Failed to mine blocks for funding wallet address: {e:?}"))?;

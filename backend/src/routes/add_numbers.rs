@@ -17,9 +17,7 @@ use axum::{
 use bitvmx_client::bitcoin::PublicKey;
 use bitvmx_client::bitvmx_wallet::wallet::Destination;
 use bitvmx_client::program::participant::P2PAddress as BitVMXP2PAddress;
-use bitvmx_client::program::protocols::dispute::{
-    ACTION_PROVER_WINS, TIMELOCK_BLOCKS, TIMELOCK_BLOCKS_KEY,
-};
+use bitvmx_client::program::protocols::dispute;
 use bitvmx_client::program::variables::VariableTypes;
 use bitvmx_client::protocol_builder::types::OutputType;
 use bitvmx_client::types::PROGRAM_TYPE_DRP;
@@ -278,7 +276,7 @@ pub async fn place_bet(
     debug!("Waiting for transaction status responses");
     let funding_tx_status = app_state
         .bitvmx_service
-        .wait_transaction_response(funding_uuid)
+        .wait_transaction_response(funding_uuid.to_string())
         .await
         .map_err(|e| {
             http_errors::internal_server_error(&format!(
@@ -595,8 +593,8 @@ pub async fn setup_game(
         .bitvmx_service
         .set_variable(
             program_id,
-            TIMELOCK_BLOCKS_KEY,
-            VariableTypes::Number(TIMELOCK_BLOCKS.into()),
+            dispute::TIMELOCK_BLOCKS_KEY,
+            VariableTypes::Number(dispute::TIMELOCK_BLOCKS.into()),
         )
         .await
         .map_err(|e| {
@@ -709,7 +707,7 @@ pub async fn submit_sum(
     // Wait for the challenge result
     let challenge_result_tx = app_state
         .bitvmx_service
-        .wait_transaction_by_name_response(program_id, ACTION_PROVER_WINS)
+        .wait_transaction_by_name_response(program_id, dispute::ACTION_PROVER_WINS)
         .await
         .map_err(|e| {
             http_errors::internal_server_error(&format!("Failed to send challenge input: {e:?}"))
@@ -723,7 +721,7 @@ pub async fn submit_sum(
             request.guess,
             challenge_input_tx_name,
             challenge_input_tx.clone(),
-            ACTION_PROVER_WINS.to_string(),
+            dispute::ACTION_PROVER_WINS.to_string(),
             challenge_result_tx.clone(),
         )
         .map_err(|e| match e.to_string().as_str() {

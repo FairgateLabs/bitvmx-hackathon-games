@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use bitvmx_client::bitcoin::PublicKey;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -82,7 +84,7 @@ pub struct BitVMXProgramProperties {
     pub participants_keys: Vec<String>,
     pub funding_protocol_utxo: Option<Utxo>,
     pub funding_bet_utxo: Option<Utxo>,
-    pub dispute_tx: Vec<(String, serde_json::Value)>, // (tx_name, tx_status)
+    pub dispute_tx: HashMap<String, serde_json::Value>, // (tx_name, tx_status)
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
