@@ -6,4 +6,5 @@ pub mod routes;
 pub mod rpc;
 pub mod services;
 pub mod state;
+pub mod stores;
 pub mod utils;
