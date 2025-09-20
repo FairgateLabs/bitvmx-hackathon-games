@@ -57,7 +57,7 @@ impl AddNumbersService {
                 participants_keys,
                 funding_protocol_utxo: None,
                 funding_bet_utxo: None,
-                dispute_tx: vec![],
+                dispute_tx: HashMap::new(),
             },
         };
 
@@ -234,7 +234,7 @@ impl AddNumbersService {
         })?;
         game.bitvmx_program_properties
             .dispute_tx
-            .push((challenge_tx_name, challenge_tx_status));
+            .insert(challenge_tx_name, challenge_tx_status);
 
         game.status = AddNumbersGameStatus::SubmitGameData;
         game.updated_at = SystemTime::now()
@@ -273,7 +273,7 @@ impl AddNumbersService {
         })?;
         game.bitvmx_program_properties
             .dispute_tx
-            .push((challenge_input_tx_name, challenge_input_tx_status));
+            .insert(challenge_input_tx_name, challenge_input_tx_status);
         let challenge_result_tx_status =
             serde_json::to_value(challenge_result_tx).map_err(|e| {
                 anyhow::anyhow!("Failed to convert challenge result transaction to JSON: {e:?}")
@@ -281,7 +281,7 @@ impl AddNumbersService {
 
         game.bitvmx_program_properties
             .dispute_tx
-            .push((challenge_result_tx_name, challenge_result_tx_status));
+            .insert(challenge_result_tx_name, challenge_result_tx_status);
 
         // Make the guess
         game.guess = Some(guess);
