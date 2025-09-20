@@ -328,11 +328,6 @@ impl BitVMXService {
         Ok((tx_name, transaction_status))
     }
 
-    /// Get the name of the input transaction
-    pub fn program_input_name(index: u32) -> String {
-        format!("program_input_{index}")
-    }
-
     /// Set the program input
     pub async fn set_program_input(
         &self,
@@ -342,7 +337,7 @@ impl BitVMXService {
     ) -> Result<(), anyhow::Error> {
         self.set_variable(
             program_id,
-            &Self::program_input_name(index),
+            &dispute::program_input(index),
             VariableTypes::Input(value),
         )
         .await
@@ -401,18 +396,13 @@ impl BitVMXService {
         Ok((transaction_status, tx_name))
     }
 
-    /// Get the name of the input transaction
-    pub fn input_tx_name(index: u32) -> String {
-        format!("INPUT_{index}")
-    }
-
     /// Send the challenge input transaction
     pub async fn send_challenge_input(
         &self,
         program_id: Uuid,
         index: u32,
     ) -> Result<(TransactionStatus, String), anyhow::Error> {
-        let tx_name = Self::input_tx_name(index);
+        let tx_name = dispute::input_tx_name(index);
         self.send_transaction_by_name(program_id, tx_name).await
     }
 
