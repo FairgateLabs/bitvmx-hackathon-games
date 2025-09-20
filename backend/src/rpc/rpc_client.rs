@@ -14,8 +14,9 @@ use std::time::Duration;
 use tokio::sync::{mpsc, oneshot, Mutex};
 use tokio::time::sleep;
 
-const TIMEOUT: u64 = 120; // 2 minutes
-const SLEEP_TIME: u64 = 10; // 10 milliseconds
+const REQUEST_TIMEOUT: u64 = 120; // 2 minutes
+const SLEEP_INTERVAL: u64 = 10; // 10 milliseconds
+const CHECK_SHUTDOWN_INTERVAL: u64 = 100; // 100 milliseconds
 
 /// BitVMX RPC Client with async message queue
 #[derive(Debug, Clone)]
@@ -84,12 +85,12 @@ impl RpcClient {
         rx: oneshot::Receiver<OutgoingBitVMXApiMessages>,
     ) -> Result<OutgoingBitVMXApiMessages, anyhow::Error> {
         // Wait for response with timeout
-        let response = tokio::time::timeout(Duration::from_secs(TIMEOUT), rx)
+        let response = tokio::time::timeout(Duration::from_secs(REQUEST_TIMEOUT), rx)
             .await
             .map_err(|_| {
                 anyhow::anyhow!(
                     "Request timed out after {} seconds for correlation_id: {}",
-                    TIMEOUT,
+                    REQUEST_TIMEOUT,
                     correlation_id
                 )
             })?
@@ -233,7 +234,7 @@ impl RpcClient {
                                             return Err(anyhow::anyhow!("Send message to BitVMX failed: {e}"));
                                         }
                                     }
-                                    sleep(std::time::Duration::from_millis(SLEEP_TIME)).await;
+                                    sleep(Duration::from_millis(SLEEP_INTERVAL)).await;
                                 }
                                 None => {
                                     info!("Channel closed, exiting loop");
@@ -266,7 +267,7 @@ impl RpcClient {
                             break;
                         }
                         result = tokio::time::timeout(
-                            Duration::from_millis(SLEEP_TIME),
+                            Duration::from_millis(CHECK_SHUTDOWN_INTERVAL),
                             service.client.get_msg(my_id)
                         ) => {
                             match result {
@@ -323,7 +324,7 @@ impl RpcClient {
                     trace!("Exiting wait for ready loop...");
                     break;
                 }
-                _ = tokio::time::sleep(Duration::from_millis(SLEEP_TIME)) => {
+                _ = sleep(Duration::from_millis(SLEEP_INTERVAL)) => {
                     if self.is_ready() {
                         break;
                     }
