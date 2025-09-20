@@ -28,7 +28,7 @@ where
     /// Remove and return all values for a given key
     pub fn drain_all_for_key(&mut self, key: &K) -> Result<Vec<V>> {
         if let Some(values) = self.map.remove(key) {
-            Ok(values.into())
+            Ok(values)
         } else {
             Ok(Vec::new())
         }

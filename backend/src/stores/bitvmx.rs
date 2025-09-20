@@ -16,6 +16,12 @@ pub struct BitvmxStore {
     pub info: Arc<RwLock<BitvmxInfo>>,
 }
 
+impl Default for BitvmxStore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BitvmxStore {
     pub fn new() -> Self {
         Self {

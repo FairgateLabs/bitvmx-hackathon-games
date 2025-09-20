@@ -488,10 +488,10 @@ impl BitvmxService {
         if let OutgoingBitVMXApiMessages::CommInfo(comm_info) = response {
             Ok(comm_info)
         } else {
-            return Err(anyhow::anyhow!(
+            Err(anyhow::anyhow!(
                 "Expected Comm Info response, got: {:?}",
                 response
-            ));
+            ))
         }
     }
 
@@ -562,7 +562,7 @@ impl BitvmxService {
                 bitvmx_client::protocol_builder::types::Utxo {
                     txid: tx_status.tx_id,
                     vout: 0,
-                    amount: amount,
+                    amount,
                     pub_key: funding_pubkey,
                 },
             ))

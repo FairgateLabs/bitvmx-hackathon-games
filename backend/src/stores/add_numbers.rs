@@ -18,6 +18,12 @@ pub struct AddNumbersStore {
     games: Arc<RwLock<HashMap<Uuid, AddNumbersGame>>>,
 }
 
+impl Default for AddNumbersStore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AddNumbersStore {
     pub fn new() -> Self {
         Self {

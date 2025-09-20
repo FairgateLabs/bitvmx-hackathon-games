@@ -27,7 +27,7 @@ impl AddNumbersService {
     pub fn new(bitvmx_service: Arc<BitvmxService>) -> Self {
         Self {
             game_store: Arc::new(AddNumbersStore::new()),
-            bitvmx_service: bitvmx_service,
+            bitvmx_service,
         }
     }
 
