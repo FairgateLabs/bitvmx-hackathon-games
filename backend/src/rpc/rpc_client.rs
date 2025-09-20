@@ -156,7 +156,6 @@ impl RpcClient {
         Ok(())
     }
 
-    #[tracing::instrument(skip(self))]
     async fn handle_response(&self, resp: String) -> Result<(), anyhow::Error> {
         // Deserialize the response
         let response = serde_json::from_str(&resp)?;
@@ -168,22 +167,28 @@ impl RpcClient {
             response
         );
 
-        let tx = {
+        let pending_txs = {
             let mut pending = self.pending.lock().await;
-            let optional_tx = pending.remove_first_for_key(&correlation_id)?;
-            if optional_tx.is_none() {
-                info!(
-                    "No response handler for correlation ID: {}, type: {:?}",
-                    correlation_id, response,
-                );
-                return Ok(());
-            }
-
-            optional_tx.unwrap()
+            pending.drain_all_for_key(&correlation_id)?
         };
 
-        tx.send(response)
-            .map_err(|e| anyhow::anyhow!("failed to send response: {:?}", e))?;
+        if pending_txs.is_empty() {
+            info!(
+                "No response handler for correlation ID: {}, type: {:?}",
+                correlation_id, response,
+            );
+            return Ok(());
+        }
+
+        // Send the response to all pending handlers for this correlation ID
+        for tx in pending_txs {
+            if let Err(e) = tx.send(response.clone()) {
+                warn!(
+                    "Failed to send response to handler for correlation ID {}: {:?}",
+                    correlation_id, e
+                );
+            }
+        }
 
         Ok(())
     }
