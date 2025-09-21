@@ -334,23 +334,11 @@ pub async fn submit_sum(
     let program_id = request.id;
 
     // TOOD: PEDRO Wait until you know the answer
-    let (challenge_input_tx, challenge_result_tx) = app_state
+    let game = app_state
         .add_numbers_service
         .submit_sum(program_id, request.guess)
         .await
         .map_err(|e| http_errors::internal_server_error(&format!("Failed to submit sum: {e:?}")))?;
 
-    Ok(Json(SubmitSumResponse {
-        program_id,
-        challenge_input_tx: serde_json::to_value(challenge_input_tx).map_err(|e| {
-            http_errors::internal_server_error(&format!(
-                "Failed to convert challenge input transaction to JSON: {e:?}"
-            ))
-        })?,
-        challenge_result_tx: serde_json::to_value(challenge_result_tx).map_err(|e| {
-            http_errors::internal_server_error(&format!(
-                "Failed to convert challenge result transaction to JSON: {e:?}"
-            ))
-        })?,
-    }))
+    Ok(Json(SubmitSumResponse { program_id, game }))
 }

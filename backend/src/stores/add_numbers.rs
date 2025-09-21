@@ -231,15 +231,7 @@ impl AddNumbersStore {
         Ok(())
     }
 
-    pub async fn make_guess(
-        &self,
-        id: Uuid,
-        guess: u32,
-        challenge_input_tx_name: String,
-        challenge_result_tx: TransactionStatus,
-        challenge_result_tx_name: String,
-        challenge_input_tx: TransactionStatus,
-    ) -> Result<AddNumbersGame, anyhow::Error> {
+    pub async fn make_guess(&self, id: Uuid, guess: u32) -> Result<AddNumbersGame, anyhow::Error> {
         let mut hash_map = self.games.write().await;
 
         let game = hash_map
@@ -251,20 +243,10 @@ impl AddNumbersStore {
         //     return Err(anyhow::anyhow!("Game is not in waiting for guess state"));
         // }
 
-        let challenge_input_tx_status = serde_json::to_value(challenge_input_tx).map_err(|e| {
-            anyhow::anyhow!("Failed to convert challenge input transaction to JSON: {e:?}")
-        })?;
-        game.bitvmx_program_properties
-            .dispute_tx
-            .insert(challenge_input_tx_name, challenge_input_tx_status);
-        let challenge_result_tx_status =
-            serde_json::to_value(challenge_result_tx).map_err(|e| {
-                anyhow::anyhow!("Failed to convert challenge result transaction to JSON: {e:?}")
-            })?;
-
-        game.bitvmx_program_properties
-            .dispute_tx
-            .insert(challenge_result_tx_name, challenge_result_tx_status);
+        // Player 2 is the prover that will send the answer transaction to the program.
+        if game.role != PlayerRole::Player2 {
+            return Err(anyhow::anyhow!("Invalid game role"));
+        }
 
         // Make the guess
         game.guess = Some(guess);
@@ -273,17 +255,48 @@ impl AddNumbersStore {
             .unwrap()
             .as_secs();
 
-        // TODO PEDRO: Here you have to :
-        // Player 2 will send the answer transaction to the program.
-        // Player 1 will wait until see the answer transaction.
-        // Player 2 will wait here also in order to know the outcome and reason of the game.
+        Ok(game.clone())
+    }
 
-        // TODO: PEDRO: Update the game status when you know the outcome and reason of the game.
-        game.status = AddNumbersGameStatus::GameComplete {
-            outcome: GameOutcome::Win,
-            reason: GameReason::Challenge,
-        };
+    pub async fn set_game_complete(
+        &self,
+        program_id: Uuid,
+        outcome: GameOutcome,
+        reason: GameReason,
+    ) -> Result<AddNumbersGame, anyhow::Error> {
+        let mut hash_map = self.games.write().await;
+        let game = hash_map
+            .get_mut(&program_id)
+            .ok_or(anyhow::anyhow!("Game not found"))?;
+
+        game.status = AddNumbersGameStatus::GameComplete { outcome, reason };
 
         Ok(game.clone())
+    }
+
+    pub async fn set_dispute_tx(
+        &self,
+        program_id: Uuid,
+        dispute_tx_name: String,
+        dispute_tx: TransactionStatus,
+    ) -> Result<(), anyhow::Error> {
+        let mut hash_map = self.games.write().await;
+        let game = hash_map
+            .get_mut(&program_id)
+            .ok_or(anyhow::anyhow!("Game not found"))?;
+
+        game.bitvmx_program_properties.dispute_tx.insert(
+            dispute_tx_name,
+            serde_json::to_value(dispute_tx).map_err(|e| {
+                anyhow::anyhow!("Failed to convert dispute transaction to JSON: {e:?}")
+            })?,
+        );
+
+        game.updated_at = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+
+        Ok(())
     }
 }
