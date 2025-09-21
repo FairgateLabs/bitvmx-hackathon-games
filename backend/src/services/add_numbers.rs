@@ -1,4 +1,6 @@
-use crate::models::{AddNumbersGame, AddNumbersGameStatus, P2PAddress, PlayerRole, Utxo};
+use crate::models::{
+    AddNumbersGame, AddNumbersGameStatus, GameOutcome, GameReason, P2PAddress, PlayerRole, Utxo,
+};
 use crate::services::BitvmxService;
 use crate::stores::AddNumbersStore;
 use bitvmx_client::bitcoin::PublicKey;
@@ -10,6 +12,7 @@ use bitvmx_client::program::variables::VariableTypes;
 use bitvmx_client::protocol_builder::types::OutputType;
 use std::str::FromStr;
 use std::sync::Arc;
+use tokio::task::JoinSet;
 use tracing::{debug, error};
 use uuid::Uuid;
 
@@ -426,7 +429,7 @@ impl AddNumbersService {
         &self,
         program_id: Uuid,
         guess: u32,
-    ) -> Result<(TransactionStatus, TransactionStatus), anyhow::Error> {
+    ) -> Result<AddNumbersGame, anyhow::Error> {
         // Get the game
         let game = self
             .get_game(program_id)
@@ -462,27 +465,86 @@ impl AddNumbersService {
             "Challenge input transaction: {:?}",
             challenge_input_tx.tx_id
         );
-
-        // Wait for the challenge result
-        let challenge_result_tx = self
-            .bitvmx_service
-            .wait_transaction_by_name_response(program_id, dispute::ACTION_PROVER_WINS)
+        self.game_store
+            .set_dispute_tx(program_id, challenge_input_tx_name, challenge_input_tx)
             .await
-            .map_err(|e| anyhow::anyhow!(format!("Failed to send challenge input: {e:?}")))?;
+            .map_err(|e| anyhow::anyhow!(format!("Failed to set challenge tx: {e:?}")))?;
+
+        // Wait for the dispute transactions to be confirmed
+        let mut join_set = JoinSet::new();
+        self.spawn_wait_task_transaction_by_name(&mut join_set, program_id, dispute::COMMITMENT);
+        self.spawn_wait_task_transaction_by_name(&mut join_set, program_id, "NARY_PROVER_1");
+        self.spawn_wait_task_transaction_by_name(&mut join_set, program_id, "NARY_VERIFIER_1");
+        self.spawn_wait_task_transaction_by_name(&mut join_set, program_id, "NARY_PROVER_2");
+        self.spawn_wait_task_transaction_by_name(&mut join_set, program_id, "NARY_VERIFIER_2");
+        self.spawn_wait_task_transaction_by_name(&mut join_set, program_id, dispute::EXECUTE);
+        self.spawn_wait_task_transaction_by_name(
+            &mut join_set,
+            program_id,
+            format!("{}_START", dispute::PROVER_WINS).as_str(),
+        );
+        self.spawn_wait_task_transaction_by_name(
+            &mut join_set,
+            program_id,
+            format!("{}_SUCCESS", dispute::PROVER_WINS).as_str(),
+        );
+        self.spawn_wait_task_transaction_by_name(
+            &mut join_set,
+            program_id,
+            dispute::ACTION_PROVER_WINS,
+        );
+
+        while let Some(res) = join_set.join_next().await {
+            match res {
+                Ok(result) => match result {
+                    Ok((tx_name, tx_status)) => {
+                        self.game_store
+                            .set_dispute_tx(program_id, tx_name, tx_status)
+                            .await
+                            .map_err(|e| {
+                                anyhow::anyhow!(format!("Failed to set dispute tx: {e:?}"))
+                            })?;
+                    }
+                    Err(e) => error!("Wait transaction by name failed: {:?}", e),
+                },
+                Err(e) => error!("Wait transaction by name failed: {:?}", e),
+            }
+        }
 
         // TOOD: PEDRO Wait until you know the answer
         self.game_store
-            .make_guess(
-                program_id,
-                guess,
-                challenge_input_tx_name,
-                challenge_input_tx.clone(),
-                dispute::ACTION_PROVER_WINS.to_string(),
-                challenge_result_tx.clone(),
-            )
+            .make_guess(program_id, guess)
             .await
             .map_err(|e| anyhow::anyhow!(format!("Failed to store submitted sum: {e:?}")))?;
 
-        Ok((challenge_input_tx, challenge_result_tx))
+        // TODO PEDRO: Here you have to :
+        // Player 2 will send the answer transaction to the program.
+        // Player 1 will wait until see the answer transaction.
+        // Player 2 will wait here also in order to know the outcome and reason of the game.
+
+        // TODO: PEDRO: Update the game status when you know the outcome and reason of the game.
+        let game = self
+            .game_store
+            .set_game_complete(program_id, GameOutcome::Win, GameReason::Challenge)
+            .await
+            .map_err(|e| anyhow::anyhow!(format!("Failed to set game complete: {e:?}")))?;
+
+        Ok(game)
+    }
+
+    /// Helper function to spawn a wait task for transaction by name
+    fn spawn_wait_task_transaction_by_name(
+        &self,
+        join_set: &mut JoinSet<Result<(String, TransactionStatus), anyhow::Error>>,
+        program_id: Uuid,
+        tx_name: &str,
+    ) {
+        let bitvmx_service = self.bitvmx_service.clone();
+        let tx_name = tx_name.to_string();
+        join_set.spawn(async move {
+            bitvmx_service
+                .wait_transaction_by_name_response(program_id, &tx_name)
+                .await
+        });
     }
 }

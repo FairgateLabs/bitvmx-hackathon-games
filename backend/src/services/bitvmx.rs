@@ -212,7 +212,7 @@ impl BitvmxService {
         &self,
         program_id: Uuid,
         name: &str,
-    ) -> Result<TransactionStatus, anyhow::Error> {
+    ) -> Result<(String, TransactionStatus), anyhow::Error> {
         trace!(
             "Waiting for transaction by name response for program id: {:?} and name: {:?}",
             program_id,
@@ -221,7 +221,7 @@ impl BitvmxService {
         let correlation_id = RpcClient::tx_name_to_correlation_id(&program_id, name);
         let tx_status = self.wait_transaction_response(correlation_id).await?;
 
-        Ok(tx_status)
+        Ok((name.to_string(), tx_status))
     }
 
     pub async fn get_transaction(&self, txid: String) -> Result<TransactionStatus, anyhow::Error> {
