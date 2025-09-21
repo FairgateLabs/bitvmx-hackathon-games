@@ -472,9 +472,22 @@ impl AddNumbersService {
 
         // Wait for the dispute transactions to be confirmed
         let mut join_set = JoinSet::new();
+        self.spawn_wait_task_transaction_by_name(&mut join_set, program_id, dispute::COMMITMENT);
+        self.spawn_wait_task_transaction_by_name(&mut join_set, program_id, "NARY_PROVER_1");
+        self.spawn_wait_task_transaction_by_name(&mut join_set, program_id, "NARY_VERIFIER_1");
+        self.spawn_wait_task_transaction_by_name(&mut join_set, program_id, "NARY_PROVER_2");
+        self.spawn_wait_task_transaction_by_name(&mut join_set, program_id, "NARY_VERIFIER_2");
         self.spawn_wait_task_transaction_by_name(&mut join_set, program_id, dispute::EXECUTE);
-        self.spawn_wait_task_transaction_by_name(&mut join_set, program_id, "PROVER_WINS_START");
-        self.spawn_wait_task_transaction_by_name(&mut join_set, program_id, "PROVER_WINS_SUCCESS");
+        self.spawn_wait_task_transaction_by_name(
+            &mut join_set,
+            program_id,
+            format!("{}_START", dispute::PROVER_WINS).as_str(),
+        );
+        self.spawn_wait_task_transaction_by_name(
+            &mut join_set,
+            program_id,
+            format!("{}_SUCCESS", dispute::PROVER_WINS).as_str(),
+        );
         self.spawn_wait_task_transaction_by_name(
             &mut join_set,
             program_id,
