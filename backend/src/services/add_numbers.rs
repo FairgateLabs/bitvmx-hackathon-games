@@ -111,7 +111,11 @@ impl AddNumbersService {
     }
 
     /// Place the bet
-    pub async fn place_bet(&self, program_id: Uuid, amount: u64) -> Result<(), anyhow::Error> {
+    pub async fn place_bet(
+        &self,
+        program_id: Uuid,
+        amount: u64,
+    ) -> Result<AddNumbersGame, anyhow::Error> {
         // Get the game
         let game = self
             .get_game(program_id)
@@ -127,7 +131,7 @@ impl AddNumbersService {
                 .change_state(program_id, AddNumbersGameStatus::SetupFunding)
                 .await
                 .map_err(|e| anyhow::anyhow!("Failed to update game state: {e:?}"))?;
-            return Ok(());
+            return Ok(game);
         }
 
         // Get the aggregated key
@@ -138,22 +142,12 @@ impl AddNumbersService {
         // Preparer the utxo destination for the protocol fees
         let protocol_destination = self
             .game_store
-            .protocol_destination(&aggregated_key, protocol_amount)
-            .map_err(|e| {
-                anyhow::anyhow!(format!(
-                    "Failed to obtain protocol destination from aggregated key: {e:?}"
-                ))
-            })?;
+            .protocol_destination(&aggregated_key, protocol_amount)?;
 
         // Prepare the utxo destination for the bet
         let bet_destination = self
             .game_store
-            .protocol_destination(&aggregated_key, amount)
-            .map_err(|e| {
-                anyhow::anyhow!(format!(
-                    "Failed to obtain bet destination from aggregated key: {e:?}"
-                ))
-            })?;
+            .protocol_destination(&aggregated_key, amount)?;
 
         // Send funds to cover protocol fees to the aggregated key
         let (funding_uuid, funding_txid) = self
@@ -205,14 +199,12 @@ impl AddNumbersService {
                     ))
                 },
             )?;
-        let bet_output_type =
-            OutputType::taproot(protocol_amount, &aggregated_key, &protocol_leaves).map_err(
-                |e| {
-                    anyhow::anyhow!(format!(
-                        "Failed to obtain protocol output type from aggregated key: {e:?}"
-                    ))
-                },
-            )?;
+        let bet_output_type = OutputType::taproot(amount, &aggregated_key, &protocol_leaves)
+            .map_err(|e| {
+                anyhow::anyhow!(format!(
+                    "Failed to obtain protocol output type from aggregated key: {e:?}"
+                ))
+            })?;
 
         let funding_protocol_utxo: Utxo = Utxo {
             txid: funding_txid.to_string(),
@@ -244,7 +236,7 @@ impl AddNumbersService {
             .map_err(|e| anyhow::anyhow!(format!("Failed to save my funding UTXO: {e:?}")))?;
         debug!("Saved my funding UTXOs in AddNumbersService");
 
-        Ok(())
+        Ok(game)
     }
 
     /// Setup the funding UTXOs
@@ -265,41 +257,6 @@ impl AddNumbersService {
             .map_err(|e| anyhow::anyhow!(format!("Failed to add funding UTXO: {e:?}")))?;
 
         Ok(())
-    }
-
-    /// Start the game
-    pub async fn start_game(
-        &self,
-        program_id: Uuid,
-    ) -> Result<(String, TransactionStatus), anyhow::Error> {
-        // Get the game
-        let game = self
-            .get_game(program_id)
-            .await?
-            .ok_or(anyhow::anyhow!("Game not found"))?;
-
-        if game.status != AddNumbersGameStatus::StartGame {
-            return Err(anyhow::anyhow!("Game is not in start game state"));
-        }
-
-        if game.role != PlayerRole::Player1 {
-            return Err(anyhow::anyhow!("Invalid game role"));
-        }
-
-        // Player 1 send the challenge transaction to start the game.
-        let (challenge_tx_name, challenge_tx) = self
-            .bitvmx_service
-            .start_challenge(program_id)
-            .await
-            .map_err(|e| anyhow::anyhow!(format!("Failed to start challenge: {e:?}")))?;
-
-        // Set the game as setup
-        self.game_store
-            .start_game(program_id, challenge_tx_name.clone(), &challenge_tx)
-            .await
-            .map_err(|e| anyhow::anyhow!(format!("Failed to setup game: {e:?}")))?;
-
-        Ok((challenge_tx_name, challenge_tx))
     }
 
     /// Setup the game
@@ -422,6 +379,41 @@ impl AddNumbersService {
 
         // Return the program ID
         Ok(())
+    }
+
+    /// Start the game
+    pub async fn start_game(
+        &self,
+        program_id: Uuid,
+    ) -> Result<(String, TransactionStatus), anyhow::Error> {
+        // Get the game
+        let game = self
+            .get_game(program_id)
+            .await?
+            .ok_or(anyhow::anyhow!("Game not found"))?;
+
+        if game.status != AddNumbersGameStatus::StartGame {
+            return Err(anyhow::anyhow!("Game is not in start game state"));
+        }
+
+        if game.role != PlayerRole::Player1 {
+            return Err(anyhow::anyhow!("Invalid game role"));
+        }
+
+        // Player 1 send the challenge transaction to start the game.
+        let (challenge_tx_name, challenge_tx) = self
+            .bitvmx_service
+            .start_challenge(program_id)
+            .await
+            .map_err(|e| anyhow::anyhow!(format!("Failed to start challenge: {e:?}")))?;
+
+        // Set the game as setup
+        self.game_store
+            .start_game(program_id, challenge_tx_name.clone(), &challenge_tx)
+            .await
+            .map_err(|e| anyhow::anyhow!(format!("Failed to setup game: {e:?}")))?;
+
+        Ok((challenge_tx_name, challenge_tx))
     }
 
     /// Submit the sum

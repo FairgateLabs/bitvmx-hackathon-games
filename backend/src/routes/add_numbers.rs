@@ -163,7 +163,7 @@ pub async fn get_game(
 pub async fn place_bet(
     State(app_state): State<AppState>,
     Json(request): Json<PlaceBetRequest>,
-) -> Result<Json<()>, (StatusCode, Json<ErrorResponse>)> {
+) -> Result<Json<PlaceBetResponse>, (StatusCode, Json<ErrorResponse>)> {
     // Validate the program ID
     if request.program_id == Uuid::default() {
         return Err(http_errors::bad_request("Program ID cannot be empty"));
@@ -175,15 +175,15 @@ pub async fn place_bet(
         return Err(http_errors::bad_request("Amount cannot be 0"));
     }
 
-    app_state
+    let game = app_state
         .add_numbers_service
-        .place_bet(program_id, request.amount)
+        .place_bet(program_id, 10_000)
         .await
         .map_err(|e| http_errors::internal_server_error(&format!("Failed to place bet: {e:?}")))?;
 
     info!("Place bet successfully for program id: {:?}", program_id);
 
-    Ok(Json(()))
+    Ok(Json(PlaceBetResponse { game }))
 }
 
 /// Setup the game for the add numbers game
