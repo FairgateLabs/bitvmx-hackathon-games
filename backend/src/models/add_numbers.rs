@@ -66,8 +66,7 @@ pub struct PlaceBetRequest {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 pub struct PlaceBetResponse {
-    pub funding_protocol_utxo: Utxo,
-    pub funding_bet_utxo: Utxo,
+    pub game: AddNumbersGame,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
