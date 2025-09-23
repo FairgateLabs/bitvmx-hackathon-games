@@ -49,10 +49,10 @@ export default function AddNumbersPage() {
     }
   }, [game, role]);
 
-  let isGameComplete =
+  const isGameComplete =
     typeof game?.status === "object" && "GameComplete" in game?.status;
 
-  let isSetupFunding =
+  const isSetupFunding =
     game?.status === "SetupFunding" ||
     (game?.status === "SetupGame" && role === EnumPlayerRole.Player1);
 

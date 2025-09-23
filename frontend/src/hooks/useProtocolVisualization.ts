@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { getApiBaseUrl } from "../config/backend";
 import { ProtocolVisualizationResponse } from "../../../backend/bindings/ProtocolVisualizationResponse";
-import { instance } from "@viz-js/viz";
 
 const fetchProtocolVisualization = async (
   program_id: string
@@ -21,7 +20,7 @@ const fetchProtocolVisualization = async (
     throw new Error("Failed to fetch protocol visualization");
   }
 
-  let data: ProtocolVisualizationResponse = await response.json();
+  const data: ProtocolVisualizationResponse = await response.json();
   return data.visualization;
 };
 

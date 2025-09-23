@@ -1,4 +1,3 @@
-import { ClockIcon } from "lucide-react";
 import { useState, useEffect, useImperativeHandle, forwardRef } from "react";
 
 interface BlocksRemainingProps {

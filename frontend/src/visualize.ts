@@ -92,20 +92,3 @@ export function highlightNode(
   out += dot.slice(last);
   return out;
 }
-
-function prefixSpecificNode(
-  dot: string,
-  nodeName: string,
-  prefix: string
-): string {
-  // Regex para el nodo específico con label sin comillas
-  const nodeRegex = new RegExp(`(${nodeName}\\s*\\[label=\\{)([^}]*)\\}`, "g");
-
-  return dot.replace(nodeRegex, (match, start, content) => {
-    // solo agregamos el prefijo al primer bloque (antes del primer pipe)
-    const parts = content.split("|");
-    parts[0] = `(${prefix}) ${parts[0].trim()}`;
-    const newLabel = parts.join(" | ");
-    return `${start}${newLabel}}`;
-  });
-}

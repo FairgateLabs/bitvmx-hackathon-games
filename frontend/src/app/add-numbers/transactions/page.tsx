@@ -63,8 +63,9 @@ export default function TransactionList() {
     return `http://localhost:4000/tx/${hash}`;
   };
 
-  const { data: protocol, isLoading: isProtocolLoading } =
-    useProtocolVisualization(currentGame?.program_id ?? "");
+  const { data: protocol } = useProtocolVisualization(
+    currentGame?.program_id ?? ""
+  );
 
   useEffect(() => {
     const highlightDisputeTxs = async () => {
@@ -73,16 +74,18 @@ export default function TransactionList() {
         currentGame?.bitvmx_program_properties.dispute_tx || {}
       );
       let protocolVisualization = protocol;
-      let inst = await instance();
+      const inst = await instance();
 
       for (const key of disputeTxKeys) {
-        let data = currentGame?.bitvmx_program_properties.dispute_tx?.[key] as {
+        const data = currentGame?.bitvmx_program_properties.dispute_tx?.[
+          key
+        ] as {
           tx_id: string;
         };
-        let url = getLink(data.tx_id);
+        const url = getLink(data.tx_id);
         protocolVisualization = highlightNode(protocolVisualization, key, url);
       }
-      let svg = inst.renderSVGElement(protocolVisualization as string);
+      const svg = inst.renderSVGElement(protocolVisualization as string);
       setProtocolVisualization(svg);
     };
     highlightDisputeTxs();

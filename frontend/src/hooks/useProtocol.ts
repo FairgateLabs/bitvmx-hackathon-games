@@ -7,8 +7,8 @@ const fetchProtocol = async (protocolId: string) => {
       `http://localhost:8080/protocol/${protocolId}`
     );
     const protocol = await response.json();
-    let inst = await instance();
-    let svg = inst.renderSVGElement(protocol);
+    const inst = await instance();
+    const svg = inst.renderSVGElement(protocol);
     return svg;
   } catch (error) {
     throw new Error("Error fetching programs: " + error);
