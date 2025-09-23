@@ -16,17 +16,15 @@ export function ChooseGame() {
     <div className="container mx-auto p-6 max-w-4xl">
       <div className="text-center mb-12">
         <div className="flex items-center justify-center mb-4">
-          <h1 className="text-5xl font-bold">BitVMX Games 🎮</h1>
+          <h1 className="text-5xl font-bold">BitVMX Game 🎮</h1>
         </div>
         <p className="text-xl text-muted-foreground">
-          Experience the BitVMX protocol by playing and learning with different
-          games. Challenge the results if you disagree with the outcome and
-          compete for Bitcoins!
+          Dive into the BitVMX protocol by playing the Add Numbers game.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-        <Card className="hover:shadow-lg transition-shadow">
+      <div className="flex justify-center mb-12">
+        <Card className="hover:shadow-lg transition-shadow max-w-md">
           <CardHeader>
             <CardTitle className="text-2xl">🔢 Add Numbers</CardTitle>
           </CardHeader>
@@ -40,26 +38,6 @@ export function ChooseGame() {
           </CardContent>
           <CardFooter className="flex justify-center">
             <Link href="/add-numbers/play-game" className="w-full">
-              <Button className="w-full" onClick={() => {}}>
-                Play Now!
-              </Button>
-            </Link>
-          </CardFooter>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader>
-            <CardTitle className="text-2xl">⭕ Tic Tac Toe</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CardDescription>
-              Classic Tic Tac Toe game using BitVMX protocol <br />
-              Player 1 and Player 2 take turns marking spaces in a 3×3 grid.{" "}
-              <br /> The first to align three marks wins.
-            </CardDescription>
-          </CardContent>
-          <CardFooter className="flex justify-center">
-            <Link href="/tic-tac-toe/play-game" className="w-full">
               <Button className="w-full" onClick={() => {}}>
                 Play Now!
               </Button>

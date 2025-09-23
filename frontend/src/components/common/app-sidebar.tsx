@@ -4,7 +4,6 @@ import {
   GraduationCap,
   Calculator,
   Gamepad2,
-  Grid3x3,
   ArrowLeftRight,
 } from "lucide-react";
 import {
@@ -58,27 +57,6 @@ const menu_items = [
         title: "Game Transactions",
         url: "/add-numbers/transactions",
         icon: ArrowLeftRight, // flujo de BTC/fondos
-      },
-    ],
-  },
-  {
-    title: "Tic Tac Toe",
-    icon: Grid3x3, // perfecto para el tablero
-    items: [
-      {
-        title: "How to play",
-        url: "/tic-tac-toe/how-to-play",
-        icon: BookOpen,
-      },
-      {
-        title: "Play game",
-        url: "/tic-tac-toe/play-game",
-        icon: Gamepad2,
-      },
-      {
-        title: "Game Transactions",
-        url: "/tic-tac-toe/transactions",
-        icon: ArrowLeftRight,
       },
     ],
   },

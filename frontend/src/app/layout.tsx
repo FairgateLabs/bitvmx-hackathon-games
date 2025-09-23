@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "BitVMX Games",
-  description: "BitVMX Games",
+  description: "BitVMX Game",
 };
 
 export default function RootLayout({

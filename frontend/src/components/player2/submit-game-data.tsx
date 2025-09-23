@@ -30,7 +30,7 @@ export function SubmitGameData() {
             onChange={(e) => {
               const value = e.target.value;
               if (parseInt(value, 10) >= 0 || value === "") {
-                let guess = parseInt(value, 10);
+                const guess = parseInt(value, 10);
                 setGuess(guess);
               }
             }}
