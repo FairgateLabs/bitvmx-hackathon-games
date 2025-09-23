@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { CopyButton } from "@/components/ui/copy-button";
 import {
@@ -11,6 +11,10 @@ import { useCurrentGame } from "@/hooks/useGame";
 export function AggregatedKey({ expand = true }) {
   const [isOpen, setIsOpen] = useState(expand);
   const { data: currentGame, isLoading: isGameLoading } = useCurrentGame();
+
+  useEffect(() => {
+    setIsOpen(expand);
+  }, [expand]);
 
   if (isGameLoading || isGameLoading) {
     return (
