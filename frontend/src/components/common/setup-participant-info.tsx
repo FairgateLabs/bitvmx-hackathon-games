@@ -21,8 +21,9 @@ export function SetupParticipantInfo({
   expanded: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(true);
-  const { data: peerConnectionInfo } = useCommunicationInfo();
-  const { data: operatorKey } = usePubkey();
+  const { data: peerConnectionInfo, isLoading: isPeerConnectionInfoLoading } =
+    useCommunicationInfo();
+  const { data: operatorKey, isLoading: isOperatorKeyLoading } = usePubkey();
 
   const handleCopyAllData = () => {
     if (!operatorKey || !peerConnectionInfo) return;
@@ -65,11 +66,13 @@ export function SetupParticipantInfo({
                 with you.
               </p>
             )}
-            <div className="flex justify-end">
-              <Button onClick={handleCopyAllData} size="sm" variant="outline">
-                Copy to Share
-              </Button>
-            </div>
+            {!isOperatorKeyLoading && !isPeerConnectionInfoLoading && (
+              <div className="flex justify-end">
+                <Button onClick={handleCopyAllData} size="sm" variant="outline">
+                  Copy to Share
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="space-y-3">
