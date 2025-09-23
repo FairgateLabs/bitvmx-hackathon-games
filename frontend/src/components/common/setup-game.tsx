@@ -7,7 +7,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { GameNumbersToAdd } from "@/types/game";
+import { EnumPlayerRole, GameNumbersToAdd } from "@/types/game";
 import { useSetupGame, useCurrentGame } from "@/hooks/useGame";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -92,11 +92,25 @@ export function SetupGame() {
             {!isPending && (
               <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <h3 className="font-semibold mb-2 text-yellow-800">
-                  ⚠️ Choose the numbers to start the program
+                  {game?.role === EnumPlayerRole.Player1
+                    ? "⚠️  Choose the numbers to setup the game"
+                    : "⚠️  Enter the numbers to setup the same game"}
                 </h3>
                 <p className="text-sm text-yellow-700">
-                  Enter the numbers and click the button to send them to BitVMX
-                  for program creation.
+                  Remember, both players must enter the same numbers. <br />
+                  {game?.role === EnumPlayerRole.Player1 && (
+                    <>
+                      Ensure you share the numbers with Player 2 so both players
+                      can participate in the same game.
+                    </>
+                  )}
+                  {game?.role === EnumPlayerRole.Player2 && (
+                    <>
+                      Enter the numbers that Player 1 choose to setup the same
+                      game. Otherwise, you won't be able to participate in the
+                      same game.
+                    </>
+                  )}
                 </p>
               </div>
             )}
