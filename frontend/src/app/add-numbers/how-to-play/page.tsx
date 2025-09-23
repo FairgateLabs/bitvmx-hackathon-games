@@ -94,8 +94,8 @@ export default function HowToPlayPage() {
               The bet is automatically set:
             </p>
             <ul className="list-disc list-inside text-sm text-muted-foreground">
-              <li>1 BTC in Regtest</li>
-              <li>0.001 BTC in Testnet</li>
+              <li>0.0001 BTC in Regtest</li>
+              <li>0.0001 BTC in Testnet</li>
             </ul>
           </section>
 

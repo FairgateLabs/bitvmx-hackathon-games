@@ -16,7 +16,7 @@ export function PlaceBet() {
   const queryClient = useQueryClient();
 
   const handleAcceptBet = () => {
-    placeBet({ program_id: game?.program_id ?? "", amount: 1e8 });
+    placeBet({ program_id: game?.program_id ?? "", amount: 1e4 });
   };
 
   useEffect(() => {
@@ -40,8 +40,8 @@ export function PlaceBet() {
             <p className="text-sm text-gray-700">
               {game?.role === "Player1" ? (
                 <>
-                  The amount to bet for this game will be <strong>1 BTC</strong>{" "}
-                  + protocol fee.
+                  The amount to bet for this game will be{" "}
+                  <strong>0.0001 BTC</strong> + protocol fee.
                   <br />
                   In this game setup, you will cover both the protocol fee and
                   the bet amount. Player 2 is not required to pay anything. The
@@ -75,7 +75,7 @@ export function PlaceBet() {
             >
               {isPlacingBet
                 ? "⏳ Setting Up..."
-                : "🔗 Accept to bet 1 BTC + Protocol Fee"}
+                : "🔗 Accept to bet 0.0001 BTC + Protocol Fee"}
             </Button>
           </div>
         </CollapsibleContent>
