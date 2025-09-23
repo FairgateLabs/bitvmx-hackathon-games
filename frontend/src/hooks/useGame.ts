@@ -59,9 +59,9 @@ function useSetupGame(data: SetupGameRequest) {
   });
 }
 
-function useAnswerAddNumber(data: SubmitSumRequest) {
+function useAnswerAddNumber() {
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (data: SubmitSumRequest) => {
       const baseUrl = getApiBaseUrl();
       const response = await fetch(`${baseUrl}/api/add-numbers/submit-sum`, {
         method: "POST",

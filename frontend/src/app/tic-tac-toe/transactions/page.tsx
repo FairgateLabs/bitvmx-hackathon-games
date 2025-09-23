@@ -206,7 +206,7 @@ export default function TransactionList() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-lg font-mono text-gray-800">
-                    Transaction #{tx.id}
+                    Transaction #{formatHash(tx.id)}
                   </CardTitle>
                   <CardDescription className="text-sm text-gray-600">
                     Block {tx.blockHeight} • {tx.confirmations} confirmations
