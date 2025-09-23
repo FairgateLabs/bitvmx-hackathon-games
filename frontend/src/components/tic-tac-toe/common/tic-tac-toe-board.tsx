@@ -6,7 +6,7 @@ import { Card } from "../../ui/card";
 import { EnumPlayerRole } from "@/types/game";
 import { useCurrentGame } from "@/hooks/useGame";
 import { useMockTicTacToeMoves } from "@/hooks/useTicTacToeMoves";
-import { TimeRemaining, TimeRemainingRef } from "../../ui/time-remaining"; // Import the timer component
+import { BlocksRemaining, BlocksRemainingRef } from "../../ui/block-remaining"; // Import the timer component
 import { PlayerRole } from "../../../../../backend/bindings/PlayerRole";
 
 export enum PlayerSymbol {
@@ -46,7 +46,7 @@ export function TicTacToeBoard({ onGameEnd }: TicTacToeBoardProps) {
   const [movesLog, setMovesLog] = useState<MoveLog[]>([]);
   const { data: currentGame } = useCurrentGame();
   const playerRole = currentGame?.role;
-  const timerRef = useRef<TimeRemainingRef>(null);
+  const timerRef = useRef<BlocksRemainingRef>(null);
 
   const { data: opponentMove } = useMockTicTacToeMoves();
 
@@ -262,7 +262,7 @@ export function TicTacToeBoard({ onGameEnd }: TicTacToeBoardProps) {
       {!gameOver && (
         <div className="px-4 pb-4">
           <div className="flex justify-center">
-            <TimeRemaining
+            <BlocksRemaining
               ref={timerRef}
               numberBlocks={5} // 30 seconds timeout
               onTimeout={() => {
@@ -275,7 +275,6 @@ export function TicTacToeBoard({ onGameEnd }: TicTacToeBoardProps) {
                 setWinner(timeoutWinner);
                 onGameEnd({ winner: timeoutWinner, isTimeout: true });
               }}
-              size="sm"
             />
           </div>
         </div>

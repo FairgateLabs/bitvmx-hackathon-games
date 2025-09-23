@@ -1,4 +1,4 @@
-import { TimeRemaining } from "@/components/ui/time-remaining";
+import { BlocksRemaining } from "@/components/ui/block-remaining";
 
 export function WaitingForAnswer() {
   const handleTimeout = () => {
@@ -28,7 +28,7 @@ export function WaitingForAnswer() {
 
         <div className="text-center">
           <p className="text-sm text-red-600 mb-2">Time remaining:</p>
-          <TimeRemaining numberBlocks={5} size="lg" onTimeout={handleTimeout} />
+          <BlocksRemaining numberBlocks={5} onTimeout={handleTimeout} />
         </div>
       </div>
     </div>

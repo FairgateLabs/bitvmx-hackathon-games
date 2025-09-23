@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { TimeRemaining } from "@/components/ui/time-remaining";
+import { BlocksRemaining } from "@/components/ui/block-remaining";
 
 export function ChooseAction() {
   const handleAccept = () => {
@@ -26,7 +26,7 @@ export function ChooseAction() {
         <p className="text-xs text-muted-foreground text-center">
           ⏰ If you do nothing, Player 2 will automatically win by timeout
         </p>
-        <TimeRemaining numberBlocks={5} onTimeout={handleTimeout} size="lg" />
+        <BlocksRemaining numberBlocks={5} onTimeout={handleTimeout} />
       </div>
 
       <div className="p-3 ">

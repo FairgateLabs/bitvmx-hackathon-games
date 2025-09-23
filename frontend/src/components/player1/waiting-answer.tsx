@@ -1,5 +1,5 @@
 import { Trophy } from "lucide-react";
-import { TimeRemaining } from "../ui/time-remaining";
+import { BlocksRemaining } from "../ui/block-remaining";
 
 export function WaitingAnswer() {
   const handleTimeout = () => {};
@@ -15,7 +15,7 @@ export function WaitingAnswer() {
       <p className="text-sm text-gray-700 mb-3">
         Player 2 is answering, please wait.
       </p>
-      <TimeRemaining numberBlocks={5} size="lg" onTimeout={handleTimeout} />
+      <BlocksRemaining numberBlocks={5} onTimeout={handleTimeout} />
     </div>
   );
 }

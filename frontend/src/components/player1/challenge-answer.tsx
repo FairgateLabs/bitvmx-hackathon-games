@@ -1,6 +1,6 @@
 import { Shield } from "lucide-react";
 import { useCurrentGame } from "@/hooks/useGame";
-import { TimeRemaining } from "../ui/time-remaining";
+import { BlocksRemaining } from "../ui/block-remaining";
 import { EnumPlayerRole } from "@/types/game";
 
 export function ChallengeAnswer() {
@@ -24,7 +24,7 @@ export function ChallengeAnswer() {
           blocks.
         </div>
 
-        <TimeRemaining numberBlocks={5} size="lg" onTimeout={handleTimeout} />
+        <BlocksRemaining numberBlocks={5} onTimeout={handleTimeout} />
       </div>
 
       <div className="space-y-4">

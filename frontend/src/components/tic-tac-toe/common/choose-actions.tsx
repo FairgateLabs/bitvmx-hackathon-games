@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { TimeRemaining } from "@/components/ui/time-remaining";
+import { BlocksRemaining } from "@/components/ui/block-remaining";
 import { useCurrentGame } from "@/hooks/useGame";
 import { GameEndResult } from "./tic-tac-toe-board";
 import { useState } from "react";
@@ -80,7 +80,7 @@ export function ChooseAction({ winner, isTimeout }: GameEndResult) {
             {winner === null &&
               "⏰ If no action is taken, the game will be considered a draw"}
           </p>
-          <TimeRemaining numberBlocks={2} onTimeout={handleTimeout} size="lg" />
+          <BlocksRemaining numberBlocks={2} onTimeout={handleTimeout} />
         </div>
       )}
 

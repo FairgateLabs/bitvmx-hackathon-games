@@ -1,5 +1,5 @@
 import { Trophy } from "lucide-react";
-import { TimeRemaining } from "../ui/time-remaining";
+import { BlocksRemaining } from "../ui/block-remaining";
 
 export function AcceptLoseGame() {
   const handleTimeout = () => {
@@ -20,7 +20,7 @@ export function AcceptLoseGame() {
         BitVMX is processing the transaction to finalize this acceptance.
       </p>
 
-      <TimeRemaining numberBlocks={5} size="lg" onTimeout={handleTimeout} />
+      <BlocksRemaining numberBlocks={5} onTimeout={handleTimeout} />
     </div>
   );
 }
