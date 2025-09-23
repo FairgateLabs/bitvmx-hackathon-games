@@ -49,12 +49,12 @@ export default function AddNumbersPage() {
     }
   }, [game, role]);
 
-  const isFunding =
-    !!game?.bitvmx_program_properties.funding_protocol_utxo &&
-    !!game?.bitvmx_program_properties.funding_bet_utxo;
-
-  const isGameComplete =
+  let isGameComplete =
     typeof game?.status === "object" && "GameComplete" in game?.status;
+
+  let isSetupFunding =
+    game?.status === "SetupFunding" ||
+    (game?.status === "SetupGame" && role === EnumPlayerRole.Player1);
 
   return (
     <BackendStatus>
@@ -107,30 +107,14 @@ export default function AddNumbersPage() {
                   role={role!}
                 />
               )}
+
               {game?.bitvmx_program_properties.aggregated_key && (
-                <AggregatedKey
-                  expand={
-                    !isFunding &&
-                    !(
-                      game?.status === "StartGame" ||
-                      game?.status === "SubmitGameData" ||
-                      (typeof game?.status === "object" &&
-                        game?.status.GameComplete.outcome === "Win")
-                    )
-                  }
-                />
+                <AggregatedKey expand={game?.status === "PlaceBet"} />
               )}
+
               {game && game.status === "PlaceBet" && <PlaceBet />}
-              {((game && game.status === "SetupFunding") ||
-                (game && game.status === "SetupGame") ||
-                isFunding) && (
-                <FundingExchange
-                  expand={
-                    game?.status === "SetupFunding" ||
-                    game?.status === "SetupGame"
-                  }
-                />
-              )}
+
+              {isSetupFunding && <FundingExchange expand={isSetupFunding} />}
 
               {game?.status === "SetupGame" && <SetupGame />}
 
