@@ -108,7 +108,17 @@ export default function AddNumbersPage() {
                 />
               )}
               {game?.bitvmx_program_properties.aggregated_key && (
-                <AggregatedKey expand={!isFunding} />
+                <AggregatedKey
+                  expand={
+                    !isFunding &&
+                    !(
+                      game?.status === "StartGame" ||
+                      game?.status === "SubmitGameData" ||
+                      (typeof game?.status === "object" &&
+                        game?.status.GameComplete.outcome === "Win")
+                    )
+                  }
+                />
               )}
               {game && game.status === "PlaceBet" && <PlaceBet />}
               {((game && game.status === "SetupFunding") ||
@@ -134,7 +144,7 @@ export default function AddNumbersPage() {
               {role === EnumPlayerRole.Player2 && (
                 <>
                   {game?.status === "StartGame" && <WaitingStartGame />}
-                  <SubmitGameData />
+                  {game?.status === "StartGame" && <SubmitGameData />}
                 </>
               )}
 

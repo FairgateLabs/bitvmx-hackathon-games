@@ -4,12 +4,14 @@ import { useCurrentGame } from "@/hooks/useGame";
 export function GameOutcome() {
   const { data: currentGame } = useCurrentGame();
   const isWin =
-    typeof currentGame?.status === "object" && "Win" in currentGame?.status;
+    typeof currentGame?.status === "object" &&
+    currentGame?.status.GameComplete.outcome === "Win";
   const isChallenge =
     typeof currentGame?.status === "object" &&
-    "Challenge" in currentGame?.status;
+    currentGame?.status.GameComplete.reason === "Challenge";
   const isTimeout =
-    typeof currentGame?.status === "object" && "Timeout" in currentGame?.status;
+    typeof currentGame?.status === "object" &&
+    currentGame?.status.GameComplete.reason === "Timeout";
 
   // Determine the styling based on win/lose
   const containerClass = isWin
