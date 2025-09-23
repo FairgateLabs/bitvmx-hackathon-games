@@ -44,12 +44,7 @@ export function PlaceBet() {
                   <strong>0.0001 BTC</strong> + protocol fee.
                   <br />
                   In this game setup, you will cover both the protocol fee and
-                  the bet amount. Player 2 is not required to pay anything. The
-                  original idea was for each player to pay their share of the
-                  protocol fee and the bet amount. However, this approach
-                  introduces complexity in constructing the transaction
-                  fundings. To keep things simple, Player 1 will handle all
-                  payments.
+                  the bet amount. Player 2 is not required to pay anything.
                   <br />
                   When you accept this bet, a funding transaction will be
                   automatically performed by the backend. This transaction will
