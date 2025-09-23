@@ -1,5 +1,7 @@
 use bitvmx_client::types::{BITVMX_ID, L2_ID};
-use bitvmx_hackathon_backend::{api, config, rpc::rpc_client::RpcClient, state::AppState};
+use bitvmx_hackathon_backend::{
+    api, config, jobs::worker::JobWorker, rpc::rpc_client::RpcClient, state::AppState,
+};
 use tokio::{signal, sync::broadcast, task::JoinError};
 use tracing::{error, info, trace, warn, Instrument};
 use tracing_appender::rolling;
@@ -75,13 +77,17 @@ async fn main() -> anyhow::Result<()> {
         &shutdown_tx,
     );
 
-    // 5. Initialize app state
-    let app_state = AppState::new(config.clone(), rpc_client.clone());
+    // 5. Start job worker
+    let (job_worker, job_worker_task) = JobWorker::start(&shutdown_tx);
 
-    // 6. Spawn setup task that waits for RPC to be ready
+    // 6. Initialize app state
+    let app_state = AppState::new(config.clone(), rpc_client.clone(), job_worker.clone());
+
+    // 7. Spawn setup task that waits for RPC to be ready
     let app_state_setup = app_state.clone();
     let shutdown_tx_setup = shutdown_tx.clone();
     let shutdown_rx_setup = shutdown_tx.subscribe();
+    // Setup task happens only once at the beginning
     let _ = tokio::task::spawn(
         async move {
             // Wait for the RPC client to be ready
@@ -107,7 +113,7 @@ async fn main() -> anyhow::Result<()> {
         .instrument(tracing::info_span!("setup")),
     );
 
-    // 7. Spawn Axum server task
+    // 8. Spawn Axum server task
     let app_state_axum = app_state.clone();
     let mut shutdown_rx_axum = shutdown_tx.subscribe();
     let axum_task = tokio::task::spawn(
@@ -133,9 +139,10 @@ async fn main() -> anyhow::Result<()> {
         .instrument(tracing::info_span!("axum_server")),
     );
 
-    // 8. Run tasks in parallel with tokio::select!
+    // 9. Run tasks in parallel with tokio::select!
     tokio::select! {
         res = rpc_listener_task => task_result(res, "rpc_listener", &shutdown_tx),
+        res = job_worker_task => task_result(res, "job_worker", &shutdown_tx),
         res = axum_task => task_result(res, "axum_server", &shutdown_tx),
         _ = signal::ctrl_c() => {
             info!("Ctrl-C received, shutting down...");

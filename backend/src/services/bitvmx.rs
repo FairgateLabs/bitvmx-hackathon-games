@@ -1,5 +1,5 @@
 use crate::models::{P2PAddress, WalletBalance};
-use crate::rpc::rpc_client::RpcClient;
+use crate::rpc::{self, rpc_client::RpcClient};
 use crate::services::BitcoinService;
 use crate::stores::BitvmxStore;
 use bitvmx_client::bitcoin::{Address, PublicKey, Txid};
@@ -218,7 +218,7 @@ impl BitvmxService {
             program_id,
             name
         );
-        let correlation_id = RpcClient::tx_name_to_correlation_id(&program_id, name);
+        let correlation_id = rpc::tx_name_to_correlation_id(&program_id, name);
         let tx_status = self.wait_transaction_response(correlation_id).await?;
 
         Ok((name.to_string(), tx_status))

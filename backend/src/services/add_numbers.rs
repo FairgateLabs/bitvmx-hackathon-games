@@ -187,6 +187,29 @@ impl AddNumbersService {
             );
             return Err(anyhow::anyhow!("Transaction not confirmed"));
         }
+        // Protcol cost transaction
+        self.game_store
+            .set_dispute_tx(
+                program_id,
+                dispute::EXTERNAL_START.to_string(),
+                funding_tx_status.clone(),
+            )
+            .await
+            .map_err(|e| {
+                anyhow::anyhow!(format!("Failed to set EXTERNAL_START dispute tx: {e:?}"))
+            })?;
+
+        // Player bet transaction
+        self.game_store
+            .set_dispute_tx(
+                program_id,
+                dispute::EXTERNAL_ACTION.to_string(),
+                funding_tx_status,
+            )
+            .await
+            .map_err(|e| {
+                anyhow::anyhow!(format!("Failed to set EXTERNAL_START dispute tx: {e:?}"))
+            })?;
 
         debug!("Protocol and bet transactions confirmed, marking funding UTXOs as mined");
         let protocol_leaves = self.game_store.protocol_scripts(&aggregated_key);
@@ -234,6 +257,7 @@ impl AddNumbersService {
             )
             .await
             .map_err(|e| anyhow::anyhow!(format!("Failed to save my funding UTXO: {e:?}")))?;
+
         debug!("Saved my funding UTXOs in AddNumbersService");
 
         Ok(game)

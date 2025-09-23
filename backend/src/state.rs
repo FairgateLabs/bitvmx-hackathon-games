@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::jobs::JobWorker;
 use crate::rpc::rpc_client::RpcClient;
 use crate::services::BitcoinService;
 use crate::services::{bitvmx::BitvmxService, AddNumbersService};
@@ -21,11 +22,14 @@ pub struct AppState {
 
     /// BitVMX RPC client
     pub rpc_client: Arc<RpcClient>,
+
+    /// Job worker
+    pub job_worker: Arc<JobWorker>,
 }
 
 impl AppState {
     /// Create a new application state
-    pub fn new(config: Config, rpc_client: Arc<RpcClient>) -> Self {
+    pub fn new(config: Config, rpc_client: Arc<RpcClient>, job_worker: Arc<JobWorker>) -> Self {
         let bitcoin_service = Arc::new(BitcoinService::new(config.bitcoin.clone()));
         let bitvmx_service = Arc::new(BitvmxService::new(
             rpc_client.clone(),
@@ -38,6 +42,7 @@ impl AppState {
             bitcoin_service: bitcoin_service.clone(),
             bitvmx_service: bitvmx_service.clone(),
             rpc_client,
+            job_worker,
         }
     }
 }
