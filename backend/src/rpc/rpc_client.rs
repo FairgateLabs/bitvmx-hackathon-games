@@ -1,18 +1,17 @@
 use crate::rpc::chained_map::ChainedMap;
+use crate::rpc::correlation::{request_to_correlation_id, response_to_correlation_id};
 use bitvmx_broker::rpc::async_client::AsyncClient;
 use bitvmx_broker::rpc::BrokerConfig;
 use bitvmx_client::types::{IncomingBitVMXApiMessages, OutgoingBitVMXApiMessages};
 use std::net::IpAddr;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use tokio::sync::broadcast::{Receiver, Sender};
-use tokio::task::JoinHandle;
-use tracing::{debug, info, trace, warn, Instrument};
-use uuid::Uuid;
-
 use std::time::Duration;
+use tokio::sync::broadcast::{Receiver, Sender};
 use tokio::sync::{oneshot, Mutex};
+use tokio::task::JoinHandle;
 use tokio::time::sleep;
+use tracing::{debug, info, trace, warn, Instrument};
 
 const REQUEST_TIMEOUT: u64 = 120; // 120 seconds = 2 minutes
 const SLEEP_INTERVAL: u64 = 10; // 10 milliseconds
@@ -27,8 +26,8 @@ pub struct RpcClient {
     my_id: u32,
     /// Target ID for sending messages
     to_id: u32,
-    /// Pending responses
-    pending: Arc<Mutex<ChainedMap<String, oneshot::Sender<OutgoingBitVMXApiMessages>>>>,
+    /// Pending responses waiting to be matched with correlation IDs
+    pending_responses: Arc<Mutex<ChainedMap<String, oneshot::Sender<OutgoingBitVMXApiMessages>>>>,
     /// Ready flag
     ready: Arc<AtomicBool>,
 }
@@ -46,17 +45,17 @@ impl RpcClient {
         let config = BrokerConfig::new(broker_port, broker_ip);
         let client = AsyncClient::new(&config);
 
-        let service = Arc::new(RpcClient {
+        let rpc_client = Arc::new(Self {
             client,
             my_id,
             to_id,
-            pending: Arc::new(Mutex::new(ChainedMap::new())),
+            pending_responses: Arc::new(Mutex::new(ChainedMap::new())),
             ready: Arc::new(AtomicBool::new(false)),
         });
 
-        let listener_task = RpcClient::spawn_listener(service.clone(), my_id, shutdown_tx);
+        let listener_task = Self::spawn_listener(rpc_client.clone(), my_id, shutdown_tx);
 
-        (service, listener_task)
+        (rpc_client, listener_task)
     }
 
     async fn add_response_handler(
@@ -69,8 +68,8 @@ impl RpcClient {
         );
         let (tx, rx) = oneshot::channel();
         {
-            let mut pending = self.pending.lock().await;
-            pending.insert(correlation_id.to_string(), tx);
+            let mut pending_responses = self.pending_responses.lock().await;
+            pending_responses.insert(correlation_id.to_string(), tx);
         }
         Ok(rx)
     }
@@ -121,14 +120,14 @@ impl RpcClient {
         &self,
         message: IncomingBitVMXApiMessages,
     ) -> Result<OutgoingBitVMXApiMessages, anyhow::Error> {
-        let correlation_id = self.request_to_correlation_id(&message)?;
+        let correlation_id = request_to_correlation_id(&message)?;
         debug!(
             "Sending to BitVMX and waiting for response, request correlation_id: {:?} message: {:?}",
             correlation_id, message
         );
         let rx = self.add_response_handler(&correlation_id).await?;
 
-        self.send_message(&correlation_id, message).await?;
+        self.send_message(message).await?;
 
         let response = self.get_response(&correlation_id, rx).await?;
         debug!(
@@ -138,11 +137,7 @@ impl RpcClient {
         Ok(response)
     }
 
-    async fn send_message(
-        &self,
-        _correlation_id: &str,
-        message: IncomingBitVMXApiMessages,
-    ) -> Result<(), anyhow::Error> {
+    async fn send_message(&self, message: IncomingBitVMXApiMessages) -> Result<(), anyhow::Error> {
         // Serialize the message
         let serialized_msg = serde_json::to_string(&message)?;
 
@@ -160,12 +155,12 @@ impl RpcClient {
         &self,
         message: IncomingBitVMXApiMessages,
     ) -> Result<String, anyhow::Error> {
-        let correlation_id = self.request_to_correlation_id(&message)?;
+        let correlation_id = request_to_correlation_id(&message)?;
         debug!(
             "Sending fire-and-forget to BitVMX request: {:?} message: {:?}",
             correlation_id, message
         );
-        self.send_message(&correlation_id, message).await?;
+        self.send_message(message).await?;
 
         Ok(correlation_id)
     }
@@ -174,28 +169,28 @@ impl RpcClient {
         // Deserialize the response
         let response = serde_json::from_str(&resp)?;
 
-        let correlation_id = self.response_to_correlation_id(&response)?;
+        let correlation_id = response_to_correlation_id(&response)?;
         trace!(
             "Received response: {:?} message: {:?}",
             correlation_id,
             response
         );
 
-        let pending_txs = {
-            let mut pending = self.pending.lock().await;
-            pending.drain_all_for_key(&correlation_id)?
+        let waiting_for_response = {
+            let mut queue = self.pending_responses.lock().await;
+            queue.drain_all_for_key(&correlation_id)?
         };
 
-        if pending_txs.is_empty() {
+        if waiting_for_response.is_empty() {
             info!(
                 "No response handler for correlation ID: {}, type: {:?}",
-                correlation_id, response,
+                correlation_id, response
             );
             return Ok(());
         }
 
         // Send the response to all pending handlers for this correlation ID
-        for tx in pending_txs {
+        for tx in waiting_for_response {
             if let Err(e) = tx.send(response.clone()) {
                 warn!(
                     "Failed to send response to handler for correlation ID {}: {:?}",
@@ -287,151 +282,6 @@ impl RpcClient {
                     }
                 }
             }
-        }
-    }
-
-    /// Convert the transaction name to a correlation ID
-    pub fn tx_name_to_correlation_id(program_id: &Uuid, name: &str) -> String {
-        format!("{program_id}_{name}")
-    }
-
-    /// Convert the message to send to BitVMX to a correlation ID
-    fn request_to_correlation_id(
-        &self,
-        message: &IncomingBitVMXApiMessages,
-    ) -> Result<String, anyhow::Error> {
-        // Serialize the message
-        match message {
-            IncomingBitVMXApiMessages::Ping() => Ok("ping".to_string()),
-            IncomingBitVMXApiMessages::SetVar(uuid, _key, _value) => Ok(uuid.to_string()),
-            IncomingBitVMXApiMessages::SetWitness(uuid, _address, _witness) => Ok(uuid.to_string()),
-            IncomingBitVMXApiMessages::SetFundingUtxo(utxo) => {
-                Ok(format!("set_funding_utxo_{}_{}", utxo.txid, utxo.vout))
-            }
-            IncomingBitVMXApiMessages::GetVar(uuid, _key) => Ok(uuid.to_string()),
-            IncomingBitVMXApiMessages::GetWitness(uuid, _address) => Ok(uuid.to_string()),
-            IncomingBitVMXApiMessages::GetCommInfo() => Ok("get_comm_info".to_string()),
-            IncomingBitVMXApiMessages::GetTransaction(uuid, _txid) => Ok(uuid.to_string()),
-            IncomingBitVMXApiMessages::GetTransactionInfoByName(uuid, _name) => {
-                Ok(uuid.to_string())
-            }
-            IncomingBitVMXApiMessages::GetHashedMessage(uuid, _name, _vout, _leaf) => {
-                Ok(uuid.to_string())
-            }
-            IncomingBitVMXApiMessages::Setup(uuid, _program_type, _participants, _leader_idx) => {
-                Ok(uuid.to_string())
-            }
-            IncomingBitVMXApiMessages::SubscribeToTransaction(uuid, _txid) => Ok(uuid.to_string()),
-            IncomingBitVMXApiMessages::SubscribeUTXO() => Ok("subscribe_utxo".to_string()),
-            IncomingBitVMXApiMessages::SubscribeToRskPegin() => {
-                Ok("subscribe_rsk_pegin".to_string())
-            }
-            IncomingBitVMXApiMessages::GetSPVProof(_txid) => Ok(format!("spv_proof_{_txid}")),
-            IncomingBitVMXApiMessages::DispatchTransaction(uuid, _transaction) => {
-                Ok(uuid.to_string())
-            }
-            IncomingBitVMXApiMessages::DispatchTransactionName(uuid, name) => {
-                Ok(Self::tx_name_to_correlation_id(uuid, name))
-            }
-            IncomingBitVMXApiMessages::SetupKey(uuid, _addresses, _operator_key, _funding_key) => {
-                Ok(uuid.to_string())
-            }
-            IncomingBitVMXApiMessages::GetAggregatedPubkey(uuid) => Ok(uuid.to_string()),
-            IncomingBitVMXApiMessages::GetProtocolVisualization(uuid) => {
-                Ok(format!("protocol_visualization_{uuid}"))
-            }
-            IncomingBitVMXApiMessages::GetKeyPair(uuid) => Ok(uuid.to_string()),
-            IncomingBitVMXApiMessages::GetPubKey(uuid, _new_key) => Ok(uuid.to_string()),
-            IncomingBitVMXApiMessages::SignMessage(uuid, _payload_to_sign, _public_key_to_use) => {
-                Ok(uuid.to_string())
-            }
-            IncomingBitVMXApiMessages::GenerateZKP(uuid, _payload_to_sign, _name) => {
-                Ok(uuid.to_string())
-            }
-            IncomingBitVMXApiMessages::ProofReady(uuid) => Ok(uuid.to_string()),
-            IncomingBitVMXApiMessages::GetZKPExecutionResult(uuid) => Ok(uuid.to_string()),
-            IncomingBitVMXApiMessages::Encrypt(uuid, _payload_to_encrypt, _public_key_to_use) => {
-                Ok(uuid.to_string())
-            }
-            IncomingBitVMXApiMessages::Decrypt(uuid, _payload_to_decrypt) => Ok(uuid.to_string()),
-            IncomingBitVMXApiMessages::GetFundingBalance(uuid) => Ok(uuid.to_string()),
-            IncomingBitVMXApiMessages::GetFundingAddress(uuid) => Ok(uuid.to_string()),
-            IncomingBitVMXApiMessages::SendFunds(uuid, _destination, _fee) => Ok(uuid.to_string()),
-            _ => Err(anyhow::anyhow!(
-                "unhandled request message type: {:?}",
-                message
-            )),
-        }
-    }
-
-    /// Convert the response received from BitVMX to a correlation ID
-    fn response_to_correlation_id(
-        &self,
-        response: &OutgoingBitVMXApiMessages,
-    ) -> Result<String, anyhow::Error> {
-        match response {
-            OutgoingBitVMXApiMessages::Pong() => Ok("ping".to_string()),
-            OutgoingBitVMXApiMessages::Transaction(uuid, _transaction_status, name) => match name {
-                Some(name) => Ok(Self::tx_name_to_correlation_id(uuid, name)),
-                None => Ok(uuid.to_string()),
-            },
-            OutgoingBitVMXApiMessages::PeginTransactionFound(_txid, _transaction_status) => {
-                Ok("rsk_pegin".to_string())
-            }
-            OutgoingBitVMXApiMessages::SpendingUTXOTransactionFound(
-                uuid,
-                _txid,
-                _vout,
-                _transaction_status,
-            ) => Ok(uuid.to_string()),
-            OutgoingBitVMXApiMessages::SetupCompleted(uuid) => Ok(uuid.to_string()),
-            OutgoingBitVMXApiMessages::AggregatedPubkey(uuid, _aggregated_pubkey) => {
-                Ok(uuid.to_string())
-            }
-            OutgoingBitVMXApiMessages::AggregatedPubkeyNotReady(uuid) => Ok(uuid.to_string()),
-            OutgoingBitVMXApiMessages::ProtocolVisualization(uuid, _visualization) => {
-                Ok(format!("protocol_visualization_{uuid}"))
-            }
-            OutgoingBitVMXApiMessages::TransactionInfo(uuid, _name, _transaction) => {
-                Ok(uuid.to_string())
-            }
-            OutgoingBitVMXApiMessages::ZKPResult(uuid, _zkp_result, _zkp_proof) => {
-                Ok(uuid.to_string())
-            }
-            OutgoingBitVMXApiMessages::CommInfo(_p2p_address) => Ok("get_comm_info".to_string()),
-            OutgoingBitVMXApiMessages::KeyPair(uuid, _private_key, _public_key) => {
-                Ok(uuid.to_string())
-            }
-            OutgoingBitVMXApiMessages::PubKey(uuid, _pub_key) => Ok(uuid.to_string()),
-            OutgoingBitVMXApiMessages::SignedMessage(
-                uuid,
-                _signature_r,
-                _signature_s,
-                _recovery_id,
-            ) => Ok(uuid.to_string()),
-            OutgoingBitVMXApiMessages::Variable(uuid, _key, _value) => Ok(uuid.to_string()),
-            OutgoingBitVMXApiMessages::Witness(uuid, _key, _witness) => Ok(uuid.to_string()),
-            OutgoingBitVMXApiMessages::NotFound(uuid, _key) => Ok(uuid.to_string()),
-            OutgoingBitVMXApiMessages::HashedMessage(uuid, _name, _vout, _leaf, _) => {
-                Ok(uuid.to_string())
-            }
-            OutgoingBitVMXApiMessages::ProofReady(uuid) => Ok(uuid.to_string()),
-            OutgoingBitVMXApiMessages::ProofNotReady(uuid) => Ok(uuid.to_string()),
-            OutgoingBitVMXApiMessages::ProofGenerationError(uuid, _error) => Ok(uuid.to_string()),
-            OutgoingBitVMXApiMessages::SPVProof(txid, _spv_proof) => {
-                Ok(format!("spv_proof_{txid}"))
-            }
-            OutgoingBitVMXApiMessages::Encrypted(uuid, _encrypted_message) => Ok(uuid.to_string()),
-            OutgoingBitVMXApiMessages::Decrypted(uuid, _decrypted_message) => Ok(uuid.to_string()),
-            OutgoingBitVMXApiMessages::FundingAddress(uuid, _address) => Ok(uuid.to_string()),
-            OutgoingBitVMXApiMessages::FundingBalance(uuid, _balance) => Ok(uuid.to_string()),
-            OutgoingBitVMXApiMessages::FundsSent(uuid, _txid) => Ok(uuid.to_string()),
-            OutgoingBitVMXApiMessages::WalletNotReady(uuid) => Ok(uuid.to_string()),
-            OutgoingBitVMXApiMessages::WalletError(uuid, _error) => Ok(uuid.to_string()),
-            _ => Err(anyhow::anyhow!(
-                "unhandled response message type: {:?}",
-                response
-            )),
         }
     }
 }
