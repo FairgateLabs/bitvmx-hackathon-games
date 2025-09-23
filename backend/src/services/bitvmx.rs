@@ -311,6 +311,16 @@ impl BitvmxService {
         Ok((tx_name, transaction_status))
     }
 
+    pub async fn start_challenge_wait_confirmation(
+        &self,
+        program_id: Uuid,
+    ) -> Result<(String, TransactionStatus), anyhow::Error> {
+        let (tx_name, tx_status) = self
+            .wait_transaction_by_name_response(program_id, dispute::START_CH)
+            .await?;
+        Ok((tx_name, tx_status))
+    }
+
     /// Set the program input
     pub async fn set_program_input(
         &self,

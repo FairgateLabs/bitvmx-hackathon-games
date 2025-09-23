@@ -1,7 +1,7 @@
 use crate::models::{
     AddNumbersGame, AddNumbersGameStatus, GameOutcome, GameReason, P2PAddress, PlayerRole, Utxo,
 };
-use crate::services::BitvmxService;
+use crate::services::{BitvmxService, WorkerService};
 use crate::stores::AddNumbersStore;
 use bitvmx_client::bitcoin::PublicKey;
 use bitvmx_client::bitcoin_coordinator::TransactionStatus;
@@ -13,7 +13,7 @@ use bitvmx_client::protocol_builder::types::OutputType;
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::task::JoinSet;
-use tracing::{debug, error};
+use tracing::{debug, error, instrument};
 use uuid::Uuid;
 
 // File path should be the relative path from the bitvmx-client to the program definition file
@@ -280,15 +280,55 @@ impl AddNumbersService {
             .await
             .map_err(|e| anyhow::anyhow!(format!("Failed to add funding UTXO: {e:?}")))?;
 
+        // For now we use the same transaction for the protocol cost and the player bet with different vouts
+        if funding_protocol_utxo.txid != funding_bet_utxo.txid {
+            return Err(anyhow::anyhow!(
+                "Protocol and bet UTXOs should have the same transaction ID at this moment"
+            ));
+        }
+
+        // Get the funding transaction status
+        let funding_tx_status = self
+            .bitvmx_service
+            .get_transaction(funding_protocol_utxo.txid)
+            .await
+            .map_err(|e| anyhow::anyhow!(format!("Failed to get transaction: {e:?}")))?;
+
+        // Protcol cost transaction
+        self.game_store
+            .set_dispute_tx(
+                program_id,
+                dispute::EXTERNAL_START.to_string(),
+                funding_tx_status.clone(),
+            )
+            .await
+            .map_err(|e| {
+                anyhow::anyhow!(format!("Failed to set EXTERNAL_START dispute tx: {e:?}"))
+            })?;
+
+        // Player bet transaction
+        self.game_store
+            .set_dispute_tx(
+                program_id,
+                dispute::EXTERNAL_ACTION.to_string(),
+                funding_tx_status,
+            )
+            .await
+            .map_err(|e| {
+                anyhow::anyhow!(format!("Failed to set EXTERNAL_START dispute tx: {e:?}"))
+            })?;
+
         Ok(())
     }
 
     /// Setup the game
+    #[instrument(name = "setup_game", skip(self, worker_service))]
     pub async fn setup_game(
         &self,
         program_id: Uuid,
         number1: u32,
         number2: u32,
+        worker_service: Arc<WorkerService>,
     ) -> Result<(), anyhow::Error> {
         // Get the game
         let game = self
@@ -393,22 +433,33 @@ impl AddNumbersService {
                 1,
             )
             .await
-            .map_err(|e| anyhow::anyhow!(format!("Failed to set variable program setup: {e:?}")))?;
+            .map_err(|e| anyhow::anyhow!("Failed to set variable program setup: {e:?}"))?;
 
         // Set game as started
         self.game_store
             .setup_game(program_id, number1, number2)
             .await
-            .map_err(|e| anyhow::anyhow!(format!("Failed to save start game state: {e:?}")))?;
+            .map_err(|e| anyhow::anyhow!("Failed to save start game state: {e:?}"))?;
 
-        // Return the program ID
+        if game.role == PlayerRole::Player2 {
+            // Player 1 will send the challenge transaction to start the game.
+            // Player 2 will wait until see the first challenge transaction.
+            worker_service
+                .handle_start_game_tx(program_id)
+                .map_err(|e| {
+                    anyhow::anyhow!("Failed to enqueue job to wait for start game: {e:?}")
+                })?;
+        }
         Ok(())
     }
 
     /// Start the game
+    /// Player 1 will send the challenge transaction to start the game.
+    #[instrument(name = "start_game", skip(self, worker_service))]
     pub async fn start_game(
         &self,
         program_id: Uuid,
+        worker_service: Arc<WorkerService>,
     ) -> Result<(String, TransactionStatus), anyhow::Error> {
         // Get the game
         let game = self
@@ -421,7 +472,9 @@ impl AddNumbersService {
         }
 
         if game.role != PlayerRole::Player1 {
-            return Err(anyhow::anyhow!("Invalid game role"));
+            return Err(anyhow::anyhow!(
+                "Invalid game role, only player 1 can start the game"
+            ));
         }
 
         // Player 1 send the challenge transaction to start the game.
@@ -435,32 +488,53 @@ impl AddNumbersService {
         self.game_store
             .start_game(program_id, challenge_tx_name.clone(), &challenge_tx)
             .await
-            .map_err(|e| anyhow::anyhow!(format!("Failed to setup game: {e:?}")))?;
+            .map_err(|e| anyhow::anyhow!(format!("Failed to set game as started: {e:?}")))?;
+
+        // Player 2 will make the guess
+        // Player 1 will wait until see the game result.
+        worker_service
+            .handle_player2_wins_game_outcome_tx(program_id)
+            .map_err(|e| {
+                anyhow::anyhow!("Failed to enqueue job to wait for player 2 to win the game: {e:?}")
+            })?;
 
         Ok((challenge_tx_name, challenge_tx))
     }
 
+    /// Wait for the other player to start the game
+    /// Player 2 will wait until see the first challenge transaction.
+    #[instrument(name = "wait_start_game_tx", skip(self))]
+    pub async fn wait_start_game_tx(&self, program_id: Uuid) -> Result<(), anyhow::Error> {
+        debug!("Waiting for other player to start the game");
+        let (challenge_tx_name, challenge_tx) = self
+            .bitvmx_service
+            .wait_transaction_by_name_response(program_id, dispute::START_CH)
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to wait for start game: {e:?}"))?;
+        debug!("Other player started the game");
+
+        // Set the game as setuped
+        self.game_store
+            .start_game(program_id, challenge_tx_name.clone(), &challenge_tx)
+            .await
+            .map_err(|e| anyhow::anyhow!(format!("Failed to set game as started: {e:?}")))?;
+
+        Ok(())
+    }
+
     /// Submit the sum
+    /// Player 2 will send the sum to answer the challenge.
+    #[instrument(name = "submit_sum", skip(self))]
     pub async fn submit_sum(
         &self,
         program_id: Uuid,
         guess: u32,
     ) -> Result<AddNumbersGame, anyhow::Error> {
-        // Get the game
-        let game = self
-            .get_game(program_id)
-            .await?
-            .ok_or(anyhow::anyhow!("Game not found"))?;
-
-        if game.role != PlayerRole::Player2 {
-            return Err(anyhow::anyhow!("Invalid game role"));
-        }
-        // TODO fix the state
-        // if game.status != AddNumbersGameStatus::SubmitGameData {
-        //     return Err(anyhow::anyhow!("Game is not in submit game data state"));
-        //         "Game is not in submit game data state",
-        //     ));
-        // }
+        // Store the submitted sum
+        self.game_store
+            .make_guess(program_id, guess)
+            .await
+            .map_err(|e| anyhow::anyhow!(format!("Failed to store submitted sum: {e:?}")))?;
 
         // The input index is 1 because the first input is the numbers to sum
         let input_index = 1;
@@ -481,12 +555,32 @@ impl AddNumbersService {
             "Challenge input transaction: {:?}",
             challenge_input_tx.tx_id
         );
+
+        // Wait for the dispute transactions to be confirmed
+        self.wait_dispute_transactions(program_id)
+            .await
+            .map_err(|e| {
+                anyhow::anyhow!(format!("Failed to wait for dispute transactions: {e:?}"))
+            })?;
+
+        // Set the challenge input transaction
         self.game_store
             .set_dispute_tx(program_id, challenge_input_tx_name, challenge_input_tx)
             .await
             .map_err(|e| anyhow::anyhow!(format!("Failed to set challenge tx: {e:?}")))?;
 
-        // Wait for the dispute transactions to be confirmed
+        // Update the game status when you know the outcome.
+        let game = self
+            .game_store
+            .set_game_complete(program_id, GameOutcome::Win, GameReason::Challenge)
+            .await
+            .map_err(|e| anyhow::anyhow!(format!("Failed to set game complete: {e:?}")))?;
+
+        Ok(game)
+    }
+
+    async fn wait_dispute_transactions(&self, program_id: Uuid) -> Result<(), anyhow::Error> {
+        debug!("Waiting for dispute transactions to be confirmed");
         let mut join_set = JoinSet::new();
         self.spawn_wait_task_transaction_by_name(&mut join_set, program_id, dispute::COMMITMENT);
         self.spawn_wait_task_transaction_by_name(&mut join_set, program_id, "NARY_PROVER_1");
@@ -510,6 +604,7 @@ impl AddNumbersService {
             dispute::ACTION_PROVER_WINS,
         );
 
+        // Wait until you know the result of the game
         while let Some(res) = join_set.join_next().await {
             match res {
                 Ok(result) => match result {
@@ -527,25 +622,9 @@ impl AddNumbersService {
             }
         }
 
-        // TOOD: PEDRO Wait until you know the answer
-        self.game_store
-            .make_guess(program_id, guess)
-            .await
-            .map_err(|e| anyhow::anyhow!(format!("Failed to store submitted sum: {e:?}")))?;
+        debug!("All dispute transactions confirmed");
 
-        // TODO PEDRO: Here you have to :
-        // Player 2 will send the answer transaction to the program.
-        // Player 1 will wait until see the answer transaction.
-        // Player 2 will wait here also in order to know the outcome and reason of the game.
-
-        // TODO: PEDRO: Update the game status when you know the outcome and reason of the game.
-        let game = self
-            .game_store
-            .set_game_complete(program_id, GameOutcome::Win, GameReason::Challenge)
-            .await
-            .map_err(|e| anyhow::anyhow!(format!("Failed to set game complete: {e:?}")))?;
-
-        Ok(game)
+        Ok(())
     }
 
     /// Helper function to spawn a wait task for transaction by name
@@ -562,5 +641,29 @@ impl AddNumbersService {
                 .wait_transaction_by_name_response(program_id, &tx_name)
                 .await
         });
+    }
+
+    /// Wait for other player to win the game
+    /// Player 1 will wait until see the first challenge transaction.
+    #[instrument(name = "wait_player2_wins_game_outcome_tx", skip(self))]
+    pub async fn wait_player2_wins_game_outcome_tx(
+        &self,
+        program_id: Uuid,
+    ) -> Result<(), anyhow::Error> {
+        debug!("Waiting for player 2 to win the game");
+        self.wait_dispute_transactions(program_id)
+            .await
+            .map_err(|e| {
+                anyhow::anyhow!(format!("Failed to wait for dispute transactions: {e:?}"))
+            })?;
+        debug!("Player 2 won the game");
+
+        // Set the game as complete
+        self.game_store
+            .set_game_complete(program_id, GameOutcome::Lose, GameReason::Challenge)
+            .await
+            .map_err(|e| anyhow::anyhow!(format!("Failed to set game complete: {e:?}")))?;
+
+        Ok(())
     }
 }

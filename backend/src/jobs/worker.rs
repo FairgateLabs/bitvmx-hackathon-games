@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::broadcast::Sender;
@@ -7,24 +6,7 @@ use tokio::task::JoinHandle;
 use tokio::time::sleep;
 use tracing::{debug, info, warn, Instrument};
 
-// ---------- Definition of a generic Job ----------
-#[async_trait]
-pub trait Job: Send + Sync + 'static {
-    async fn run(self: Box<Self>) -> Result<(), anyhow::Error>;
-}
-
-// Implementation example of Job
-pub struct PrintJob {
-    msg: String,
-}
-
-#[async_trait]
-impl Job for PrintJob {
-    async fn run(self: Box<Self>) -> Result<(), anyhow::Error> {
-        println!("Running job: {}", self.msg);
-        Ok(())
-    }
-}
+use crate::jobs::Job;
 
 const CHECK_SHUTDOWN_INTERVAL: u64 = 100; // 100 milliseconds
 
@@ -99,10 +81,12 @@ impl JobWorker {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use async_trait::async_trait;
     use std::sync::atomic::{AtomicU32, Ordering};
     use std::sync::Arc;
     use tokio::sync::broadcast;
 
+    // Implementation example of Job
     struct CounterJob {
         counter: Arc<AtomicU32>,
         id: u32,
@@ -120,7 +104,7 @@ mod tests {
     #[tokio::test]
     async fn test_job_worker_thread_safety() {
         let (shutdown_tx, _) = broadcast::channel(1);
-        let (worker, worker_task) = JobWorker::start(&shutdown_tx).await;
+        let (worker, worker_task) = JobWorker::start(&shutdown_tx);
 
         let counter = Arc::new(AtomicU32::new(0));
         let num_jobs = 100;
@@ -160,11 +144,12 @@ mod tests {
     #[tokio::test]
     async fn test_job_worker_shutdown() {
         let (shutdown_tx, _) = broadcast::channel(1);
-        let (worker, worker_task) = JobWorker::start(&shutdown_tx).await;
+        let (worker, worker_task) = JobWorker::start(&shutdown_tx);
 
         // Enqueue a job
-        let job = PrintJob {
-            msg: "Test job".to_string(),
+        let job = CounterJob {
+            counter: Arc::new(AtomicU32::new(0)),
+            id: 0,
         };
         worker.enqueue(job).unwrap();
 

@@ -238,10 +238,10 @@ impl AddNumbersStore {
             .get_mut(&id)
             .ok_or(anyhow::anyhow!("Game not found"))?;
 
-        // // Validate game status
-        // if game.status != AddNumbersGameStatus::SubmitGameData {
-        //     return Err(anyhow::anyhow!("Game is not in waiting for guess state"));
-        // }
+        // Validate game status
+        if game.status != AddNumbersGameStatus::SubmitGameData {
+            return Err(anyhow::anyhow!("Game is not in waiting for guess state"));
+        }
 
         // Player 2 is the prover that will send the answer transaction to the program.
         if game.role != PlayerRole::Player2 {

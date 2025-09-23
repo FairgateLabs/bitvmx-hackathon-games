@@ -264,7 +264,7 @@ pub async fn start_game(
     // Player 1 send the challenge transaction to start the game.
     let (_challenge_tx_name, challenge_tx) = app_state
         .add_numbers_service
-        .start_game(program_id)
+        .start_game(program_id, app_state.worker_service.clone())
         .await
         .map_err(|e| http_errors::internal_server_error(&format!("Failed to start game: {e:?}")))?;
 
@@ -301,7 +301,12 @@ pub async fn setup_game(
 
     app_state
         .add_numbers_service
-        .setup_game(program_id, request.number1, request.number2)
+        .setup_game(
+            program_id,
+            request.number1,
+            request.number2,
+            app_state.worker_service.clone(),
+        )
         .await
         .map_err(|e| http_errors::internal_server_error(&format!("Failed to setup game: {e:?}")))?;
 
