@@ -7,10 +7,7 @@ import { useAnswerAddNumber, useCurrentGame } from "@/hooks/useGame";
 export function SubmitGameData() {
   const [guess, setGuess] = useState<number | undefined>(undefined);
   const { data: game } = useCurrentGame();
-  const { mutate: submitSum, isPending } = useAnswerAddNumber({
-    id: game?.program_id ?? "",
-    guess: guess ?? 0,
-  });
+  const { mutate: submitSum, isPending } = useAnswerAddNumber();
 
   const isAnswerValid = () => {
     const parsedAnswer = parseInt(guess?.toString() ?? "0", 10);
@@ -30,11 +27,11 @@ export function SubmitGameData() {
           <Input
             id="answer"
             type="number"
-            value={guess}
             onChange={(e) => {
               const value = e.target.value;
               if (parseInt(value, 10) >= 0 || value === "") {
-                setGuess(parseInt(value, 10));
+                let guess = parseInt(value, 10);
+                setGuess(guess);
               }
             }}
             placeholder="Enter the sum"
@@ -43,7 +40,12 @@ export function SubmitGameData() {
         </div>
 
         <Button
-          onClick={() => submitSum()}
+          onClick={() =>
+            submitSum({
+              id: game?.program_id ?? "",
+              guess: guess ?? 0,
+            })
+          }
           disabled={isPending || !isAnswerValid()}
           className="w-full"
         >
