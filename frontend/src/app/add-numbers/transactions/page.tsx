@@ -135,13 +135,13 @@ export default function TransactionList() {
 
               <div className="space-y-6">
                 {transactions &&
-                  Object.keys(transactions).map((key) => {
+                  Object.keys(transactions).map((key, index) => {
                     const txData = transactions[key]?.tx;
                     const txId = transactions[key]?.tx_id;
 
                     return (
                       <Card
-                        key={txId}
+                        key={`${txId}_${index}`}
                         className="hover:shadow-lg transition-shadow"
                       >
                         <CardHeader>
