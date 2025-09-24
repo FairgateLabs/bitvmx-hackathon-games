@@ -128,7 +128,7 @@ export default function AddNumbersPage() {
               {role === EnumPlayerRole.Player2 && (
                 <>
                   {game?.status === "StartGame" && <WaitingStartGame />}
-                  {game?.status === "StartGame" && <SubmitGameData />}
+                  {game?.status === "SubmitGameData" && <SubmitGameData />}
                 </>
               )}
 

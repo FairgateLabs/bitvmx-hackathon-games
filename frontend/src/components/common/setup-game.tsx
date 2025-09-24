@@ -23,7 +23,7 @@ export function SetupGame() {
   });
 
   useEffect(() => {
-    queryClient.invalidateQueries({ queryKey: ["currentGameId"] });
+    queryClient.invalidateQueries({ queryKey: ["currentGame"] });
   }, [isPending]);
 
   const handleNumberChange = (key: string, value: string) => {

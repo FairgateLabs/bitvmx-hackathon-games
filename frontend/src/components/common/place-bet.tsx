@@ -24,7 +24,7 @@ export function PlaceBet() {
   }, []);
 
   useEffect(() => {
-    queryClient.invalidateQueries({ queryKey: ["currentGameId"] });
+    queryClient.invalidateQueries({ queryKey: ["currentGame"] });
   }, [isPlacingBet]);
 
   return (

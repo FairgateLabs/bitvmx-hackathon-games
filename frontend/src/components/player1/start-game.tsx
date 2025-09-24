@@ -14,7 +14,7 @@ export function StartGame() {
   };
 
   useEffect(() => {
-    queryClient.invalidateQueries({ queryKey: ["currentGameId"] });
+    queryClient.invalidateQueries({ queryKey: ["currentGame"] });
   }, [isPending]);
 
   return (

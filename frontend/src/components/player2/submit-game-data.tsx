@@ -7,7 +7,7 @@ import { useAnswerAddNumber, useCurrentGame } from "@/hooks/useGame";
 export function SubmitGameData() {
   const [guess, setGuess] = useState<number | undefined>(undefined);
   const { data: game } = useCurrentGame();
-  const { mutate: submitSum, isPending } = useAnswerAddNumber();
+  const { mutate: submitSum, isPending, isSuccess } = useAnswerAddNumber();
 
   const isAnswerValid = () => {
     const parsedAnswer = parseInt(guess?.toString() ?? "0", 10);
@@ -64,6 +64,17 @@ export function SubmitGameData() {
             </p>
           </div>
         )}
+
+        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg mt-4">
+          <h3 className="font-semibold mb-2 text-yellow-800">
+            ⚠️ On-Chain Verification
+          </h3>
+          <p className="text-sm text-yellow-700">
+            This process will take some time. Player 1 has initiated an on-chain
+            request to prove the sum of the game. You will submit your answer
+            on-chain and dispute the challenge there to determine the winner.
+          </p>
+        </div>
       </div>
     </div>
   );

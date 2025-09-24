@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getApiBaseUrl } from "../config/backend";
 import { AddNumbersGame } from "../../../backend/bindings/AddNumbersGame";
 import { StartGameRequest } from "../../../backend/bindings/StartGameRequest";
@@ -59,21 +59,28 @@ function useSetupGame(data: SetupGameRequest) {
   });
 }
 
+async function submitSum(data: SubmitSumRequest) {
+  const baseUrl = getApiBaseUrl();
+  const response = await fetch(`${baseUrl}/api/add-numbers/submit-sum`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to send number");
+  }
+  return response.json();
+}
+
 function useAnswerAddNumber() {
+  const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: async (data: SubmitSumRequest) => {
-      const baseUrl = getApiBaseUrl();
-      const response = await fetch(`${baseUrl}/api/add-numbers/submit-sum`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) {
-        throw new Error("Failed to send number");
-      }
-      return response.json();
+    mutationFn: submitSum,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["currentGame"] });
     },
   });
 }
@@ -94,7 +101,7 @@ function useCurrentGame() {
   }
 
   return useQuery({
-    queryKey: ["currentGameId"],
+    queryKey: ["currentGame"],
     queryFn: fetchCurrentGame,
     refetchInterval: 8 * 1000, // every 5 seconds
   });

@@ -63,7 +63,7 @@ export function FundingExchange({ expand = true }) {
 
   useEffect(() => {
     if (isPending) {
-      queryClient.invalidateQueries({ queryKey: ["currentGameId"] });
+      queryClient.invalidateQueries({ queryKey: ["currentGame"] });
     }
   }, [isPending]);
 
