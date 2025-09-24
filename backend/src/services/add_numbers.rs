@@ -6,7 +6,7 @@ use crate::stores::AddNumbersStore;
 use bitvmx_client::bitcoin::PublicKey;
 use bitvmx_client::bitcoin_coordinator::TransactionStatus;
 use bitvmx_client::bitvmx_wallet::wallet::Destination;
-use bitvmx_client::program::participant::P2PAddress as BitVMXP2PAddress;
+use bitvmx_client::program::participant::CommsAddress as BitVMXP2PAddress;
 use bitvmx_client::program::protocols::dispute;
 use bitvmx_client::program::variables::VariableTypes;
 use bitvmx_client::protocol_builder::types::OutputType;

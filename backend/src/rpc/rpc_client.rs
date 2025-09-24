@@ -1,6 +1,9 @@
 use crate::rpc::chained_map::ChainedMap;
 use crate::rpc::correlation::{request_to_correlation_id, response_to_correlation_id};
-use bitvmx_broker::rpc::async_client::AsyncClient;
+use bitvmx_broker::identification::allow_list::AllowList;
+use bitvmx_broker::identification::identifier::Identifier;
+use bitvmx_broker::rpc::client::Client;
+use bitvmx_broker::rpc::tls_helper::Cert;
 use bitvmx_broker::rpc::BrokerConfig;
 use bitvmx_client::types::{IncomingBitVMXApiMessages, OutgoingBitVMXApiMessages};
 use std::net::IpAddr;
@@ -21,11 +24,11 @@ const CHECK_SHUTDOWN_INTERVAL: u64 = 100; // 100 milliseconds
 #[derive(Debug, Clone)]
 pub struct RpcClient {
     /// Internal Broker RPC client
-    client: AsyncClient,
+    client: Client,
     /// My ID for sending messages
-    my_id: u32,
-    /// Target ID for sending messages
-    to_id: u32,
+    my_id: u8,
+    /// Target identifier for sending messages
+    to_identifier: Identifier,
     /// Pending responses waiting to be matched with correlation IDs
     pending_responses: Arc<Mutex<ChainedMap<String, oneshot::Sender<OutgoingBitVMXApiMessages>>>>,
     /// Ready flag
@@ -36,26 +39,45 @@ impl RpcClient {
     /// Start a new RPC service
     /// Initialize the Broker RPC client with the specified port
     pub fn connect(
-        my_id: u32,
-        to_id: u32,
         broker_port: u16,
         broker_ip: Option<IpAddr>,
         shutdown_tx: &Sender<()>,
-    ) -> (Arc<Self>, JoinHandle<Result<(), anyhow::Error>>) {
-        let config = BrokerConfig::new(broker_port, broker_ip);
-        let client = AsyncClient::new(&config);
+    ) -> Result<(Arc<Self>, JoinHandle<Result<(), anyhow::Error>>), anyhow::Error> {
+        let bitvmx_key_file = "config/keys/bitvmx.key";
+        let bitvmx_cert = Cert::from_key_file(bitvmx_key_file).map_err(|e| {
+            anyhow::anyhow!("Failed to create certificate from file {bitvmx_key_file} err: {e:?}")
+        })?;
+        let bitvmx_identifier = Identifier::new(bitvmx_cert.get_pubk_hash()?, 0);
+        debug!("BitVMX identifier: {:?}", bitvmx_identifier);
 
+        let l2_key_file = "config/keys/l2.key";
+        let l2_cert = Cert::from_key_file(l2_key_file).map_err(|e| {
+            anyhow::anyhow!("Failed to create certificate from file {l2_key_file} err: {e:?}")
+        })?;
+        let l2_identifier = Identifier::new(l2_cert.get_pubk_hash()?, 0);
+        debug!("L2 identifier: {:?}", l2_identifier);
+
+        // Create allow list
+        let allow_list = AllowList::new();
+        allow_list.lock().unwrap().allow_all();
+
+        // Create broker client
+        let config = BrokerConfig::new(broker_port, broker_ip, bitvmx_cert.get_pubk_hash()?);
+        let client = Client::new(&config, l2_cert.clone(), allow_list);
+
+        // Create RPC client
         let rpc_client = Arc::new(Self {
             client,
-            my_id,
-            to_id,
+            my_id: 0,
+            to_identifier: bitvmx_identifier.clone(),
             pending_responses: Arc::new(Mutex::new(ChainedMap::new())),
             ready: Arc::new(AtomicBool::new(false)),
         });
 
-        let listener_task = Self::spawn_listener(rpc_client.clone(), my_id, shutdown_tx);
+        let listener_task =
+            Self::spawn_listener(rpc_client.clone(), l2_identifier.clone(), shutdown_tx);
 
-        (rpc_client, listener_task)
+        Ok((rpc_client, listener_task))
     }
 
     async fn add_response_handler(
@@ -141,9 +163,11 @@ impl RpcClient {
         // Serialize the message
         let serialized_msg = serde_json::to_string(&message)?;
 
+        trace!("Sending message to BitVMX: {:?}", serialized_msg);
+
         // Send the message directly to BitVMX
         self.client
-            .send_msg(self.my_id, self.to_id, serialized_msg)
+            .async_send_msg(self.my_id, self.to_identifier.clone(), serialized_msg)
             .await
             .map_err(|e| anyhow::anyhow!("Send message to BitVMX failed: {e}"))?;
 
@@ -204,7 +228,7 @@ impl RpcClient {
 
     fn spawn_listener(
         service: Arc<RpcClient>,
-        my_id: u32,
+        my_identifier: Identifier,
         shutdown_tx: &Sender<()>,
     ) -> JoinHandle<Result<(), anyhow::Error>> {
         let mut shutdown_rx = shutdown_tx.subscribe();
@@ -220,7 +244,7 @@ impl RpcClient {
                         }
                         result = tokio::time::timeout(
                             Duration::from_millis(CHECK_SHUTDOWN_INTERVAL),
-                            service.client.get_msg(my_id)
+                            service.client.async_get_msg(my_identifier.clone())
                         ) => {
                             match result {
                                 Ok(msg_result) => {
@@ -228,7 +252,7 @@ impl RpcClient {
                                         Ok(Some(msg)) => {
                                             trace!("Received message from BitVMX: {:?}", msg);
                                             service.handle_response(msg.msg).await?;
-                                            service.client.ack(my_id, msg.uid).await?;
+                                            service.client.async_ack(my_identifier.clone(), msg.uid).await?;
                                         }
                                         Ok(None) => {
                                             // No message received, continue loop

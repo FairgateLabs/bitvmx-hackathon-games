@@ -5,7 +5,7 @@ use crate::stores::BitvmxStore;
 use bitvmx_client::bitcoin::{Address, PublicKey, Txid};
 use bitvmx_client::bitcoin_coordinator::TransactionStatus;
 use bitvmx_client::bitvmx_wallet::wallet::Destination;
-use bitvmx_client::program::participant::P2PAddress as BitVMXP2PAddress;
+use bitvmx_client::program::participant::CommsAddress as BitVMXP2PAddress;
 use bitvmx_client::program::protocols::dispute;
 use bitvmx_client::program::variables::VariableTypes;
 use bitvmx_client::types::{IncomingBitVMXApiMessages, OutgoingBitVMXApiMessages};
@@ -120,7 +120,8 @@ impl BitvmxService {
                 program_id,
             ))
             .await?;
-        if let OutgoingBitVMXApiMessages::ProtocolVisualization(_, visualization) = response {
+        // TODO add back UUID
+        if let OutgoingBitVMXApiMessages::ProtocolVisualization(visualization) = response {
             info!("Obtained protocol visualization: {:?}", visualization);
             Ok(visualization)
         } else {
@@ -508,15 +509,10 @@ impl BitvmxService {
         info!(
             "Operator P2P address: {:?} and peer id: {:?}",
             comm_info.address.to_string(),
-            comm_info.peer_id.to_string()
+            comm_info.pubkey_hash.to_string()
         );
         // Set P2P address
-        self.bitvmx_store
-            .set_p2p_address(P2PAddress {
-                address: comm_info.address.clone(),
-                peer_id: comm_info.peer_id.to_string(),
-            })
-            .await?;
+        self.bitvmx_store.set_p2p_address(comm_info.into()).await?;
         trace!("Updated P2P address in store");
         Ok(())
     }

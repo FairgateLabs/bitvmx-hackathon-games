@@ -1,4 +1,3 @@
-use bitvmx_client::types::{BITVMX_ID, L2_ID};
 use bitvmx_hackathon_backend::{
     api, config, jobs::worker::JobWorker, rpc::rpc_client::RpcClient, state::AppState,
 };
@@ -69,13 +68,11 @@ async fn main() -> anyhow::Result<()> {
     let (shutdown_tx, _) = broadcast::channel::<()>(1);
 
     // 4. Connect to BitVMX RPC, spawn listener task
-    let (rpc_client, rpc_listener_task) = RpcClient::connect(
-        L2_ID,
-        BITVMX_ID,
-        config.bitvmx.broker_port,
-        None,
-        &shutdown_tx,
-    );
+    let (rpc_client, rpc_listener_task) =
+        RpcClient::connect(config.bitvmx.broker_port, None, &shutdown_tx).map_err(|e| {
+            error!("❌ Failed to connect to BitVMX RPC: {e:?}");
+            e
+        })?;
 
     // 5. Start job worker
     let (job_worker, job_worker_task) = JobWorker::start(&shutdown_tx);
