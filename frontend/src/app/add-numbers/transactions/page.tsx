@@ -81,19 +81,13 @@ export default function TransactionList() {
 
   useEffect(() => {
     const highlightDisputeTxs = async () => {
-      if (!protocol) return;
-      const disputeTxKeys = Object.keys(
-        currentGame?.bitvmx_program_properties.dispute_tx || {}
-      );
+      if (!protocol || !transactions) return;
+      const disputeTxKeys = Object.keys(transactions || {});
       let protocolVisualization = protocol;
       const inst = await instance();
 
       for (const key of disputeTxKeys) {
-        const data = currentGame?.bitvmx_program_properties.dispute_tx?.[
-          key
-        ] as {
-          tx_id: string;
-        };
+        const data = transactions?.[key];
         const url = getLink(data.tx_id);
         protocolVisualization = highlightNode(protocolVisualization, key, url);
       }
@@ -101,7 +95,7 @@ export default function TransactionList() {
       setProtocolVisualization(svg);
     };
     highlightDisputeTxs();
-  }, [currentGame?.bitvmx_program_properties.dispute_tx, protocol]);
+  }, [transactions, protocol]);
 
   return (
     <BackendStatus>

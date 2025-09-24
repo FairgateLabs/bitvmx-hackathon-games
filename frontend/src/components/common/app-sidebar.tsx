@@ -34,7 +34,7 @@ const menu_items = [
     items: [
       {
         title: "Documentation",
-        url: "/learning-bitvmx/documentation",
+        url: "/documentation",
         icon: FileText, // más claro para docs
       },
     ],
