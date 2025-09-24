@@ -548,7 +548,10 @@ impl AddNumbersService {
         // Send the input transaction to BitVMX
         let (challenge_input_tx, challenge_input_tx_name) = self
             .bitvmx_service
-            .send_challenge_input(program_id, input_index)
+            .send_transaction_by_name(
+                program_id,
+                BitvmxService::dispute_input_tx_name(input_index).as_str(),
+            )
             .await
             .map_err(|e| anyhow::anyhow!(format!("Failed to send challenge input: {e:?}")))?;
         debug!(
@@ -666,6 +669,16 @@ impl AddNumbersService {
         program_id: Uuid,
     ) -> Result<(), anyhow::Error> {
         debug!("Waiting for player 2 to win the game");
+
+        // Wait challenge input transaction
+        self.bitvmx_service
+            .wait_transaction_by_name_response(
+                program_id,
+                BitvmxService::dispute_input_tx_name(1).as_str(),
+            )
+            .await
+            .map_err(|e| anyhow::anyhow!(format!("Failed to wait for challenge input: {e:?}")))?;
+
         let dispute_result = self.wait_dispute_transactions(program_id).await;
         if let Err(e) = dispute_result {
             if !e.to_string().contains("Request timed out") {
