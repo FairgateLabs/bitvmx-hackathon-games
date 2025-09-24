@@ -374,29 +374,24 @@ impl BitvmxService {
     pub async fn send_transaction_by_name(
         &self,
         program_id: Uuid,
-        tx_name: String,
+        tx_name: &str,
     ) -> Result<(TransactionStatus, String), anyhow::Error> {
         // Dispatch the transaction by name
         let response = self
             .rpc_client
             .send_request(IncomingBitVMXApiMessages::DispatchTransactionName(
                 program_id,
-                tx_name.clone(),
+                tx_name.to_string(),
             ))
             .await?;
 
-        let (transaction_status, _) = Self::transaction_response(response, Some(&tx_name))?;
-        Ok((transaction_status, tx_name))
+        let (transaction_status, _) = Self::transaction_response(response, Some(tx_name))?;
+        Ok((transaction_status, tx_name.to_string()))
     }
 
-    /// Send the challenge input transaction
-    pub async fn send_challenge_input(
-        &self,
-        program_id: Uuid,
-        index: u32,
-    ) -> Result<(TransactionStatus, String), anyhow::Error> {
-        let tx_name = dispute::input_tx_name(index);
-        self.send_transaction_by_name(program_id, tx_name).await
+    /// Get the dispute input transaction name
+    pub fn dispute_input_tx_name(index: u32) -> String {
+        dispute::input_tx_name(index)
     }
 
     /// Get the funding address

@@ -13,7 +13,7 @@ use bitvmx_client::protocol_builder::types::OutputType;
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::task::JoinSet;
-use tracing::{debug, error, instrument};
+use tracing::{debug, error, info, instrument};
 use uuid::Uuid;
 
 // File path should be the relative path from the bitvmx-client to the program definition file
@@ -548,7 +548,10 @@ impl AddNumbersService {
         // Send the input transaction to BitVMX
         let (challenge_input_tx, challenge_input_tx_name) = self
             .bitvmx_service
-            .send_challenge_input(program_id, input_index)
+            .send_transaction_by_name(
+                program_id,
+                BitvmxService::dispute_input_tx_name(input_index).as_str(),
+            )
             .await
             .map_err(|e| anyhow::anyhow!(format!("Failed to send challenge input: {e:?}")))?;
         debug!(
@@ -556,20 +559,35 @@ impl AddNumbersService {
             challenge_input_tx.tx_id
         );
 
-        // Wait for the dispute transactions to be confirmed
-        self.wait_dispute_transactions(program_id)
-            .await
-            .map_err(|e| {
-                anyhow::anyhow!(format!("Failed to wait for dispute transactions: {e:?}"))
-            })?;
-
         // Set the challenge input transaction
         self.game_store
             .set_dispute_tx(program_id, challenge_input_tx_name, challenge_input_tx)
             .await
             .map_err(|e| anyhow::anyhow!(format!("Failed to set challenge tx: {e:?}")))?;
 
-        // Update the game status when you know the outcome.
+        // Wait for the dispute transactions to be confirmed
+        let dispute_result = self.wait_dispute_transactions(program_id).await;
+
+        if let Err(e) = dispute_result {
+            if !e.to_string().contains("Request timed out") {
+                return Err(anyhow::anyhow!(
+                    "Failed to wait for dispute transactions: {e:?}"
+                ));
+            }
+
+            info!("Player 1 won the game");
+            // Player 1 wins the game. Set the game as complete
+            let game = self
+                .game_store
+                .set_game_complete(program_id, GameOutcome::Lose, GameReason::Challenge)
+                .await
+                .map_err(|e| anyhow::anyhow!(format!("Failed to set game complete: {e:?}")))?;
+
+            return Ok(game);
+        }
+
+        info!("Player 2 won the game");
+        // Player 2 wins the game. Update the game status when you know the outcome.
         let game = self
             .game_store
             .set_game_complete(program_id, GameOutcome::Win, GameReason::Challenge)
@@ -651,14 +669,36 @@ impl AddNumbersService {
         program_id: Uuid,
     ) -> Result<(), anyhow::Error> {
         debug!("Waiting for player 2 to win the game");
-        self.wait_dispute_transactions(program_id)
-            .await
-            .map_err(|e| {
-                anyhow::anyhow!(format!("Failed to wait for dispute transactions: {e:?}"))
-            })?;
-        debug!("Player 2 won the game");
 
-        // Set the game as complete
+        // Wait challenge input transaction
+        self.bitvmx_service
+            .wait_transaction_by_name_response(
+                program_id,
+                BitvmxService::dispute_input_tx_name(1).as_str(),
+            )
+            .await
+            .map_err(|e| anyhow::anyhow!(format!("Failed to wait for challenge input: {e:?}")))?;
+
+        let dispute_result = self.wait_dispute_transactions(program_id).await;
+        if let Err(e) = dispute_result {
+            if !e.to_string().contains("Request timed out") {
+                return Err(anyhow::anyhow!(
+                    "Failed to wait for dispute transactions: {e:?}"
+                ));
+            }
+
+            info!("Player 1 won the game");
+            // Player 1 wins the game. Set the game as complete
+            self.game_store
+                .set_game_complete(program_id, GameOutcome::Win, GameReason::Challenge)
+                .await
+                .map_err(|e| anyhow::anyhow!(format!("Failed to set game complete: {e:?}")))?;
+
+            return Ok(());
+        }
+
+        info!("Player 2 won the game");
+        // Player 2 wins the game. Set the game as complete
         self.game_store
             .set_game_complete(program_id, GameOutcome::Lose, GameReason::Challenge)
             .await
