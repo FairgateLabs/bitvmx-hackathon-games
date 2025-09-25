@@ -13,7 +13,8 @@ export function WaitingAnswer() {
         </h3>
       </div>
       <p className="text-sm text-gray-700 mb-3">
-        Player 2 is answering, please wait.
+        Player 2 is answering, please wait. In case of timeout, you will win the
+        game.
       </p>
       <BlocksRemaining numberBlocks={5} onTimeout={handleTimeout} />
     </div>

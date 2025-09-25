@@ -11,7 +11,9 @@ export default function HowToPlayPage() {
             📚 How to Play <span className="text-primary">Add Numbers</span>
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Learn the game step by step before betting with Bitcoin ⚡
+            Learn the game step by step. Player 1 and Player 2 follow different
+            flows. This guide mirrors the exact in‑app flow and on‑chain steps
+            ⚡
           </p>
         </CardHeader>
         <CardContent className="space-y-8">
@@ -36,15 +38,14 @@ export default function HowToPlayPage() {
 
           {/* Step 2 */}
           <section>
-            <h3 className="text-lg font-semibold mb-2">💰 Wallet Funding</h3>
+            <h3 className="text-lg font-semibold mb-2">🌐 Network & Wallet</h3>
             <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
               <li>
-                <strong>Regtest:</strong> the wallet is automatically funded.
+                The game runs on <strong>Regtest</strong>.
               </li>
               <li>
-                <strong>Testnet:</strong> send funds to the displayed address,
-                then enter the <code>txid</code> and <code>UTXO</code>, and
-                confirm.
+                Wallets are auto‑funded by the local node. No manual funding is
+                required.
               </li>
             </ul>
           </section>
@@ -52,51 +53,125 @@ export default function HowToPlayPage() {
           {/* Step 3 */}
           <section>
             <h3 className="text-lg font-semibold mb-2">
-              🆔 Game Identification
+              🔌 Participant Data Exchange
             </h3>
             <p className="text-sm text-muted-foreground pb-2">
-              Player 1 creates the <strong>Game UUID</strong> (program ID).
+              Both players exchange connection information through two panels:
+              <strong> Your Participant Data</strong> (shows your info) and
+              <strong> Other Player's Participant Data</strong> (paste their
+              info). The exchanged <strong>Participant Data</strong> consists
+              of:
+              <em> Aggregated Id, Public Key, Network Address, Peer ID</em>{" "}
+              (Player 1 provides the Aggregated Id).
             </p>
-            <p className="text-sm text-muted-foreground">
-              {" "}
-              Player 1 must enter:
-            </p>
-            <ul className="list-disc list-inside text-sm text-muted-foreground mt-2">
-              <li>Player 2’s IP address</li>
-              <li>The corresponding port</li>
-            </ul>
-            <p className="text-sm text-muted-foreground pt-2">
-              {" "}
-              Player 2 must enter:
-            </p>
-            <ul className="list-disc list-inside text-sm text-muted-foreground mt-2">
-              <li>The Game UUID</li>
-              <li>Player 1’s IP address</li>
-              <li>The corresponding port</li>
-            </ul>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="p-4 rounded-xl bg-white shadow-sm border">
+                <h4 className="font-semibold mb-2">👤 Player 1</h4>
+                <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                  <li>
+                    Select <strong>Player 1</strong> role. The app generates a
+                    unique <strong>Aggregated Id</strong>.
+                  </li>
+                  <li>
+                    <strong>Your Participant Data</strong> panel shows: Game
+                    UUID, Public Key, Network Address, Peer ID.
+                  </li>
+                  <li>
+                    Click <strong>"Copy to Share"</strong> and send this JSON to
+                    Player 2.
+                  </li>
+                  <li>
+                    In <strong>Other Player's Participant Data</strong>, paste
+                    Player 2's JSON (Public Key, Network Address, Peer ID only).
+                  </li>
+                  <li>
+                    Click <strong>"Setup Data"</strong> to establish connection.
+                  </li>
+                </ul>
+              </div>
+              <div className="p-4 rounded-xl bg-white shadow-sm border">
+                <h4 className="font-semibold mb-2">👤 Player 2</h4>
+                <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                  <li>
+                    Select <strong>Player 2</strong> role.
+                  </li>
+                  <li>
+                    <strong>Your Participant Data</strong> panel shows: Public
+                    Key, Network Address, Peer ID.
+                  </li>
+                  <li>
+                    Click <strong>"Copy to Share"</strong> and send this JSON to
+                    Player 1.
+                  </li>
+                  <li>
+                    In <strong>Other Player's Participant Data</strong>, paste
+                    Player 1's JSON (Aggregated Id, Public Key, Network Address,
+                    Peer ID).
+                  </li>
+                  <li>
+                    Click <strong>"Setup Data"</strong> to establish connection.
+                  </li>
+                </ul>
+              </div>
+            </div>
           </section>
 
           {/* Step 4 */}
           <section>
             <h3 className="text-lg font-semibold mb-2">
-              🔑 Shared Key Generation
+              🔑 Aggregated Key Generation
             </h3>
             <p className="text-sm text-muted-foreground">
-              Both clients exchange wallets information, agree, and generate an{" "}
-              <strong>aggregated key</strong> that is shown to both players.
+              To setup the game, both players exchange{" "}
+              <strong>Participant Data</strong> (Aggregated ID, Public Key,
+              Network Address, Peer ID) and the app derives an
+              <strong> aggregated key</strong> that is displayed to both.
+              <br /> In this part of the flow, both participants contact each
+              other via BitVMX and generate an aggregated key that will be used
+              to sign the whole protocol.
             </p>
           </section>
 
           {/* Step 5 */}
           <section>
-            <h3 className="text-lg font-semibold mb-2">💵 Initial Bet</h3>
-            <p className="text-sm text-muted-foreground">
-              The bet is automatically set:
-            </p>
-            <ul className="list-disc list-inside text-sm text-muted-foreground">
-              <li>0.0001 BTC in Regtest</li>
-              <li>0.0001 BTC in Testnet</li>
-            </ul>
+            <h3 className="text-lg font-semibold mb-2">💵 Bet & Funding</h3>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="p-4 rounded-xl bg-white shadow-sm border">
+                <h4 className="font-semibold mb-2">👤 Player 1</h4>
+                <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                  <li>
+                    Accept the bet: <strong>0.0001 BTC</strong> + protocol fee.
+                  </li>
+                  <li>
+                    For this demo, to simplify the experience,{" "}
+                    <strong>only Player 1 funds</strong> the game. Player 2 pays
+                    nothing.
+                  </li>
+                  <li>
+                    The backend sends a funding transaction to the aggregated
+                    wallet.
+                  </li>
+                  <li>
+                    Generate the <strong>Funding UTXOs</strong> (protocol and
+                    bet) and use <strong>Copy to Share</strong> to share the
+                    JSON with Player 2.
+                  </li>
+                </ul>
+              </div>
+              <div className="p-4 rounded-xl bg-white shadow-sm border">
+                <h4 className="font-semibold mb-2">👤 Player 2</h4>
+                <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                  <li>No payment required in this demo.</li>
+                  <li>Wait while Player 1 funds the game.</li>
+                  <li>
+                    When Player 1 shares the <strong>Funding UTXOs</strong>{" "}
+                    JSON,
+                    <strong> paste</strong> it into your UTXO form and submit to
+                    continue.
+                  </li>
+                </ul>
+              </div>
+            </div>
           </section>
 
           {/* Step 6 */}
@@ -108,16 +183,23 @@ export default function HowToPlayPage() {
               <div className="p-4 rounded-xl bg-white shadow-sm border">
                 <h4 className="font-semibold mb-2">👤 Player 1</h4>
                 <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-1">
-                  <li>Choose two numbers to add and generate the program.</li>
-                  <li>Wait for Player 2’s sum answer.</li>
                   <li>
-                    Review the sum answer and either <strong>Accept</strong>{" "}
-                    (they win) or <strong>Challenge</strong> (start a dispute
-                    on-chain).
+                    Enter two numbers and click{" "}
+                    <strong>Generate Program</strong>.
                   </li>
                   <li>
-                    If you don’t act before the timeout ⏳, you automatically
-                    lose.
+                    Click <strong>Start Game</strong> to submit the first
+                    on‑chain transaction.
+                  </li>
+                  <li>
+                    The timer starts for Player 2. If Player 2 doesn’t respond
+                    in time, you win by timeout.
+                  </li>
+                  <li>
+                    When Player 2 submits an answer, review it and either{" "}
+                    <strong>Accept</strong> (they win) or{" "}
+                    <strong>Challenge</strong> (opens an on‑chain dispute to
+                    prove the truth).
                   </li>
                 </ol>
               </div>
@@ -127,13 +209,16 @@ export default function HowToPlayPage() {
                 <h4 className="font-semibold mb-2">👤 Player 2</h4>
                 <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-1">
                   <li>
-                    Join the game using the UUID, IP, and port from Player 1.
+                    Enter the Aggregated Id from Player 1 and mirror the same
+                    two numbers.
                   </li>
-                  <li>Sum the two numbers of Player 1.</li>
-                  <li>Submit the sum answer.</li>
+                  <li>Wait until Player 1 starts the game.</li>
                   <li>
-                    Wait for Player 1’s decision. If challenged, respond before
-                    the timeout to avoid losing.
+                    Submit your <strong>sum answer</strong> on‑chain.
+                  </li>
+                  <li>
+                    If Player 1 challenges, respond on‑chain before the timeout
+                    to avoid losing.
                   </li>
                 </ol>
               </div>
@@ -145,36 +230,14 @@ export default function HowToPlayPage() {
             <h3 className="text-lg font-semibold mb-2">⚖️ Possible Outcomes</h3>
             <div className="space-y-4 text-sm text-muted-foreground">
               <p>
-                <strong>✅ Case 1:</strong> Player 2 sums the correct sum →
-                Player 1 <strong>accepts</strong> → Player 2 receives the funds.
+                <strong>✅ Case 1:</strong> Player 2’s answer is correct →
+                Player 2 wins on‑chain and receives the funds.
               </p>
 
               <p>
-                <strong>⚔️ Case 2:</strong> Player 2 guesses the sum → Player 1{" "}
-                <strong>challenges</strong>. The truth is settled on-chain:
-              </p>
-              <ul className="list-disc list-inside ml-4 mt-1 space-y-1">
-                <li>
-                  If Player 2’s answer was <strong>correct</strong>, Player 2
-                  wins on-chain and receives the funds.
-                </li>
-                <li>
-                  If Player 2’s answer was <strong>wrong</strong>, Player 1 wins
-                  on-chain and wins the funds.
-                </li>
-                <li>
-                  If Player 1 lied and challenged a correct answer, Player 1
-                  will <strong>lose the dispute</strong> on-chain and Player 2
-                  wins the funds.
-                </li>
-              </ul>
-
-              <p>
-                <strong>⏳ Case 3:</strong> Timeout applies at every stage. If
-                either player fails to act (accept, challenge, or respond to a
-                challenge) before the deadline, that player{" "}
-                <strong>automatically loses</strong> and the other player wins
-                the funds.
+                <strong>❌ Case 2:</strong> Player 2’s answer is incorrect or
+                Player 2 timed out to answer → Player 1 wins on‑chain and
+                receives the funds.
               </p>
             </div>
           </section>
