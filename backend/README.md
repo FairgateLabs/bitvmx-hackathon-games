@@ -7,10 +7,28 @@ A Rust-based backend service for the BitVMX Tic-Tac-Toe game, built with Axum we
 The backend is structured as a modular Axum application with the following key components:
 
 - **Routes**: API endpoint definitions with OpenAPI documentation
-- **Handlers**: Business logic for processing requests
-- **Stores**: Thread-safe shared state management
-- **Types**: Data structures with TypeScript bindings
-- **BitVMX Integration**: RPC client for peer-to-peer communication
+- **Services**: Business logic for processing requests
+- **App State**: Thread-safe shared state management
+- **Stores**: Thread-safe shared stored information
+- **Models**: Data structures with TypeScript bindings
+- **Job System**: Asynchronous background task processing
+- **RPC Client**: BitVMX broker communication with correlation ID matching
+
+## Module Documentation
+
+Detailed documentation is available for key modules:
+
+### RPC Client (`src/rpc/`)
+
+- **Purpose**: Manages communication with BitVMX broker system
+- **Key Features**: Request-response patterns, fire-and-forget messaging, correlation ID matching
+- **Documentation**: [RPC Client README](./src/rpc/README.md)
+
+### Job Worker (`src/jobs/`)
+
+- **Purpose**: Asynchronous background task processing system
+- **Key Features**: Job queuing, parallel execution, graceful shutdown
+- **Documentation**: [Job Worker README](./src/jobs/README.md)
 
 ## API Documentation
 
@@ -121,7 +139,6 @@ sequenceDiagram
     BitVMXClient-->>BitVMX: Acknowledge
 ```
 
-
 ## Configuration
 
 Configuration is managed through YAML files in the `configs/` directory:
@@ -130,7 +147,6 @@ Configuration is managed through YAML files in the `configs/` directory:
 # configs/player_1.yaml
 bitvmx:
   broker_port: 8080
-  l2_id: "player_1"
 ```
 
 ### Environment Variables
@@ -189,18 +205,18 @@ cargo test --test bitvmx     # Run BitVMX integration tests
 The Bitcoin node is configured with the following settings:
 
 - **btc-rpc-explorer**: Runs on port 4000 for [blockchain exploration and transaction monitoring](https://github.com/janoside/btc-rpc-explorer)
-- **Auto mining**: Set to mine 1 block per 5 seconds for development and testing purposes at [start-bitcoin.sh](./start-bitcoin.sh)
+- **Auto mining**: Set to mine 1 block per 5 seconds for development and testing purposes at [scripts/start-bitcoin.sh](./scripts/start-bitcoin.sh)
 
 ### Building
 
 ```bash
+bash scripts/build.sh
 cargo build
-cargo build --release
 ```
 
 ### Running
 
-Start bitcoin, bitvmx  and  backend with:
+Start bitcoin, explorer, auto miner,  bitvmx, job-dispatcher and backend with:
 
 ```bash
 bash start
@@ -208,24 +224,37 @@ bash start
 
 If you want to run them independently youn can:
 
-Run bitcoin, explorer and auto mine:
+Run bitcoin, explorer:
 
 ```bash
-bash start-bitcoin.sh
+bash scripts/start-bitcoin.sh
+```
+
+Run bitcoin auto mining:
+
+```bash
+bash scripts/auto-mine.sh
 ```
 
 Run bitvmx operator 1 and 2:
 
 ```bash
-bash start-op-1.sh 
-bash start-op-2.sh 
+bash scripts/start-op-1.sh 
+bash scripts/start-op-2.sh 
+```
+
+Run bitvmx job dispatcher 1 and 2:
+
+```bash
+bash scripts/start-dispatcher-1.sh 
+bash scripts/start-disptcher-2.sh 
 ```
 
 Run the backend api server for player 1 and 2:
 
 ```bash
-bash start-player-1.sh 
-bash start-player-2.sh 
+bash scripts/start-player-1.sh 
+bash scripts/start-player-2.sh 
 ```
 
 ### TypeScript Bindings Generation
@@ -233,13 +262,3 @@ bash start-player-2.sh
 ```bash
 cargo test --lib  # Generates TypeScript bindings during test compilation
 ```
-
-## Message Flow Summary
-
-1. **Startup**: Application initializes BitVMX client and starts message receiving loop
-2. **P2P Setup**: Clients retrieve P2P addresses via `/api/bitvmx/comm-info`
-3. **Key Submission**: Clients submit aggregated keys via `/api/bitvmx/aggregated-key`
-4. **RPC Communication**: Continuous message exchange with BitVMX RPC
-5. **State Management**: Centralized store maintains connection state and P2P information
-
-This architecture provides a robust, scalable foundation for peer-to-peer game communication while maintaining clean separation of concerns and comprehensive error handling.
