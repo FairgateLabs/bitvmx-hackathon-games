@@ -634,9 +634,11 @@ impl AddNumbersService {
                                 anyhow::anyhow!(format!("Failed to set dispute tx: {e:?}"))
                             })?;
                     }
-                    Err(e) => error!("Wait transaction by name failed: {:?}", e),
+                    Err(e) => {
+                        return Err(anyhow::anyhow!("Wait transaction by name failed: {:?}", e))
+                    }
                 },
-                Err(e) => error!("Wait transaction by name failed: {:?}", e),
+                Err(e) => return Err(anyhow::anyhow!("Wait transaction by name failed: {:?}", e)),
             }
         }
 

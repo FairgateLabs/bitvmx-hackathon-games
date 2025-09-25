@@ -177,7 +177,7 @@ pub async fn place_bet(
 
     let game = app_state
         .add_numbers_service
-        .place_bet(program_id, 10_000)
+        .place_bet(program_id, request.amount)
         .await
         .map_err(|e| http_errors::internal_server_error(&format!("Failed to place bet: {e:?}")))?;
 
