@@ -2,9 +2,9 @@
 
 Add Numbers game is a BitVMX-based game where two players compete to solve a mathematical challenge. The game uses Bitcoin's dispute resolution protocol to ensure fair play and automatic fund distribution. You can see more detail at [GAME_FLOW.md](GAME_FLOW.md)
 
-The backend is located in the `/backend` directory, is developed using Rust with the Axum framework to provide REST APIs and interact with Bitvmx client using Tarpc. For more information about the backend, please refer to the [BitVMX Hackathon backend README](./backend/README.md).
+The backend is located in the `/backend` directory, is developed using Rust with the Axum framework to provide REST APIs and interact with Bitvmx client using Tarpc. For more information about the backend, please refer to the [Backend README](./backend/README.md).
 
-The frontend can be found in the `/frontend` directory, is built using TypeScript with React framework and interact with the backend trough Next.js APIs. For more information about the frontend, please refer to the [BitVMX Hackathon frontend README](./frontend/README.md).
+The frontend can be found in the `/frontend` directory, is built using TypeScript with React framework and interact with the backend trough Next.js APIs. For more information about the frontend, please refer to the [Frontend README](./frontend/README.md).
 
 ## ⚠️ Disclaimer
 
