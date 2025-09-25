@@ -6,6 +6,8 @@ The backend is located in the `/backend` directory, is developed using Rust with
 
 The frontend can be found in the `/frontend` directory, is built using TypeScript with React framework and interact with the backend trough Next.js APIs. For more information about the frontend, please refer to the [Frontend README](./frontend/README.md).
 
+You can see how it looks like at [GAME_PLAY.md](GAME_PLAY.md)
+
 ## ⚠️ Disclaimer
 
 This library is currently under development and may not be fully stable.

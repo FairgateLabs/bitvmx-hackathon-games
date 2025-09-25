@@ -1,6 +1,6 @@
 # Add Numbers Game Flow
 
-This document explains the complete flow of the Add Numbers game, a BitVMX-based game where two players compete to solve a mathematical challenge. The game uses Bitcoin's dispute resolution protocol to ensure fair play and automatic fund distribution.
+This document explains the complete flow of the Add Numbers game, a BitVMX-based game where two players compete to solve a mathematical challenge. The game uses BitVMX's dispute resolution protocol to ensure fair play and the Bitcoin network for decentralized immutable transactions.
 
 ## Game Overview
 

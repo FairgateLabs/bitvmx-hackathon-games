@@ -5,7 +5,7 @@ This a web application designed for playing various games, such as "Add Numbers"
 ## Prerequisites
 
 - Nodejs v22 <https://nodejs.org/en/download>
-- Yarn <https://nodejs.org/en/download>
+- Yarn <https://classic.yarnpkg.com/lang/en/docs/install>
 
 ## Install
 
