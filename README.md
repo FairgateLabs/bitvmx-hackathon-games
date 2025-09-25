@@ -2,11 +2,14 @@
 
 A decentralized game built on BitVMX, featuring a robust architecture with both backend and frontend components.
 
-The backend, located in the `/backend` directory, is developed using Rust with the Axum framework. 
-The frontend, found in the `/frontend` directory, is built with TypeScript.
+The backend, located in the `/backend` directory, is developed using Rust with the Axum framework. For more information about the backend, please refer to the [BitVMX Hackathon backend README](./backend/README.md).
 
-## Frontend
-For more information about the frontend, please refer to the [BitVMX Hackathon frontend README](./frontend/README.md).
+The frontend, found in the `/frontend` directory, is built with TypeScript. For more information about the frontend, please refer to the [BitVMX Hackathon frontend README](./frontend/README.md).
+
+## ⚠️ Disclaimer
+
+This library is currently under development and may not be fully stable.
+It is not production-ready, has not been audited, and future updates may introduce breaking changes without preserving backward compatibility.
 
 ## Prerequisites
 

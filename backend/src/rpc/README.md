@@ -8,6 +8,14 @@ The RPC client manages communication between the application and BitVMX through 
 
 ## Key Components
 
+### Correlation System
+
+Automatic correlation ID generation and matching between requests and responses based on message content and UUIDs. See [Correlation ID System](#correlation-id-system) for details.
+
+### ChainedMap
+
+A data structure that maps correlation IDs to queues of response handlers, allowing multiple handlers to wait for the same response.
+
 ### RpcClient
 
 The main client struct that handles all RPC communication:
@@ -17,14 +25,6 @@ The main client struct that handles all RPC communication:
 - **to_id**: Target participant ID  
 - **pending_responses**: Queue of pending response handlers keyed by correlation ID
 - **ready**: Flag indicating if the client is ready to handle messages
-
-### Correlation System
-
-Automatic correlation ID generation and matching between requests and responses based on message content and UUIDs. See [Correlation ID System](#correlation-id-system) for details.
-
-### ChainedMap
-
-A data structure that maps correlation IDs to queues of response handlers, allowing multiple handlers to wait for the same response.
 
 ## Core Functions
 
@@ -123,6 +123,35 @@ let response = rpc_client.wait_for_response(correlation_id).await?;
 4. Background listener receives response from broker
 5. Response correlation ID is matched with pending handlers
 6. Response is delivered to waiting handlers via oneshot channels
+
+### RPC Message Handling
+
+```mermaid
+sequenceDiagram
+    participant BitVMX as BitVMX RPC
+    participant BitVMXClient as BitVMXClient
+    participant Handler as bitvmx_rpc handler
+    participant Store as BitVMXStore
+    participant API as API Handlers
+
+    BitVMX->>BitVMXClient: Incoming RPC message
+    BitVMXClient->>Handler: receive_message()
+    Handler->>Handler: Parse message type
+    
+    alt Message type: P2PAddress
+        Handler->>Store: set_p2p_address(address)
+        Store-->>Handler: Success
+    else Message type: SetupKey
+        Handler->>Store: notify_handlers()
+        Store->>API: Call registered handlers
+        API-->>Store: Process message
+    else Other message types
+        Handler->>Handler: Handle according to type
+    end
+    
+    Handler-->>BitVMXClient: Processed
+    BitVMXClient-->>BitVMX: Acknowledge
+```
 
 ## Correlation ID System
 

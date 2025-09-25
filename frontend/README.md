@@ -2,12 +2,17 @@
 
 This a web application designed for playing various games, such as "Add Numbers" and Tic Tac Toe. This application is developed using Next.js.
 
+## Prerequisites
+
+- Nodejs v22 <https://nodejs.org/en/download>
+- Yarn <https://nodejs.org/en/download>
+
 ## Install
 
 ```bash
 yarn install
 ```
- 
+
 ## Backend Configuration
 
 This configuration system allows the frontend to automatically connect to different backends based on the port it's running on.
@@ -42,7 +47,7 @@ Make sure your backends are running on the configured ports:
 
 ### Adding New Backend Configurations
 
-To add support for additional ports, update `frontend/src/config/backend.ts`:
+To add support for additional players or change ports, update `frontend/src/config/backend.ts`:
 
 ```typescript
 const BACKEND_CONFIGS: Record<string, BackendConfig> = {

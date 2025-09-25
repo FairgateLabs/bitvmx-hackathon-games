@@ -11,133 +11,19 @@ The backend is structured as a modular Axum application with the following key c
 - **App State**: Thread-safe shared state management
 - **Stores**: Thread-safe shared stored information
 - **Models**: Data structures with TypeScript bindings
-- **Job System**: Asynchronous background task processing
+- **Job Worker**: Asynchronous background task processing
 - **RPC Client**: BitVMX broker communication with correlation ID matching
-
-## Module Documentation
-
-Detailed documentation is available for key modules:
-
-### RPC Client (`src/rpc/`)
-
-- **Purpose**: Manages communication with BitVMX broker system
-- **Key Features**: Request-response patterns, fire-and-forget messaging, correlation ID matching
-- **Documentation**: [RPC Client README](./src/rpc/README.md)
-
-### Job Worker (`src/jobs/`)
-
-- **Purpose**: Asynchronous background task processing system
-- **Key Features**: Job queuing, parallel execution, graceful shutdown
-- **Documentation**: [Job Worker README](./src/jobs/README.md)
 
 ## API Documentation
 
 The application automatically generates OpenAPI/Swagger documentation using Utoipa. Access the documentation at:
 
-- **Swagger UI**: `http://localhost:3000/`
-- **OpenAPI JSON**: `http://localhost:3000/api-docs/openapi.json`
-
-## BitVMX Integration Flow
-
-The BitVMX integration enables peer-to-peer communication between game participants. Here's the detailed flow:
-
-### 1. Application Startup
-
-```mermaid
-sequenceDiagram
-    participant Main as main.rs
-    participant Config as config.rs
-    participant BitVMXClient as BitVMXClient
-    participant Store as BitVMXStore
-    participant Server as Axum Server
-
-    Main->>Config: Load configuration
-    Config-->>Main: Config object
-    Main->>BitVMXClient: Initialize singleton client
-    BitVMXClient->>Store: Set connected status
-    Main->>Server: Start Axum server
-    Main->>BitVMXClient: Start message receiving loop
-    Note over BitVMXClient: Continuously listen for RPC messages
-```
-
-### 2. P2P Communication Setup
-
-```mermaid
-sequenceDiagram
-    participant Client as API Client
-    participant API as /api/bitvmx/comm-info
-    participant Handler as bitvmx handler
-    participant Store as BitVMXStore
-    participant BitVMX as BitVMX RPC
-
-    Client->>API: GET /api/bitvmx/comm-info
-    API->>Handler: get_comm_info()
-    Handler->>Store: get_p2p_address()
-    Store-->>Handler: P2PAddress {address, peer_id}
-    Handler-->>API: JSON response
-    API-->>Client: P2P communication info
-
-    Note over Client,BitVMX: Client uses P2P info to establish direct connection
-```
-
-### 3. Aggregated Key Submission
-
-```mermaid
-sequenceDiagram
-    participant Client as API Client
-    participant API as /api/bitvmx/aggregated-key
-    participant Handler as bitvmx handler
-    participant BitVMXClient as BitVMXClient
-    participant BitVMX as BitVMX RPC
-
-    Client->>API: POST /api/bitvmx/aggregated-key
-    Note over Client: Body: {id: "uuid", addresses: [{address, peer_id}]}
-    
-    API->>Handler: submit_aggregated_key(setup_key)
-    Handler->>Handler: Validate setup_key
-    Note over Handler: Check id not empty, addresses not empty
-    
-    alt Validation passes
-        Handler->>BitVMXClient: send_message(SetupKey)
-        BitVMXClient->>BitVMX: Submit to RPC
-        BitVMX-->>BitVMXClient: Success response
-        BitVMXClient-->>Handler: Success
-        Handler-->>API: Ok(())
-        API-->>Client: 200 OK
-    else Validation fails
-        Handler-->>API: 400 Bad Request
-        API-->>Client: Error response
-    end
-```
-
-### 4. RPC Message Handling
-
-```mermaid
-sequenceDiagram
-    participant BitVMX as BitVMX RPC
-    participant BitVMXClient as BitVMXClient
-    participant Handler as bitvmx_rpc handler
-    participant Store as BitVMXStore
-    participant API as API Handlers
-
-    BitVMX->>BitVMXClient: Incoming RPC message
-    BitVMXClient->>Handler: receive_message()
-    Handler->>Handler: Parse message type
-    
-    alt Message type: P2PAddress
-        Handler->>Store: set_p2p_address(address)
-        Store-->>Handler: Success
-    else Message type: SetupKey
-        Handler->>Store: notify_handlers()
-        Store->>API: Call registered handlers
-        API-->>Store: Process message
-    else Other message types
-        Handler->>Handler: Handle according to type
-    end
-    
-    Handler-->>BitVMXClient: Processed
-    BitVMXClient-->>BitVMX: Acknowledge
-```
+- **Swagger UI**:
+  - Player 1 `http://localhost:8080/`
+  - Player 2 `http://localhost:8081/`
+- **OpenAPI JSON**:
+  - Player 1 `http://localhost:8080/api-docs/openapi.json`
+  - Player 2 `http://localhost:8081/api-docs/openapi.json`
 
 ## Configuration
 
@@ -146,7 +32,7 @@ Configuration is managed through YAML files in the `configs/` directory:
 ```yaml
 # configs/player_1.yaml
 bitvmx:
-  broker_port: 8080
+  broker_port: 22222
 ```
 
 ### Environment Variables
@@ -158,7 +44,7 @@ The following environment variables can be used to configure the application:
 | `CONFIG_FILE` | Configuration file name (without .yaml extension) | `player_1` | `CONFIG_FILE=player_2` |
 | `RUST_LOG` | Logging level (debug, info, warn, error) | `info` | `RUST_LOG=debug` |
 | `APP_SERVER__HOST` | Server host address | `0.0.0.0` | `APP_SERVER__HOST=127.0.0.1` |
-| `APP_SERVER__PORT` | Server port number | `8080` | `APP_SERVER__PORT=3000` |
+| `APP_SERVER__PORT` | Server port number | `8080` | `APP_SERVER__PORT=8080` |
 | `APP_CORS__ALLOWED_ORIGINS` | Comma-separated list of allowed origins | `*` | `APP_CORS__ALLOWED_ORIGINS=http://localhost:3000,https://example.com` |
 
 ### Available Configuration Files
@@ -175,30 +61,15 @@ The application comes with two pre-configured files in the `configs/` directory:
 CONFIG_FILE=player_2 cargo run
 ```
 
-## Testing
-
-The application includes comprehensive testing:
-
-- **Unit Tests**: Individual component testing
-- **Integration Tests**: End-to-end API testing
-- **TypeScript Bindings**: Generated from Rust types for frontend integration
-
-### Running Tests
-
-```bash
-cargo test                    # Run all tests
-cargo test --test bitvmx     # Run BitVMX integration tests
-```
-
 ## Development
 
 ### Prerequisites
 
-- Rust 1.70+
-- Cargo
-- Docker
-- Bitcoind running
-- BitVMX RPC server running
+- Git <https://git-scm.com/downloads>
+- Rust 1.85+ and Cargo <https://doc.rust-lang.org/cargo/getting-started/installation.html>
+- Docker <https://docs.docker.com/engine/install/>
+- Bitcoind running (they will be run when executing `bash start.sh`)
+- BitVMX RPC server running (they will be run when executing `bash start.sh`)
 
 ### Bitcoin Configuration
 
@@ -262,3 +133,19 @@ bash scripts/start-player-2.sh
 ```bash
 cargo test --lib  # Generates TypeScript bindings during test compilation
 ```
+
+## Module Documentation
+
+Detailed documentation is available for key modules:
+
+### RPC Client (`src/rpc/`)
+
+- **Purpose**: Manages communication with BitVMX broker system
+- **Key Features**: Request-response patterns, fire-and-forget messaging, correlation ID matching
+- **Documentation**: [RPC Client README](./src/rpc/README.md)
+
+### Job Worker (`src/jobs/`)
+
+- **Purpose**: Asynchronous background task processing system
+- **Key Features**: Job queuing, parallel execution, graceful shutdown
+- **Documentation**: [Job Worker README](./src/jobs/README.md)
