@@ -1,6 +1,6 @@
 # BitVMX Hackathon frontend
 
-This a web application designed for playing various games, such as "Add Numbers" and Tic Tac Toe. This application is developed using Next.js.
+This a web application designed for playing various games, such as "Add Numbers". This application is developed using Next.js.
 
 ## Prerequisites
 

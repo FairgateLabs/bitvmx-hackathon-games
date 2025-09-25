@@ -11,6 +11,19 @@ The Add Numbers game is a two-player game where:
 - The game uses BitVMX's dispute resolution protocol to verify the answer
 - The winner automatically receives the bet funds
 
+## BitVMX One-Time Setup
+
+Before any game can be played, both players must perform a one-time initialization process on their respective BitVMX nodes. This setup creates the necessary cryptographic keys, establishes P2P communication, and funds the system for Bitcoin operations.
+
+The `initial_setup()` method performs the following initialization steps:
+
+1. **P2P Address Setup** - Establishes peer-to-peer communication information for BitVMX protocol participation
+2. **Wallet Address Setup** - Creates and funds the main Bitcoin wallet (requires at least 1 BTC)
+3. **Operator Key Creation** - Generates the main cryptographic key for protocol operations
+4. **Funding Key Creation** - Sets up Child Pays for Parent (CPFP) speed-up capability (requires 1 BTC)
+
+This one-time setup is essential for any BitVMX node to participate in protocols, handle Bitcoin transactions, and perform speed-up operations when needed. The setup must be completed before any game can be initiated.
+
 ## Game States
 
 The game progresses through the following states:
@@ -30,21 +43,24 @@ The game progresses through the following states:
 
 ### Step 1: Setup Participants
 
-**What happens:** Both players initialize the game by creating an aggregated key and sharing participant information.
+**What happens:** Both players first share their participant information, then each player submits all participants' information to create the aggregated key. If participant information differs between players, the aggregated key creation will fail.
 
 **Player 1 Actions:**
 
-- Calls `/setup-participants` with their P2P address, public key, and role as Player1
+- Copies Player 2's information and adds their own P2P address, public key, and role as Player1
+- Calls `/setup-participants` with complete participant information (both players)
 - Receives a `program_id` and `aggregated_key`
 
 **Player 2 Actions:**
 
-- Calls `/setup-participants` with the same `aggregated_id` and their information
+- Copies Player 1's information and adds their own P2P address, public key, and role as Player2
+- Calls `/setup-participants` with the same `aggregated_id` and complete participant information (both players)
 - Receives the same `program_id` and `aggregated_key`
 
 **BitVMX Interactions:**
 
 - Creates aggregated key from participant public keys
+- Validates that participant information matches between players
 - Generates program ID from aggregated ID
 
 ```mermaid
@@ -67,20 +83,20 @@ sequenceDiagram
 
 ### Step 2: Place Bet
 
-**What happens:** Players place their bets by sending funds to the aggregated address.
+**What happens:** Player 1 places their bet by sending funds to the aggregated address.
 
 **Player 1 Actions:**
 
 - Calls `/place-bet` with bet amount
 - System sends funds to aggregated address (protocol fees + bet amount)
 - Waits for transaction confirmation
+- System automatically transitions to `SetupFunding` state
 
 **Player 2 Actions:**
 
-- Calls `/place-bet` with bet amount
-- System automatically transitions to `SetupFunding` state
+- No action required - waits for Player 1 to place bet
 
-**BitVMX Interactions:**
+**Bitcoin Interactions:**
 
 - Sends funds to aggregated address
 - Waits for transaction confirmation
@@ -92,26 +108,30 @@ sequenceDiagram
     participant P2 as Player 2
     participant Game as Game Service
     participant BitVMX as BitVMX Service
+    participant Bitcoin as Bitcoin Network
     
     P1->>Game: POST /place-bet
     Game->>BitVMX: send_funds()
+    BitVMX->>Bitcoin: broadcast funding transaction
+    Bitcoin-->>BitVMX: transaction confirmed
     BitVMX-->>Game: funding_txid
     Game->>BitVMX: wait_transaction_response()
     BitVMX-->>Game: tx_status
-    Game-->>P1: game updated
-    
-    P2->>Game: POST /place-bet
-    Game-->>P2: game (status: SetupFunding)
+    Game-->>P1: game (status: SetupFunding)
 ```
 
 ### Step 3: Setup Funding UTXO
 
-**What happens:** Player 2 provides their funding UTXOs to complete the funding setup.
+**What happens:** Player 2 waits for Player 1 to share the bet UTXOs and stores them for later use in the setup game step.
 
 **Player 2 Actions:**
 
-- Calls `/setup-funding-utxo` with their funding UTXOs
-- System validates and stores the UTXOs
+- Calls `/setup-funding-utxo` to receive and store Player 1's bet UTXOs
+- System validates and stores the UTXOs for use in game setup
+
+**Player 1 Actions:**
+
+- No action required - bet UTXOs already known from place-bet step
 
 **BitVMX Interactions:**
 
@@ -133,11 +153,12 @@ sequenceDiagram
 
 ### Step 4: Setup Game
 
-**What happens:** Both players configure the game with the numbers to sum.
+**What happens:** Both players configure the game with the numbers to sum. Both players must set up the same numbers, otherwise the game creation will fail. This ensures that all participants agree on the same inputs for the BitVMX program, as the game is implemented as a program in BitVMX.
 
 **Both Players Actions:**
 
 - Call `/setup-game` with the two numbers to sum
+- Must use the same numbers as the other player
 - System configures the BitVMX program with game parameters
 
 **BitVMX Interactions:**
@@ -174,23 +195,28 @@ sequenceDiagram
 
 ### Step 5: Start Game
 
-**What happens:** Player 1 initiates the game by sending a challenge transaction.
+**What happens:** Player 1 initiates the game by sending a challenge transaction. START_CH (Start Challenge) begins the dispute process. From this point on, Player 1 becomes the Verifier and Player 2 becomes the Prover.
 
-**Player 1 Actions:**
+**Player 1 Actions (Verifier):**
 
 - Calls `/start-game`
 - System sends challenge transaction to start the game
 - Enqueues job to wait for game outcome
 
-**Player 2 Actions:**
+**Player 2 Actions (Prover):**
 
 - System automatically waits for the challenge transaction
 - Enqueues job to wait for start game transaction
 
 **BitVMX Interactions:**
 
-- Dispatches START_CH transaction
+- Dispatches START_CH (Start Challenge) transaction
+- Initiates the dispute resolution process
 - Returns challenge transaction status
+
+**Bitcoin Interactions:**
+
+- Start Challenge transaction is broadcasted to the Bitcoin network
 
 ```mermaid
 sequenceDiagram
@@ -199,9 +225,12 @@ sequenceDiagram
     participant Game as Game Service
     participant BitVMX as BitVMX Service
     participant Worker as Worker Service
+    participant Bitcoin as Bitcoin Network
     
     P1->>Game: POST /start-game
     Game->>BitVMX: start_challenge()
+    BitVMX->>Bitcoin: broadcast START_CH transaction
+    Bitcoin-->>BitVMX: transaction confirmed
     BitVMX-->>Game: challenge_tx
     Game->>Worker: handle_player2_wins_game_outcome_tx()
     Game-->>P1: challenge_tx
@@ -224,22 +253,41 @@ sequenceDiagram
 
 - Sets program input with guess
 - Dispatches challenge input transaction
-- Waits for dispute transactions to be confirmed
+- Waits for dispute transactions to be confirmed:
+  - COMMITMENT
+  - NARY_PROVER_1
+  - NARY_VERIFIER_1
+  - NARY_PROVER_2
+  - NARY_VERIFIER_2
+  - EXECUTE
+  - PROVER_WINS_START
+  - PROVER_WINS_SUCCESS
+  - ACTION_PROVER_WINS
 - Determines game outcome based on dispute results
+
+**Bitcoin Interactions:**
+
+- Challenge input transaction is broadcasted to the Bitcoin network
+- All dispute transactions (COMMITMENT, NARY_PROVER_1, NARY_VERIFIER_1, NARY_PROVER_2, NARY_VERIFIER_2, EXECUTE, PROVER_WINS_START, PROVER_WINS_SUCCESS, ACTION_PROVER_WINS) are broadcasted to the Bitcoin network
 
 ```mermaid
 sequenceDiagram
     participant P2 as Player 2
     participant Game as Game Service
     participant BitVMX as BitVMX Service
+    participant Bitcoin as Bitcoin Network
     
     P2->>Game: POST /submit-sum (guess)
     Game->>BitVMX: set_program_input(guess)
     Game->>BitVMX: send_transaction_by_name()
+    BitVMX->>Bitcoin: broadcast challenge input transaction
+    Bitcoin-->>BitVMX: transaction confirmed
     BitVMX-->>Game: challenge_input_tx
     
     Game->>BitVMX: wait_dispute_transactions()
     Note over BitVMX: Waits for multiple dispute txs:<br/>COMMITMENT, NARY_PROVER_1,<br/>NARY_VERIFIER_1, NARY_PROVER_2,<br/>NARY_VERIFIER_2, EXECUTE,<br/>PROVER_WINS_START, PROVER_WINS_SUCCESS,<br/>ACTION_PROVER_WINS
+    
+    Note over BitVMX,Bitcoin: All dispute transactions<br/>broadcasted to Bitcoin network
     
     alt Player 2 wins (correct guess)
         BitVMX-->>Game: dispute transactions confirmed
@@ -252,17 +300,16 @@ sequenceDiagram
 
 ### Step 7: Game Completion
 
-**What happens:** The game concludes with automatic winner determination and fund distribution.
+**What happens:** The game concludes with automatic winner determination.
 
 **Both Players:**
 
 - Receive final game state with outcome
-- Funds are automatically distributed to the winner through BitVMX protocol
 
 **BitVMX Interactions:**
 
 - Executes dispute resolution protocol
-- Automatically transfers funds to winner
+- Determines winner based on dispute results
 - Updates game state to `GameComplete`
 
 ```mermaid
@@ -275,10 +322,10 @@ sequenceDiagram
     Note over BitVMX: Dispute resolution completes
     
     alt Player 2 wins
-        BitVMX->>BitVMX: transfer funds to Player 2
+        BitVMX->>BitVMX: determine winner (Player 2)
         Game->>Game: set_game_complete(Win, Challenge)
     else Player 1 wins
-        BitVMX->>BitVMX: transfer funds to Player 1
+        BitVMX->>BitVMX: determine winner (Player 1)
         Game->>Game: set_game_complete(Lose, Challenge)
     end
     
@@ -290,34 +337,37 @@ sequenceDiagram
 
 ## Key BitVMX Interactions Summary
 
-Throughout the game, the following BitVMX operations are performed:
+Throughout the game, the following BitVMX messages are sent:
 
 1. **Key Management:**
-   - `create_agregated_key()` - Creates shared public key
-   - `get_pub_key()` - Gets operator public key
+   - `SetupKey` - Creates shared public key from participant information
+   - `GetPubKey` - Gets operator public key
+   - `GetAggregatedPubkey` - Retrieves aggregated public key
 
 2. **Fund Management:**
-   - `send_funds()` - Sends funds to aggregated address
-   - `wait_transaction_response()` - Waits for transaction confirmation
-   - `get_transaction()` - Gets transaction status
+   - `SendFunds` - Sends funds to aggregated address
+   - `GetFundingAddress` - Gets funding address
+   - `GetFundingBalance` - Gets funding balance
+   - `GetTransaction` - Gets transaction status
 
 3. **Program Configuration:**
-   - `set_variable()` - Sets program variables (aggregated key, UTXOs, etc.)
-   - `set_program_input()` - Sets input data (numbers, guess)
-   - `program_setup()` - Initializes the BitVMX program
+   - `SetVar` - Sets program variables (aggregated key, UTXOs, etc.)
+   - `Setup` - Initializes the BitVMX program with participants
+   - `SetFundingUtxo` - Sets funding UTXO for speed-up transactions
 
 4. **Transaction Management:**
-   - `start_challenge()` - Dispatches challenge transaction
-   - `send_transaction_by_name()` - Sends specific transactions
-   - `wait_transaction_by_name_response()` - Waits for specific transactions
+   - `DispatchTransactionName` - Dispatches specific transactions (START_CH, challenge input, etc.)
 
-5. **Dispute Resolution:**
+5. **P2P Communication:**
+   - `GetCommInfo` - Gets P2P communication information
+
+6. **Dispute Resolution:**
    - Waits for multiple dispute transactions to determine game outcome
-   - Automatically executes fund transfers based on dispute results
+   - Determines winner based on dispute results
 
 ## Game Outcome Logic
 
-- **Player 2 Wins:** If Player 2's guess is correct, all dispute transactions are confirmed, and Player 2 receives the bet funds
-- **Player 1 Wins:** If Player 2's guess is incorrect, the dispute process times out, and Player 1 receives the bet funds
+- **Player 2 Wins:** If Player 2's guess is correct, all dispute transactions are confirmed, and Player 2 is determined as the winner
+- **Player 1 Wins:** If Player 2's guess is incorrect, the dispute process times out, and Player 1 is determined as the winner
 
 The game ensures fairness through BitVMX's cryptographic dispute resolution protocol, making it impossible for either player to cheat.
