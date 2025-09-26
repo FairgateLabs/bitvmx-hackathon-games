@@ -1,14 +1,14 @@
 use std::sync::Arc;
-use std::time::Duration;
+// use std::time::Duration;
 use tokio::sync::broadcast::Sender;
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
-use tokio::time::sleep;
+// use tokio::time::sleep;
 use tracing::{debug, info, warn, Instrument};
 
 use crate::jobs::Job;
 
-const CHECK_SHUTDOWN_INTERVAL: u64 = 100; // 100 milliseconds
+//const CHECK_SHUTDOWN_INTERVAL: u64 = 100; // 100 milliseconds
 
 #[derive(Clone, Debug)]
 pub struct JobWorker {
