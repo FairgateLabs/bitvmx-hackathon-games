@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Loader } from "@/components/ui/loader";
 import { useAnswerAddNumber, useCurrentGame } from "@/hooks/useGame";
 
 export function SubmitGameData() {
@@ -49,8 +50,15 @@ export function SubmitGameData() {
           disabled={isPending || !isAnswerValid() || isSuccess}
           className="w-full"
         >
-          <span className="flex items-center justify-center">
-            {isPending ? "⏳ Submitting Answer Sum..." : "➕ Submit Answer Sum"}
+          <span className="flex items-center justify-center gap-2">
+            {isPending ? (
+              <>
+                <Loader />
+                Submitting Answer Sum...
+              </>
+            ) : (
+              "➕ Submit Answer Sum"
+            )}
           </span>
         </Button>
         <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg mt-4">

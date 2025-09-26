@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Loader } from "@/components/ui/loader";
 import {
   Collapsible,
   CollapsibleContent,
@@ -68,9 +69,16 @@ export function PlaceBet() {
               disabled={isPlacingBet}
               className="w-full bg-gray-600 hover:bg-gray-700"
             >
-              {isPlacingBet
-                ? "⏳ Setting Up..."
-                : "🔗 Accept to bet 0.0001 BTC + Protocol Fee"}
+              <span className="flex items-center justify-center gap-2">
+                {isPlacingBet ? (
+                  <>
+                    <Loader />
+                    Accepting...
+                  </>
+                ) : (
+                  "🔗 Accept to bet 0.0001 BTC + Protocol Fee"
+                )}
+              </span>
             </Button>
           </div>
         </CollapsibleContent>

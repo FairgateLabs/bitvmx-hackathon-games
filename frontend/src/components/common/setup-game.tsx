@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Loader } from "@/components/ui/loader";
 import {
   Collapsible,
   CollapsibleContent,
@@ -86,7 +87,16 @@ export function SetupGame() {
               }
               className="w-full"
             >
-              {isPending ? "⏳ Generating Program..." : "🚀 Generate Program"}
+              <span className="flex items-center justify-center gap-2">
+                {isPending ? (
+                  <>
+                    <Loader />
+                    Generating Program...
+                  </>
+                ) : (
+                  "🚀 Generate Program"
+                )}
+              </span>
             </Button>
 
             {!isPending && (

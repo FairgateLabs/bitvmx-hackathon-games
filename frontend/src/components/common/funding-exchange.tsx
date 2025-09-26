@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
+import { Loader } from "@/components/ui/loader";
 import {
   Collapsible,
   CollapsibleContent,
@@ -171,7 +172,16 @@ export function FundingExchange({ expand = true }) {
                   disabled={!isJsonValid(jsonInput) || isPending}
                   className="w-full"
                 >
-                  {isPending ? "Saving..." : "📤 Send Other Player's UTXO"}
+                  <span className="flex items-center justify-center gap-2">
+                    {isPending ? (
+                      <>
+                        <Loader />
+                        Saving...
+                      </>
+                    ) : (
+                      "📤 Send Other Player's UTXO"
+                    )}
+                  </span>
                 </Button>
               </div>
             )}

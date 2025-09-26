@@ -16,7 +16,7 @@ export function WaitingAnswer() {
         Player 2 is answering, please wait. In case of timeout, you will win the
         game.
       </p>
-      <BlocksRemaining numberBlocks={5} onTimeout={handleTimeout} />
+      <BlocksRemaining numberBlocks={24} onTimeout={handleTimeout} />
     </div>
   );
 }

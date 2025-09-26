@@ -3,6 +3,7 @@ import { Play } from "lucide-react";
 import { useCurrentGame, useStartGame } from "@/hooks/useGame";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
+import { Loader } from "@/components/ui/loader"; // Import the Loader component
 
 export function StartGame() {
   const { mutate: startGame, isPending } = useStartGame();
@@ -51,8 +52,17 @@ export function StartGame() {
         onClick={handleStartGame}
         className="w-full bg-gray-600 hover:bg-gray-700"
       >
-        <Play className="h-4 w-4 mr-2" />
-        {isPending ? "Starting Game..." : "Start Game"}
+        {isPending ? (
+          <>
+            <Loader /> {/* Add the Loader component here */}
+            Starting Game...
+          </>
+        ) : (
+          <>
+            <Play className="h-4 w-4 mr-2" />
+            Start Game
+          </>
+        )}
       </Button>
     </div>
   );

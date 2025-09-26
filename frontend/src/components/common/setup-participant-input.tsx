@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Loader } from "@/components/ui/loader";
 import { useSaveParticipantInfo } from "@/hooks/useParticipantInfo";
 import {
   Collapsible,
@@ -224,9 +225,16 @@ export function SetupParticipantInput({
             disabled={!parsedData || !!jsonError || inputsDisabled}
             className="w-full bg-gray-600 hover:bg-gray-700"
           >
-            {isSavingParticipantInfo
-              ? "⏳ Setting up Data..."
-              : "🔗 Setup Data"}
+            <span className="flex items-center justify-center gap-2">
+              {isSavingParticipantInfo ? (
+                <>
+                  <Loader />
+                  Setting up Data...
+                </>
+              ) : (
+                "🔗 Setup Data"
+              )}
+            </span>
           </Button>
 
           {!successMessage && (

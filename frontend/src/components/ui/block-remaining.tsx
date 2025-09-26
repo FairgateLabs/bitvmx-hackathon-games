@@ -1,4 +1,5 @@
 import { useState, useEffect, useImperativeHandle, forwardRef } from "react";
+import { Loader } from "./loader";
 
 interface BlocksRemainingProps {
   numberBlocks: number; // number of blocks
@@ -13,7 +14,7 @@ export const BlocksRemaining = forwardRef<
   BlocksRemainingRef,
   BlocksRemainingProps
 >(function TimeRemaining({ numberBlocks, onTimeout }, ref) {
-  const timePerBlock = 30; // Each block is estimated to be 30 seconds in regtest
+  const timePerBlock = 2; // Each block is estimated to be 30 seconds in regtest
   const initialTime = numberBlocks * timePerBlock;
   const [timeLeft, setTimeLeft] = useState(initialTime);
   const [blocksLeft, setBlocksLeft] = useState(numberBlocks);
@@ -62,8 +63,13 @@ export const BlocksRemaining = forwardRef<
       className={`sm text-gray-800 font-semibold items-center gap-4 flex justify-center py-3`}
     >
       <div className="flex items-center gap-2">
+        {timeLeft > 0 && <Loader />}
         <span className="block text-sm text-gray-500">Blocks remaining</span>
         <span className="text-lg"> {blocksLeft}</span>
+
+        {blocksLeft === 0 && (
+          <span className="text-red-600 text-sm">Timeout reached!</span>
+        )}
       </div>
     </div>
   );
