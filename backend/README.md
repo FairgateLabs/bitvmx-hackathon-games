@@ -1,4 +1,4 @@
-# BitVMX Tic-Tac-Toe Backend
+# BitVMX - Add Numbers Game Backend
 
 A Rust-based backend service for the BitVMX Tic-Tac-Toe game, built with Axum web framework and integrated with BitVMX RPC for peer-to-peer communication.
 

@@ -1,26 +1,28 @@
-# BitVMX Hackathon frontend
+# BitVMX - Add Numbers Frontend
 
-This a web application designed for playing various games, such as "Add Numbers". This application is developed using Next.js.
+This is a web application designed for playing the "Add Numbers" game. It is developed using Next.js.
 
 ## Prerequisites
 
 - Nodejs v22 <https://nodejs.org/en/download>
 - Yarn <https://classic.yarnpkg.com/lang/en/docs/install>
 
-## Install
+## Setup Guide
 
 ```bash
 yarn install
 ```
 
-## Backend Configuration
+## Running the Frontend for Multiplayer Simulation
 
-This configuration system allows the frontend to automatically connect to different backends based on the port it's running on.
+To simulate a multiplayer environment, run two instances of the frontend application, each connecting to a different backend. This setup allows you to simulate two players interacting with the game simultaneously, each with their own dedicated backend connection via the BitVMX protocol.
 
-### Port Mapping
+### Port and Backend Mapping
 
-- **Port 3000** → Backend 1 (http://localhost:8080)
-- **Port 3001** → Backend 2 (http://localhost:8081)
+- **Player 1**: Frontend on port 3000 connects to Backend 1 at http://localhost:8080.
+- **Player 2**: Frontend on port 3001 connects to Backend 2 at http://localhost:8081.
+
+The frontend automatically connects to the appropriate backend based on the port it's running on.
 
 ### Running Multiple Instances
 
@@ -28,10 +30,10 @@ To run the frontend on different ports:
 
 ```bash
 # Terminal 1 - Frontend on port 3000 (connects to Backend 1)
-PORT=3000 yarn dev
+yarn dev:3000
 
 # Terminal 2 - Frontend on port 3001 (connects to Backend 2)  
-PORT=3001 yarn dev
+yarn dev:3001
 
 # Or all together with the following command:
 yarn dev:multiple
@@ -44,27 +46,3 @@ Make sure your backends are running on the configured ports:
 
 - Backend 1: http://localhost:8080
 - Backend 2: http://localhost:8081
-
-### Adding New Backend Configurations
-
-To add support for additional players or change ports, update `frontend/src/config/backend.ts`:
-
-```typescript
-const BACKEND_CONFIGS: Record<string, BackendConfig> = {
-  '3000': {
-    baseUrl: 'http://localhost:8080',
-    name: 'Backend 1',
-    port: 8080,
-  },
-  '3001': {
-    baseUrl: 'http://localhost:8081',
-    name: 'Backend 2', 
-    port: 8081,
-  },
-  '3002': {  // New configuration
-    baseUrl: 'http://localhost:8082',
-    name: 'Backend 3',
-    port: 8082,
-  },
-};
-```
