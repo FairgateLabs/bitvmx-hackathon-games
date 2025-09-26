@@ -40,7 +40,7 @@ export function SetupParticipantInput({
 
   const isValidNetworkAddress = (networkAddress: string) => {
     const regex =
-      /^\/ip4\/(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/tcp\/([0-9]{1,5})$/;
+      /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?):([0-9]{1,5})$/;
     const match = networkAddress.match(regex);
     if (!match) return false;
     const port = parseInt(match[5], 10);
@@ -104,7 +104,7 @@ export function SetupParticipantInput({
 
       if (!isValidNetworkAddress(parsed.networkAddress)) {
         errors.push(
-          "Invalid networkAddress format (e.g., /ip4/127.0.0.1/tcp/61181)"
+          "Invalid networkAddress format (e.g., 127.0.0.1:61181)"
         );
       }
 
@@ -183,7 +183,7 @@ export function SetupParticipantInput({
 
   const jsonPlaceholder = `{
   "publicKey": "0206b7b...87d31b7d",
-  "networkAddress": "/ip4/127.0.0.1/tcp/61180",
+  "networkAddress": "127.0.0.1:61180",
   "peerId": "3082012....203010001${aggregatedIdPlaceholder}"
 }`;
 

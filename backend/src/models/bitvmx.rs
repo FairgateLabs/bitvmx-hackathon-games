@@ -1,9 +1,8 @@
 use bitvmx_client::bitcoin::Txid;
-use bitvmx_client::p2p_handler::PeerId;
-use bitvmx_client::program::participant::P2PAddress as BitVMXP2PAddress;
+use bitvmx_client::program::participant::CommsAddress as BitVMXP2PAddress;
 use bitvmx_client::program::variables::PartialUtxo;
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
+use std::{net::SocketAddr, str::FromStr};
 use ts_rs::TS;
 use utoipa::ToSchema;
 
@@ -19,8 +18,8 @@ pub struct P2PAddress {
 impl From<P2PAddress> for BitVMXP2PAddress {
     fn from(p2p: P2PAddress) -> Self {
         BitVMXP2PAddress {
-            address: p2p.address.clone(),
-            peer_id: PeerId(p2p.peer_id.clone()),
+            address: SocketAddr::from_str(&p2p.address).unwrap(),
+            pubkey_hash: p2p.peer_id,
         }
     }
 }
@@ -28,8 +27,8 @@ impl From<P2PAddress> for BitVMXP2PAddress {
 impl From<BitVMXP2PAddress> for P2PAddress {
     fn from(p2p: BitVMXP2PAddress) -> Self {
         P2PAddress {
-            address: p2p.address.clone(),
-            peer_id: p2p.peer_id.to_string(),
+            address: p2p.address.to_string(),
+            peer_id: p2p.pubkey_hash,
         }
     }
 }

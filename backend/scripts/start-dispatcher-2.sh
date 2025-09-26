@@ -13,6 +13,14 @@ BITVMX_PATH="$CURRENT_PATH/../../../rust-bitvmx-workspace/rust-bitvmx-client"
 # get the config file information
 CONFIG_FILE="op_2"
 CONFIG_PATH="$BITVMX_PATH/config/$CONFIG_FILE.yaml"
-BROKER_PORT=$(grep "broker_port:" "$CONFIG_PATH" | awk '{print $2}' | tr -d ' ')
 
-bash scripts/run-bitvmx-dispatcher.sh -i 127.0.0.1 -p $BROKER_PORT -l $LOG_PATH
+# Check if config file exists
+if [ ! -f "$CONFIG_PATH" ]; then
+    echo "Error: Config file not found at $CONFIG_PATH"
+    exit 1
+fi
+
+BROKER_PORT=$(grep -A 10 "^broker:" "$CONFIG_PATH" | grep "port:" | awk '{print $2}' | tr -d ' ')
+STORAGE_PATH="temp-runs/$CONFIG_FILE.db"
+
+bash scripts/run-bitvmx-dispatcher.sh -i 127.0.0.1 -p $BROKER_PORT -l $LOG_PATH -s $STORAGE_PATH

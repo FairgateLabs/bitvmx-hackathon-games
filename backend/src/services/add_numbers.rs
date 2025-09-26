@@ -6,7 +6,7 @@ use crate::stores::AddNumbersStore;
 use bitvmx_client::bitcoin::PublicKey;
 use bitvmx_client::bitcoin_coordinator::TransactionStatus;
 use bitvmx_client::bitvmx_wallet::wallet::Destination;
-use bitvmx_client::program::participant::P2PAddress as BitVMXP2PAddress;
+use bitvmx_client::program::participant::CommsAddress as BitVMXP2PAddress;
 use bitvmx_client::program::protocols::dispute;
 use bitvmx_client::program::variables::VariableTypes;
 use bitvmx_client::protocol_builder::types::OutputType;
@@ -575,7 +575,7 @@ impl AddNumbersService {
                 ));
             }
 
-            info!("Player 1 won the game");
+            info!("Player 1 won the game after timeout: {e:?}");
             // Player 1 wins the game. Set the game as complete
             let game = self
                 .game_store
@@ -689,7 +689,7 @@ impl AddNumbersService {
                 ));
             }
 
-            info!("Player 1 won the game");
+            info!("Player 1 won the game after timeout: {e:?}");
             // Player 1 wins the game. Set the game as complete
             self.game_store
                 .set_game_complete(program_id, GameOutcome::Win, GameReason::Challenge)

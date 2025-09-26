@@ -6,9 +6,11 @@ set -e
 BROKER_PORT=""
 IP="127.0.0.1"
 LOG_PATH=""
+STORAGE_PATH="temp-runs/storage_job.db"
+
 
 # Parse command line arguments using getopts
-while getopts "p:i:l:h" opt; do
+while getopts "p:i:l:s:h" opt; do
     case $opt in
         p)
             BROKER_PORT="$OPTARG"
@@ -18,6 +20,9 @@ while getopts "p:i:l:h" opt; do
             ;;
         l)
             LOG_PATH="$OPTARG"
+            ;;
+        s)
+            STORAGE_PATH="$OPTARG"
             ;;
         h)
             usage
@@ -50,12 +55,14 @@ echo "Starting bitvmx-job-dispatcher..."
 echo "BROKER_PORT: $BROKER_PORT"
 echo "IP: $IP"
 echo "LOG_PATH: $LOG_PATH"
+echo "STORAGE_PATH: $STORAGE_PATH"
 
 # create logs directory if it doesn't exist
 mkdir -p "$LOG_PATH"
 
 # remove the log file
 rm -rf "$LOG_PATH/bitvmx-dispatcher.log"
+rm -rf "$STORAGE_PATH"
 
 # we go to the root of the project to avoid relative path issues
 CURRENT_PATH=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
@@ -66,7 +73,7 @@ BITVMX_PATH="$CURRENT_PATH/../../../rust-bitvmx-workspace/rust-bitvmx-client"
 cd "$BITVMX_PATH"
 
 # we excecute it from the client folder to avoid relative path issues for the program definition file
-RUST_BACKTRACE=1 "../rust-bitvmx-job-dispatcher/target/release/bitvmx-emulator-dispatcher" --ip $IP --port $BROKER_PORT 2>&1 | while IFS= read -r line; do echo "$line"; echo "$line" | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})*)?[mGKHF]//g' >> "$LOG_PATH/bitvmx-dispatcher.log"; done
+RUST_BACKTRACE=1 "../rust-bitvmx-job-dispatcher/target/release/bitvmx-emulator-dispatcher" --ip $IP --port $BROKER_PORT --storage-path $STORAGE_PATH 2>&1 | while IFS= read -r line; do echo "$line"; echo "$line" | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})*)?[mGKHF]//g' >> "$LOG_PATH/bitvmx-dispatcher.log"; done
 
 
 # =============================================================================
@@ -75,12 +82,15 @@ RUST_BACKTRACE=1 "../rust-bitvmx-job-dispatcher/target/release/bitvmx-emulator-d
 
 # Function to display usage
 usage() {
-    echo "Usage: $0 -i IP -p BROKER_PORT"
+    echo "Usage: $0 -i IP -p BROKER_PORT -l LOG_PATH"
     echo "  -i IP           The IP address to use (default: 127.0.0.1) [OPTIONAL]"
     echo "  -p BROKER_PORT  The broker port to use (e.g., 22222) [REQUIRED]"
+    echo "  -l LOG_PATH     The log path to use (e.g., ./logs/player_1) [REQUIRED]"
+    echo "  -s STORAGE_PATH The storage path to use (e.g., ./temp-runs/storage_job.db)"
     echo ""
     echo "Examples:"
-    echo "  $0 -p 22222                    # Uses default IP 127.0.0.1"
-    echo "  $0 -i 192.168.1.100 -p 22222  # Uses custom IP"
+    echo "  $0 -p 22222 -l ./logs/player_1                    # Uses default IP 127.0.0.1"
+    echo "  $0 -i 192.168.1.100 -p 22222 -l ./logs/player_2  # Uses custom IP"
+    echo "  $0 -p 22222 -l ./logs/player_1 -s ./temp-runs/storage_job.db # Uses custom key and storage path"
     exit 1
 }
