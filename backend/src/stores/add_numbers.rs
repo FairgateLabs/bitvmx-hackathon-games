@@ -64,7 +64,7 @@ impl AddNumbersStore {
                 participants_keys,
                 funding_protocol_utxo: None,
                 funding_bet_utxo: None,
-                dispute_tx: HashMap::new(),
+                txs: HashMap::new(),
             },
         };
 
@@ -219,7 +219,7 @@ impl AddNumbersStore {
             anyhow::anyhow!("Failed to convert challenge transaction to JSON: {e:?}")
         })?;
         game.bitvmx_program_properties
-            .dispute_tx
+            .txs
             .insert(challenge_tx_name, challenge_tx_status);
 
         game.status = AddNumbersGameStatus::SubmitGameData;
@@ -285,7 +285,7 @@ impl AddNumbersStore {
             .get_mut(&program_id)
             .ok_or(anyhow::anyhow!("Game not found"))?;
 
-        game.bitvmx_program_properties.dispute_tx.insert(
+        game.bitvmx_program_properties.txs.insert(
             dispute_tx_name,
             serde_json::to_value(dispute_tx).map_err(|e| {
                 anyhow::anyhow!("Failed to convert dispute transaction to JSON: {e:?}")

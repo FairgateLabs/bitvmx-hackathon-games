@@ -11,7 +11,6 @@ use crate::models::{P2PAddress, Utxo};
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export)]
 pub enum AddNumbersGameStatus {
-    // Crear Ids del programa y compartirlos al otro jugador
     SetupParticipants, // it stores program id and creates the aggregated key and stores participants
     PlaceBet,          // It sends funds to the agregated address and returns the utxo
     SetupFunding,      // Add other participants utxos
@@ -83,7 +82,7 @@ pub struct BitVMXProgramProperties {
     pub participants_keys: Vec<String>,
     pub funding_protocol_utxo: Option<Utxo>,
     pub funding_bet_utxo: Option<Utxo>,
-    pub dispute_tx: HashMap<String, serde_json::Value>, // (tx_name, tx_status)
+    pub txs: HashMap<String, serde_json::Value>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS, ToSchema)]
