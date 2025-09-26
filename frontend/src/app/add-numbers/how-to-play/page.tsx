@@ -58,9 +58,9 @@ export default function HowToPlayPage() {
             <p className="text-sm text-muted-foreground pb-2">
               Both players exchange connection information through two panels:
               <strong> Your Participant Data</strong> (shows your info) and
-              <strong> Other Player's Participant Data</strong> (paste their
-              info). The exchanged <strong>Participant Data</strong> consists
-              of:
+              <strong> Other Player&apos;s Participant Data</strong> (paste
+              their info). The exchanged <strong>Participant Data</strong>{" "}
+              consists of:
               <em> Aggregated Id, Public Key, Network Address, Peer ID</em>{" "}
               (Player 1 provides the Aggregated Id).
             </p>
@@ -77,15 +77,17 @@ export default function HowToPlayPage() {
                     UUID, Public Key, Network Address, Peer ID.
                   </li>
                   <li>
-                    Click <strong>"Copy to Share"</strong> and send this JSON to
-                    Player 2.
+                    Click <strong>&quot;Copy to Share&quot;</strong> and send
+                    this JSON to Player 2.
                   </li>
                   <li>
-                    In <strong>Other Player's Participant Data</strong>, paste
-                    Player 2's JSON (Public Key, Network Address, Peer ID only).
+                    In <strong>Other Player&apos;s Participant Data</strong>,
+                    paste Player 2&apos;s JSON (Public Key, Network Address,
+                    Peer ID only).
                   </li>
                   <li>
-                    Click <strong>"Setup Data"</strong> to establish connection.
+                    Click <strong>&quot;Setup Data&quot;</strong> to establish
+                    connection.
                   </li>
                 </ul>
               </div>
@@ -100,16 +102,17 @@ export default function HowToPlayPage() {
                     Key, Network Address, Peer ID.
                   </li>
                   <li>
-                    Click <strong>"Copy to Share"</strong> and send this JSON to
-                    Player 1.
+                    Click <strong>&quot;Copy to Share&quot;</strong> and send
+                    this JSON to Player 1.
                   </li>
                   <li>
-                    In <strong>Other Player's Participant Data</strong>, paste
-                    Player 1's JSON (Aggregated Id, Public Key, Network Address,
-                    Peer ID).
+                    In <strong>Other Player&apos;s Participant Data</strong>,
+                    paste Player 1&apos;s JSON (Aggregated Id, Public Key,
+                    Network Address, Peer ID).
                   </li>
                   <li>
-                    Click <strong>"Setup Data"</strong> to establish connection.
+                    Click <strong>&quot;Setup Data&quot;</strong> to establish
+                    connection.
                   </li>
                 </ul>
               </div>

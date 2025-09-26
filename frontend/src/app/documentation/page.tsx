@@ -1,5 +1,3 @@
-import { ChooseGame } from "@/components/common/choose-game";
-
 export default function HomePage() {
   return (
     <div className="container mx-auto p-6 max-w-5xl text-center">
