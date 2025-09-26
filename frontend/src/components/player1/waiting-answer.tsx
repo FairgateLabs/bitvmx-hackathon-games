@@ -1,22 +1,20 @@
-import { Trophy } from "lucide-react";
-import { BlocksRemaining } from "../ui/block-remaining";
-
+import { ChallengeStatusDisplay } from "../common/challenge-status-display";
+import { useCurrentGame } from "@/hooks/useGame";
 export function WaitingAnswer() {
-  const handleTimeout = () => {};
+  const { data: game } = useCurrentGame();
 
   return (
-    <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-      <div className="flex items-center gap-3 mb-3">
-        <Trophy className="h-6 w-6 text-gray-600" />
-        <h3 className="text-lg font-semibold text-gray-800">
-          Waiting for Player 2 to answer
-        </h3>
-      </div>
-      <p className="text-sm text-gray-700 mb-3">
-        Player 2 is answering, please wait. In case of timeout, you will win the
-        game.
-      </p>
-      <BlocksRemaining numberBlocks={24} onTimeout={handleTimeout} />
+    <div className="space-y-4 border border-gray-200 rounded-md p-4">
+      <ChallengeStatusDisplay
+        transactions={
+          game?.bitvmx_program_properties.txs as {
+            [key: string]: {
+              tx_id: string;
+              block_info?: { height?: number; hash?: string };
+            };
+          }
+        }
+      />
     </div>
   );
 }

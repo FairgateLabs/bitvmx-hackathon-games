@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import { Loader } from "@/components/ui/loader"; // Import the Loader component
 
 export function StartGame() {
-  const { mutate: startGame, isPending } = useStartGame();
+  const { mutate: startGame, isPending, isSuccess } = useStartGame();
   const { data: game } = useCurrentGame();
   const queryClient = useQueryClient();
 
@@ -50,6 +50,7 @@ export function StartGame() {
       </div>
       <Button
         onClick={handleStartGame}
+        disabled={isPending || isSuccess}
         className="w-full bg-gray-600 hover:bg-gray-700"
       >
         {isPending ? (

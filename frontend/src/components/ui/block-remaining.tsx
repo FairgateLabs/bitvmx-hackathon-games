@@ -14,7 +14,7 @@ export const BlocksRemaining = forwardRef<
   BlocksRemainingRef,
   BlocksRemainingProps
 >(function TimeRemaining({ numberBlocks, onTimeout }, ref) {
-  const timePerBlock = 2; // Each block is estimated to be 30 seconds in regtest
+  const timePerBlock = 5; // Each block is estimated to be 30 seconds in regtest
   const initialTime = numberBlocks * timePerBlock;
   const [timeLeft, setTimeLeft] = useState(initialTime);
   const [blocksLeft, setBlocksLeft] = useState(numberBlocks);
