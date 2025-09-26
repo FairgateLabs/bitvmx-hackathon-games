@@ -30,6 +30,7 @@ impl JobWorker {
 
     /// Enqueue a job
     pub fn enqueue<J: Job>(&self, job: J) -> Result<(), anyhow::Error> {
+        debug!("Enqueuing job: {}", std::any::type_name::<J>());
         self.job_queue_sender
             .send(Box::new(job))
             .map_err(|_| anyhow::anyhow!("Failed to enqueue job - channel closed"))?;
@@ -66,10 +67,10 @@ impl JobWorker {
                             }
                         }
                     }
-                    _ = sleep(Duration::from_millis(CHECK_SHUTDOWN_INTERVAL)) => {
-                        // Periodic check for shutdown signal when no jobs are queued
-                        // This ensures we can respond to shutdown even when the queue is empty
-                    }
+                    // _ = sleep(Duration::from_millis(CHECK_SHUTDOWN_INTERVAL)) => {
+                    //     // Periodic check for shutdown signal when no jobs are queued
+                    //     // This ensures we can respond to shutdown even when the queue is empty
+                    // }
                 }
             }
             info!("Job worker shutdown complete");

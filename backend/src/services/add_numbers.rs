@@ -575,7 +575,7 @@ impl AddNumbersService {
                 ));
             }
 
-            info!("Player 1 won the game");
+            info!("Player 1 won the game after timeout: {e:?}");
             // Player 1 wins the game. Set the game as complete
             let game = self
                 .game_store
@@ -689,7 +689,7 @@ impl AddNumbersService {
                 ));
             }
 
-            info!("Player 1 won the game");
+            info!("Player 1 won the game after timeout: {e:?}");
             // Player 1 wins the game. Set the game as complete
             self.game_store
                 .set_game_complete(program_id, GameOutcome::Win, GameReason::Challenge)

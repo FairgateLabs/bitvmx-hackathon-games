@@ -92,8 +92,7 @@ pub fn response_to_correlation_id(
             Ok(uuid.to_string())
         }
         OutgoingBitVMXApiMessages::AggregatedPubkeyNotReady(uuid) => Ok(uuid.to_string()),
-        OutgoingBitVMXApiMessages::ProtocolVisualization(_visualization) => {
-            let uuid = Uuid::new_v4();
+        OutgoingBitVMXApiMessages::ProtocolVisualization(uuid, _visualization) => {
             Ok(format!("protocol_visualization_{uuid}"))
         }
         OutgoingBitVMXApiMessages::TransactionInfo(uuid, _name, _transaction) => {

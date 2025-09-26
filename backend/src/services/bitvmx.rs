@@ -121,7 +121,7 @@ impl BitvmxService {
             ))
             .await?;
         // TODO add back UUID
-        if let OutgoingBitVMXApiMessages::ProtocolVisualization(visualization) = response {
+        if let OutgoingBitVMXApiMessages::ProtocolVisualization(_uuid, visualization) = response {
             info!("Obtained protocol visualization: {:?}", visualization);
             Ok(visualization)
         } else {
@@ -194,7 +194,7 @@ impl BitvmxService {
         &self,
         correlation_id: String,
     ) -> Result<TransactionStatus, anyhow::Error> {
-        debug!(
+        trace!(
             "Waiting for transaction response for correlation id: {:?}",
             correlation_id
         );
