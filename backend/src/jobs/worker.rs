@@ -88,6 +88,7 @@ mod tests {
     use tokio::sync::broadcast;
 
     // Implementation example of Job
+    #[derive(Debug)]
     struct CounterJob {
         counter: Arc<AtomicU32>,
         id: u32,

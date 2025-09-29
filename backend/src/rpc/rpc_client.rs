@@ -16,7 +16,7 @@ use tokio::task::JoinHandle;
 use tokio::time::sleep;
 use tracing::{debug, info, trace, warn, Instrument};
 
-const REQUEST_TIMEOUT: u64 = 120; // 120 seconds = 2 minutes
+const REQUEST_TIMEOUT: u64 = 240; // 240 seconds = 4 minutes
 const SLEEP_INTERVAL: u64 = 10; // 10 milliseconds
 const CHECK_SHUTDOWN_INTERVAL: u64 = 100; // 100 milliseconds
 
@@ -132,8 +132,9 @@ impl RpcClient {
         let rx = self.add_response_handler(&correlation_id).await?;
         let response = self.get_response(&correlation_id, rx).await?;
         debug!(
-            "Received from BitVMX response: {:?} message: {:?}",
-            correlation_id, response
+            "Received from BitVMX response: {:?} message: {}",
+            correlation_id,
+            self.format_message(&response)
         );
         Ok(response)
     }
@@ -153,10 +154,31 @@ impl RpcClient {
 
         let response = self.get_response(&correlation_id, rx).await?;
         debug!(
-            "Received from BitVMX response: {:?} message: {:?}",
-            correlation_id, response
+            "Received from BitVMX response: {:?} message: {}",
+            correlation_id,
+            self.format_message(&response)
         );
         Ok(response)
+    }
+
+    fn format_message(&self, message: &OutgoingBitVMXApiMessages) -> String {
+        match message {
+            OutgoingBitVMXApiMessages::Transaction(uuid, transaction_status, name) => {
+                format!(
+                    "Transaction message: uuid: {:?}, tx_id: {:?}, name: {:?}",
+                    uuid, transaction_status.tx_id, name
+                )
+            }
+            OutgoingBitVMXApiMessages::TransactionInfo(uuid, name, transaction) => {
+                format!(
+                    "TransactionInfo message: uuid: {:?}, name: {:?}, tx_id: {:?}",
+                    uuid,
+                    name,
+                    transaction.compute_txid()
+                )
+            }
+            _ => format!("message: {:?}", message),
+        }
     }
 
     async fn send_message(&self, message: IncomingBitVMXApiMessages) -> Result<(), anyhow::Error> {

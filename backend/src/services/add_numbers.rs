@@ -6,7 +6,7 @@ use crate::stores::AddNumbersStore;
 use bitvmx_client::bitcoin::PublicKey;
 use bitvmx_client::bitcoin_coordinator::TransactionStatus;
 use bitvmx_client::bitvmx_wallet::wallet::Destination;
-use bitvmx_client::program::participant::CommsAddress as BitVMXP2PAddress;
+use bitvmx_client::program::participant::{CommsAddress as BitVMXP2PAddress, ParticipantRole};
 use bitvmx_client::program::protocols::dispute;
 use bitvmx_client::program::variables::VariableTypes;
 use bitvmx_client::protocol_builder::types::OutputType;
@@ -203,7 +203,7 @@ impl AddNumbersService {
         self.game_store
             .set_dispute_tx(
                 program_id,
-                dispute::EXTERNAL_ACTION.to_string(),
+                dispute::external_action(&ParticipantRole::Verifier, 1).to_string(), //EXTERNAL_ACTION
                 funding_tx_status,
             )
             .await
@@ -310,7 +310,7 @@ impl AddNumbersService {
         self.game_store
             .set_dispute_tx(
                 program_id,
-                dispute::EXTERNAL_ACTION.to_string(),
+                dispute::external_action(&ParticipantRole::Verifier, 1).to_string(), //EXTERNAL_ACTION
                 funding_tx_status,
             )
             .await
@@ -606,6 +606,12 @@ impl AddNumbersService {
         self.spawn_wait_task_transaction_by_name(&mut join_set, program_id, "NARY_PROVER_2");
         self.spawn_wait_task_transaction_by_name(&mut join_set, program_id, "NARY_VERIFIER_2");
         self.spawn_wait_task_transaction_by_name(&mut join_set, program_id, dispute::EXECUTE);
+        // self.spawn_wait_task_transaction_by_name(
+        //     &mut join_set,
+        //     program_id,
+        //     format!("{}_TO", dispute::CHALLENGE).as_str(),
+        // );
+        //self.spawn_wait_task_transaction_by_name(&mut join_set, program_id, dispute::CHALLENGE);
         self.spawn_wait_task_transaction_by_name(
             &mut join_set,
             program_id,
@@ -619,7 +625,7 @@ impl AddNumbersService {
         self.spawn_wait_task_transaction_by_name(
             &mut join_set,
             program_id,
-            dispute::ACTION_PROVER_WINS,
+            dispute::action_wins(&ParticipantRole::Prover, 1).as_str(), // ACTION_PROVER_WINS
         );
 
         // Wait until you know the result of the game
@@ -673,13 +679,19 @@ impl AddNumbersService {
         debug!("Waiting for player 2 to win the game");
 
         // Wait challenge input transaction
-        self.bitvmx_service
+        let (challenge_input_tx_name, challenge_input_tx) = self
+            .bitvmx_service
             .wait_transaction_by_name_response(
                 program_id,
                 BitvmxService::dispute_input_tx_name(1).as_str(),
             )
             .await
             .map_err(|e| anyhow::anyhow!(format!("Failed to wait for challenge input: {e:?}")))?;
+
+        self.game_store
+            .set_dispute_tx(program_id, challenge_input_tx_name, challenge_input_tx)
+            .await
+            .map_err(|e| anyhow::anyhow!(format!("Failed to set dispute tx: {e:?}")))?;
 
         let dispute_result = self.wait_dispute_transactions(program_id).await;
         if let Err(e) = dispute_result {
