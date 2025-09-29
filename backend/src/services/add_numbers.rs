@@ -387,7 +387,16 @@ impl AddNumbersService {
             .set_variable(
                 program_id,
                 "utxo_prover_win_action",
-                VariableTypes::Utxo(bet_utxo.into()),
+                VariableTypes::Utxo(bet_utxo.clone().into()),
+            )
+            .await
+            .map_err(|e| anyhow::anyhow!(format!("Failed to set variable bet utxo: {e:?}")))?;
+
+        self.bitvmx_service
+            .set_variable(
+                program_id,
+                "utxo_verifier_win_action",
+                VariableTypes::Utxo(bet_utxo.clone().into()),
             )
             .await
             .map_err(|e| anyhow::anyhow!(format!("Failed to set variable bet utxo: {e:?}")))?;
@@ -409,7 +418,7 @@ impl AddNumbersService {
             .set_variable(
                 program_id,
                 dispute::TIMELOCK_BLOCKS_KEY,
-                VariableTypes::Number(dispute::TIMELOCK_BLOCKS.into()),
+                VariableTypes::Number(5),
             )
             .await
             .map_err(|e| {
@@ -606,12 +615,11 @@ impl AddNumbersService {
         self.spawn_wait_task_transaction_by_name(&mut join_set, program_id, "NARY_PROVER_2");
         self.spawn_wait_task_transaction_by_name(&mut join_set, program_id, "NARY_VERIFIER_2");
         self.spawn_wait_task_transaction_by_name(&mut join_set, program_id, dispute::EXECUTE);
-        // self.spawn_wait_task_transaction_by_name(
-        //     &mut join_set,
-        //     program_id,
-        //     format!("{}_TO", dispute::CHALLENGE).as_str(),
-        // );
-        //self.spawn_wait_task_transaction_by_name(&mut join_set, program_id, dispute::CHALLENGE);
+        self.spawn_wait_task_transaction_by_name(
+            &mut join_set,
+            program_id,
+            format!("{}_TO", dispute::CHALLENGE).as_str(),
+        );
         self.spawn_wait_task_transaction_by_name(
             &mut join_set,
             program_id,
