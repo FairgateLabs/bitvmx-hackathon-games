@@ -2,10 +2,10 @@
 set -e
 
 # we go to the root of the project to avoid relative path issues
-CURRENT_PATH=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
-cd "$CURRENT_PATH/../";
+CURRENT_PATH=$( cd "$(dirname "${BASH_SOURCE[0]}")/../" ; pwd -P )
+cd "$CURRENT_PATH";
 
 # logs directory
-LOG_PATH="$CURRENT_PATH/../logs/player_1"
+LOG_PATH="$CURRENT_PATH/logs/player_1"
 
 bash scripts/run-bitvmx-client.sh -c op_1 -l $LOG_PATH

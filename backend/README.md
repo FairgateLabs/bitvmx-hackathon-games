@@ -79,7 +79,7 @@ CONFIG_FILE=player_2 cargo run
    bash install.sh
    ```
    This script will:
-   - Clone all required BitVMX repositories into `dependencies/`
+   - Clone all required BitVMX repositories into `deps/`
    - Automatically build the backend with `cargo build`
 
 
@@ -91,7 +91,7 @@ The project uses local BitVMX dependencies that are managed through the install 
 - **bitvmx-broker**: BitVMX broker communication
 - **bitvmx-bitcoin-rpc**: Bitcoin RPC integration
 
-These are cloned into the `dependencies/` directory and referenced locally in `Cargo.toml`.
+These are cloned into the `deps/` directory and referenced locally in `Cargo.toml`.
 
 ### Bitcoin Configuration
 

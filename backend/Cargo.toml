@@ -6,11 +6,11 @@ edition = "2021"
 
 [dependencies]
 # BitVMX client
-bitvmx-client = { path = "dependencies/rust-bitvmx-client" }
+bitvmx-client = { git = "https://github.com/FairgateLabs/rust-bitvmx-client", branch = "v.0.0.2" }
 # BitVMX Broker
-bitvmx-broker = { path = "dependencies/rust-bitvmx-broker" }
+bitvmx-broker = { git = "https://github.com/FairgateLabs/rust-bitvmx-broker", branch = "v.0.0.2" }
 # Bitcoind RPC
-bitvmx-bitcoin-rpc = { path = "dependencies/rust-bitvmx-bitcoin-rpc" }
+bitvmx-bitcoin-rpc = { git = "https://github.com/FairgateLabs/rust-bitvmx-bitcoin-rpc", branch = "v.0.0.2" }
 
 # Web framework
 axum = "0.8"
