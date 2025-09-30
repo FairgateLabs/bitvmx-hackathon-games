@@ -7,9 +7,6 @@ pids=()
 trap handle_interrupt INT TERM
 echo "🔧 Signal handlers set up for INT and TERM"
 
-# Build rust projects
-bash scripts/build.sh
-
 # Start bitcoin
 bash scripts/start-bitcoin.sh
 

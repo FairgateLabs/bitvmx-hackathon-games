@@ -8,7 +8,7 @@ cd "$CURRENT_PATH/../";
 LOG_PATH="$CURRENT_PATH/../logs/player_2"
 
 # go to the bitvmx client folder
-BITVMX_PATH="$CURRENT_PATH/../../../rust-bitvmx-workspace/rust-bitvmx-client"
+BITVMX_PATH="$CURRENT_PATH/dependencies/rust-bitvmx-client"
 
 # get the config file information
 CONFIG_FILE="op_2"

@@ -68,14 +68,14 @@ CURRENT_PATH=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 cd "$CURRENT_PATH/../";
 
 # go to the bitvmx client folder
-BITVMX_PATH="$CURRENT_PATH/../../../rust-bitvmx-workspace/rust-bitvmx-client"
+BITVMX_PATH="$CURRENT_PATH/dependencies/rust-bitvmx-client"
 cd "$BITVMX_PATH"
 
 # remove the storage file if it exists
 rm -rf "$STORAGE_PATH"
 
 # we excecute it from the client folder to avoid relative path issues for the program definition file
-RUST_BACKTRACE=1 "../rust-bitvmx-job-dispatcher/target/release/bitvmx-emulator-dispatcher" --ip $IP --port $BROKER_PORT --storage-path $STORAGE_PATH 2>&1 | while IFS= read -r line; do echo "$line"; echo "$line" | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})*)?[mGKHF]//g' >> "$LOG_PATH/bitvmx-dispatcher.log"; done
+RUST_BACKTRACE=1 "../dependencies/rust-bitvmx-job-dispatcher/target/release/bitvmx-emulator-dispatcher" --ip $IP --port $BROKER_PORT --storage-path $STORAGE_PATH 2>&1 | while IFS= read -r line; do echo "$line"; echo "$line" | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})*)?[mGKHF]//g' >> "$LOG_PATH/bitvmx-dispatcher.log"; done
 
 
 # =============================================================================

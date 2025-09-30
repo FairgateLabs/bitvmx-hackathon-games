@@ -6,11 +6,11 @@ edition = "2021"
 
 [dependencies]
 # BitVMX client
-bitvmx-client = { path = "../../rust-bitvmx-workspace/rust-bitvmx-client" }
+bitvmx-client = { path = "dependencies/rust-bitvmx-client" }
 # BitVMX Broker
-bitvmx-broker = { path = "../../rust-bitvmx-workspace/rust-bitvmx-broker" }
+bitvmx-broker = { path = "dependencies/rust-bitvmx-broker" }
 # Bitcoind RPC
-bitvmx-bitcoin-rpc = { path = "../../rust-bitvmx-workspace/rust-bitvmx-bitcoin-rpc" }
+bitvmx-bitcoin-rpc = { path = "dependencies/rust-bitvmx-bitcoin-rpc" }
 
 # Web framework
 axum = "0.8"
