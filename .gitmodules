@@ -1,0 +1,9 @@
+[submodule "deps/rust-bitvmx-client"]
+	path = deps/rust-bitvmx-client
+	url = https://github.com/FairgateLabs/rust-bitvmx-client.git
+[submodule "deps/rust-bitvmx-job-dispatcher"]
+	path = deps/rust-bitvmx-job-dispatcher
+	url = https://github.com/FairgateLabs/rust-bitvmx-job-dispatcher.git
+[submodule "deps/BitVMX-CPU"]
+	path = deps/BitVMX-CPU
+	url = https://github.com/FairgateLabs/BitVMX-CPU.git
