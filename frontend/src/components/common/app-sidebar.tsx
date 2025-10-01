@@ -1,5 +1,4 @@
 import {
-  BookOpen,
   FileText,
   GraduationCap,
   Calculator,
@@ -54,11 +53,6 @@ const menu_items = [
     title: "Add Numbers",
     icon: Calculator, // comunica sumas directamente
     items: [
-      {
-        title: "How to play",
-        url: "/add-numbers/how-to-play",
-        icon: BookOpen, // tutorial/guide
-      },
       {
         title: "Play game",
         url: "/add-numbers/play-game",
