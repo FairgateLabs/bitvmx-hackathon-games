@@ -5,6 +5,7 @@ import {
   Calculator,
   Gamepad2,
   ArrowLeftRight,
+  Code2,
 } from "lucide-react";
 import {
   Sidebar,
@@ -41,6 +42,11 @@ const menu_items = [
         title: "Game Play",
         url: "/documentation/game-play",
         icon: Gamepad2, // acción de jugar
+      },
+      {
+        title: "Protocol & Program",
+        url: "/documentation/protocol",
+        icon: Code2, // código y protocolo
       },
     ],
   },
