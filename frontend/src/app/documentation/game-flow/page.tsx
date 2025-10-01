@@ -567,14 +567,6 @@ export default function GameFlowPage() {
             </ul>
           </div>
         </div>
-
-        <div className="mt-6 overflow-hidden rounded-lg border bg-background p-2">
-          <img
-            src="/game-flow/game-flow-8.svg"
-            alt="Protocol graph"
-            className="w-full"
-          />
-        </div>
       </section>
 
       <section className="mt-12">
