@@ -46,12 +46,16 @@ echo "CONFIG_FILE: $CONFIG_FILE"
 echo "LOG_PATH: $LOG_PATH"
 
 # we go to the root of the project to avoid relative path issues
-CURRENT_PATH=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
-cd "$CURRENT_PATH/../";
+CURRENT_PATH=$( cd "$(dirname "${BASH_SOURCE[0]}")/../../" ; pwd -P )
+cd "$CURRENT_PATH"
 
+echo "CURRENT_PATH: $CURRENT_PATH"
 
 # go to the bitvmx client folder
-BITVMX_PATH="$CURRENT_PATH/../../../rust-bitvmx-workspace/rust-bitvmx-client"
+BITVMX_PATH="$CURRENT_PATH/deps/rust-bitvmx-client"
+
+echo "BITVMX_PATH: $BITVMX_PATH"
+
 cd "$BITVMX_PATH"
 
 # get the config file information
@@ -71,7 +75,7 @@ rm -rf "$LOG_PATH/bitvmx.log"
 
 # run the bitvmx client with output to both console and file
 RUST_LOG="debug,bitvmx_wallet::wallet=off,bitvmx_bitcoin_rpc=off,bitcoincore_rpc=off,hyper_util=off,libp2p=off,bitvmx_transaction_monitor=off,bitcoin_indexer=off,bitcoin_coordinator=off,p2p_protocol=off,p2p_handler=off,tarpc=off,broker=off" \
-RUST_BACKTRACE=1 target/release/bitvmx-client $CONFIG_FILE 2>&1 | while IFS= read -r line; do echo "$line"; echo "$line" | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})*)?[mGKHF]//g' >> "$LOG_PATH/bitvmx.log"; done
+RUST_BACKTRACE=1 "$BITVMX_PATH/target/release/bitvmx-client" $CONFIG_FILE 2>&1 | while IFS= read -r line; do echo "$line"; echo "$line" | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})*)?[mGKHF]//g' >> "$LOG_PATH/bitvmx.log"; done
 
 # =============================================================================
 # FUNCTIONS

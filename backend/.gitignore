@@ -52,3 +52,6 @@ docs/target/
 # Backup files
 *.bak
 *.backup
+
+# Dependencies
+dependencies/

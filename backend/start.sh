@@ -7,8 +7,19 @@ pids=()
 trap handle_interrupt INT TERM
 echo "🔧 Signal handlers set up for INT and TERM"
 
-# Build rust projects
-bash scripts/build.sh
+# Build the backend
+echo "🔨 Building backend using build.sh script..."
+if [ -f "scripts/build.sh" ]; then
+    bash scripts/build.sh
+    if [ $? -eq 0 ]; then
+        echo "✅ Backend built successfully!"
+    else
+        echo "❌ Backend build failed. Please check the errors above."
+        exit 1
+    fi
+else
+    echo "⚠️  build.sh script not found. Please ensure the script exists in the scripts directory."
+fi
 
 # Start bitcoin
 bash scripts/start-bitcoin.sh

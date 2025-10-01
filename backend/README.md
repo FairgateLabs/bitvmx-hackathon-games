@@ -1,6 +1,6 @@
-# BitVMX - Add Numbers Game Backend
+# BitVMX - Add Numbers Backend
 
-A Rust-based backend service for the BitVMX Tic-Tac-Toe game, built with Axum web framework and integrated with BitVMX RPC for peer-to-peer communication.
+A Rust-based backend service for the BitVMX Add Numbers game, built with Axum web framework and integrated with BitVMX RPC for peer-to-peer communication.
 
 ## Architecture Overview
 
@@ -61,7 +61,7 @@ The application comes with two pre-configured files in the `configs/` directory:
 CONFIG_FILE=player_2 cargo run
 ```
 
-## Development
+## Setup Guide
 
 ### Prerequisites
 
@@ -71,6 +71,16 @@ CONFIG_FILE=player_2 cargo run
 - Bitcoind running (they will be run when executing `bash start.sh`)
 - BitVMX RPC server running (they will be run when executing `bash start.sh`)
 
+### Dependencies
+
+The project uses BitVMX dependencies that were installed in the submodule:
+
+- **bitvmx-client**: Core BitVMX client functionality
+- **bitvmx-broker**: BitVMX broker communication
+- **bitvmx-bitcoin-rpc**: Bitcoin RPC integration
+
+These were cloned into the `deps/` directory and referenced locally in `Cargo.toml`.
+
 ### Bitcoin Configuration
 
 The Bitcoin node is configured with the following settings:
@@ -78,22 +88,16 @@ The Bitcoin node is configured with the following settings:
 - **btc-rpc-explorer**: Runs on port 4000 for [blockchain exploration and transaction monitoring](https://github.com/janoside/btc-rpc-explorer)
 - **Auto mining**: Set to mine 1 block per 5 seconds for development and testing purposes at [scripts/start-bitcoin.sh](./scripts/start-bitcoin.sh)
 
-### Building
+### Running the Backend for Multiplayer Simulation
+To set up a multiplayer environment, the provided scripts will initiate two distinct backend instances, along with BitVMX clients and necessary monitoring tools. This setup allows two players to engage with the game simultaneously, each having a separate backend connection via the BitVMX protocol. It's important to note that these backend instances function independently and do not interact with one another.
+
+Launch bitcoin, explorer, auto miner, BitVMX client, job dispatcher, and backend using:
 
 ```bash
-bash scripts/build.sh
-cargo build
+bash start.sh
 ```
 
-### Running
-
-Start bitcoin, explorer, auto miner,  bitvmx, job-dispatcher and backend with:
-
-```bash
-bash start
-```
-
-If you want to run them independently youn can:
+If you want to run them independently you can:
 
 Run bitcoin, explorer:
 
@@ -118,7 +122,7 @@ Run bitvmx job dispatcher 1 and 2:
 
 ```bash
 bash scripts/start-dispatcher-1.sh 
-bash scripts/start-disptcher-2.sh 
+bash scripts/start-dispatcher-2.sh 
 ```
 
 Run the backend api server for player 1 and 2:

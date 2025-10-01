@@ -1,25 +1,29 @@
 #!/bin/bash
 set -e
 
-# we go to the root of the project to avoid relative path issues
-CURRENT_PATH=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
-cd "$CURRENT_PATH/../";
+# Set the current path to the root of the project
+CURRENT_PATH=$( cd "$(dirname "${BASH_SOURCE[0]}")/../../" ; pwd -P )
+cd "$CURRENT_PATH"
 
+echo "🔨 Building the job dispatcher..."
+# build the job dispatcher
+cd "$CURRENT_PATH/deps/rust-bitvmx-job-dispatcher"
+cargo build --release
+echo "✅ Job dispatcher built successfully!"
+
+echo "🔨 Building the BitVMX CPU..."
+# build the BitVMX CPU
+cd "$CURRENT_PATH/deps/BitVMX-CPU"
+cargo build --release
+echo "✅ BitVMX CPU built successfully!"
+
+echo "🔨 Building the bitvmx client..."
+# build the bitvmx client
+cd "$CURRENT_PATH/deps/rust-bitvmx-client"
+cargo build --release
+echo "✅ BitVMX client built successfully!"
+
+echo "🔨 Building the backend..."
 # build the backend
 cargo build
-
-
-# go to the bitvmx workspace
-BITVMX_PATH="$CURRENT_PATH/../../../rust-bitvmx-workspace"
-
-# build the job dispatcher
-cd "$BITVMX_PATH/rust-bitvmx-job-dispatcher"
-cargo build --release
-
-# build the BitVMX CPU
-cd "$BITVMX_PATH/BitVMX-CPU"
-cargo build --release
-
-# build the bitvmx client
-cd "$BITVMX_PATH/rust-bitvmx-client"
-cargo build --release
+echo "✅ Backend built successfully!"

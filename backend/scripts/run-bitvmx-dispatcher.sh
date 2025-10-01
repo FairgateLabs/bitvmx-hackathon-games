@@ -64,11 +64,11 @@ mkdir -p "$LOG_PATH"
 rm -rf "$LOG_PATH/bitvmx-dispatcher.log"
 
 # we go to the root of the project to avoid relative path issues
-CURRENT_PATH=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
-cd "$CURRENT_PATH/../";
+CURRENT_PATH=$( cd "$(dirname "${BASH_SOURCE[0]}")/../../" ; pwd -P )
+cd "$CURRENT_PATH";
 
 # go to the bitvmx client folder
-BITVMX_PATH="$CURRENT_PATH/../../../rust-bitvmx-workspace/rust-bitvmx-client"
+BITVMX_PATH="$CURRENT_PATH/deps/rust-bitvmx-client"
 cd "$BITVMX_PATH"
 
 # remove the storage file if it exists
