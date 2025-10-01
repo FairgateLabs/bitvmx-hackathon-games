@@ -29,12 +29,12 @@ import Link from "next/link";
 
 const menu_items = [
   {
-    title: "Learn BitVMX",
+    title: "Documentation",
     icon: GraduationCap, // más didáctico que BookOpen
     items: [
       {
-        title: "Documentation",
-        url: "/documentation",
+        title: "Game Flow",
+        url: "/documentation/game-flow",
         icon: FileText, // más claro para docs
       },
     ],
