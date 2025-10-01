@@ -37,6 +37,11 @@ const menu_items = [
         url: "/documentation/game-flow",
         icon: FileText, // más claro para docs
       },
+      {
+        title: "Game Play",
+        url: "/documentation/game-play",
+        icon: Gamepad2, // acción de jugar
+      },
     ],
   },
   {
