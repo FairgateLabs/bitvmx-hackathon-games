@@ -1,4 +1,4 @@
-# BitVMX - Add Numbers Game Backend
+# BitVMX - Add Numbers Backend
 
 A Rust-based backend service for the BitVMX Add Numbers game, built with Axum web framework and integrated with BitVMX RPC for peer-to-peer communication.
 
@@ -61,7 +61,7 @@ The application comes with two pre-configured files in the `configs/` directory:
 CONFIG_FILE=player_2 cargo run
 ```
 
-## Development
+## Setup Guide
 
 ### Prerequisites
 
@@ -71,27 +71,15 @@ CONFIG_FILE=player_2 cargo run
 - Bitcoind running (they will be run when executing `bash start.sh`)
 - BitVMX RPC server running (they will be run when executing `bash start.sh`)
 
-
-### Quick Start
-
-**Install dependencies and build**:
-   ```bash
-   bash install.sh
-   ```
-   This script will:
-   - Clone all required BitVMX repositories into `deps/`
-   - Automatically build the backend with `cargo build`
-
-
 ### Dependencies
 
-The project uses local BitVMX dependencies that are managed through the install script:
+The project uses BitVMX dependencies that were installed in the submodule:
 
 - **bitvmx-client**: Core BitVMX client functionality
 - **bitvmx-broker**: BitVMX broker communication
 - **bitvmx-bitcoin-rpc**: Bitcoin RPC integration
 
-These are cloned into the `deps/` directory and referenced locally in `Cargo.toml`.
+These were cloned into the `deps/` directory and referenced locally in `Cargo.toml`.
 
 ### Bitcoin Configuration
 
@@ -100,9 +88,10 @@ The Bitcoin node is configured with the following settings:
 - **btc-rpc-explorer**: Runs on port 4000 for [blockchain exploration and transaction monitoring](https://github.com/janoside/btc-rpc-explorer)
 - **Auto mining**: Set to mine 1 block per 5 seconds for development and testing purposes at [scripts/start-bitcoin.sh](./scripts/start-bitcoin.sh)
 
-### Running
+### Running the Backend for Multiplayer Simulation
+To set up a multiplayer environment, the provided scripts will initiate two distinct backend instances, along with BitVMX clients and necessary monitoring tools. This setup allows two players to engage with the game simultaneously, each having a separate backend connection via the BitVMX protocol. It's important to note that these backend instances function independently and do not interact with one another.
 
-Start bitcoin, explorer, auto miner, bitvmx, job-dispatcher and backend with:
+Launch bitcoin, explorer, auto miner, BitVMX client, job dispatcher, and backend using:
 
 ```bash
 bash start.sh
