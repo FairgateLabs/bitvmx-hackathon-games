@@ -3,7 +3,7 @@ set -e
 
 # we go to the root of the project to avoid relative path issues
 CURRENT_PATH=$( cd "$(dirname "${BASH_SOURCE[0]}")/../" ; pwd -P )
-cd "$CURRENT_PATH/";
+cd "$CURRENT_PATH";
 
 LOG_PATH="$CURRENT_PATH/logs/player_1"
 
