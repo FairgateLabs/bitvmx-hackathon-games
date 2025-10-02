@@ -192,7 +192,7 @@ export function SetupParticipantInput({
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleTrigger asChild>
           <h3 className="font-semibold mb-3 text-gray-800 cursor-pointer hover:text-gray-900">
-            🔗 Other Player&apos;s Participant Data
+            🔗 Other Player's Participant Data
           </h3>
         </CollapsibleTrigger>
         <CollapsibleContent className="flex flex-col gap-3">
@@ -243,7 +243,7 @@ export function SetupParticipantInput({
                 ⚠️ Connection Setup Required
               </h3>
               <p className="text-sm text-yellow-700">
-                Paste the JSON data containing the other player&apos;s
+                Paste the JSON data containing the other player's
                 connection information to finalize the connection setup.
               </p>
             </div>

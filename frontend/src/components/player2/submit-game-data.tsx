@@ -22,7 +22,7 @@ export function SubmitGameData() {
         <>
           <h3 className="text-lg font-semibold">➕ Submit Answer Sum!</h3>
           <p className="text-sm text-gray-700">
-            Now that you&apos;ve set up the game, what is the sum?
+            Now that you've set up the game, what is the sum?
           </p>
 
           <div>

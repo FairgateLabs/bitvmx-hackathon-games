@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 export default function ProtocolPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
@@ -120,9 +122,11 @@ export default function ProtocolPage() {
             the transactions and their relationships:
           </p>
           <div className="overflow-hidden rounded-lg border bg-background p-4">
-            <img
+            <Image
               src="/protocol/protocol-flow.svg"
               alt="Protocol Flow Diagram"
+              width={800}
+              height={400}
               className="w-full"
             />
           </div>

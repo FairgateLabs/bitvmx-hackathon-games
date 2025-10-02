@@ -117,8 +117,8 @@ export function SetupGame() {
                   {game?.role === EnumPlayerRole.Player2 && (
                     <>
                       Enter the numbers that Player 1 choose to setup the same
-                      game. Otherwise, you won&apos;t be able to participate in
-                      the same game.
+                      game. Otherwise, you won't be able to participate in the
+                      same game.
                     </>
                   )}
                 </p>
