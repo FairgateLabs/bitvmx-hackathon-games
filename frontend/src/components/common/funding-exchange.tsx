@@ -146,7 +146,7 @@ export function FundingExchange({ expand = true }) {
             currentGame?.role === EnumPlayerRole.Player2 && (
               <div className="p-4">
                 <h4 className="font-semibold mb-3">
-                  Other Player&apos;s Protocol and Bet UTXO Information
+                  Other Player's Protocol and Bet UTXO Information
                 </h4>
 
                 <div className="mb-4">

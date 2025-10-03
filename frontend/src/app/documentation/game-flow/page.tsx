@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 export default function GameFlowPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
@@ -167,9 +169,11 @@ export default function GameFlowPage() {
           </div>
 
           <div className="mt-6 overflow-hidden rounded-lg border bg-background">
-            <img
+            <Image
               src="/game-flow/game-flow-1.png"
               alt="Setup Participants sequence diagram"
+              width={800}
+              height={400}
               className="w-full"
             />
           </div>
@@ -223,9 +227,11 @@ export default function GameFlowPage() {
           </div>
 
           <div className="mt-6 overflow-hidden rounded-lg border bg-background">
-            <img
+            <Image
               src="/game-flow/game-flow-2.png"
               alt="Place Bet sequence diagram"
+              width={800}
+              height={400}
               className="w-full"
             />
           </div>
@@ -272,9 +278,11 @@ export default function GameFlowPage() {
           </div>
 
           <div className="mt-6 overflow-hidden rounded-lg border bg-background">
-            <img
+            <Image
               src="/game-flow/game-flow-3.png"
               alt="Setup Funding UTXO sequence diagram"
+              width={800}
+              height={400}
               className="w-full"
             />
           </div>
@@ -316,9 +324,11 @@ export default function GameFlowPage() {
           </div>
 
           <div className="mt-6 overflow-hidden rounded-lg border bg-background">
-            <img
+            <Image
               src="/game-flow/game-flow-4.png"
               alt="Setup Game sequence diagram"
+              width={800}
+              height={400}
               className="w-full"
             />
           </div>
@@ -358,9 +368,11 @@ export default function GameFlowPage() {
           </div>
 
           <div className="mt-6 overflow-hidden rounded-lg border bg-background">
-            <img
+            <Image
               src="/game-flow/game-flow-5.png"
               alt="Start Game sequence diagram"
+              width={800}
+              height={400}
               className="w-full"
             />
           </div>
@@ -414,9 +426,11 @@ export default function GameFlowPage() {
           </div>
 
           <div className="mt-6 overflow-hidden rounded-lg border bg-background">
-            <img
+            <Image
               src="/game-flow/game-flow-6.png"
               alt="Submit Sum sequence diagram"
+              width={800}
+              height={400}
               className="w-full"
             />
           </div>
@@ -451,9 +465,11 @@ export default function GameFlowPage() {
           </div>
 
           <div className="mt-6 overflow-hidden rounded-lg border bg-background">
-            <img
+            <Image
               src="/game-flow/game-flow-7.png"
               alt="Game Completion sequence diagram"
+              width={800}
+              height={400}
               className="w-full"
             />
           </div>

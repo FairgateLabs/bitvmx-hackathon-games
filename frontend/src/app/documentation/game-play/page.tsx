@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 export default function GamePlayPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
@@ -39,9 +41,11 @@ export default function GamePlayPage() {
             on.
           </p>
           <div className="mt-4 overflow-hidden rounded-lg border bg-background">
-            <img
+            <Image
               src="/game-play/game-play-1.png"
               alt="Add Numbers Game selection"
+              width={800}
+              height={400}
               className="w-full"
             />
           </div>
@@ -54,9 +58,11 @@ export default function GamePlayPage() {
             used in regtest only for the moment.
           </p>
           <div className="mt-4 overflow-hidden rounded-lg border bg-background">
-            <img
+            <Image
               src="/game-play/game-play-2.png"
               alt="Select Network"
+              width={800}
+              height={400}
               className="w-full"
             />
           </div>
@@ -76,9 +82,11 @@ export default function GamePlayPage() {
                 Player 1 Selection (localhost:3000):
               </h4>
               <div className="mt-4 overflow-hidden rounded-lg border bg-background">
-                <img
+                <Image
                   src="/game-play/game-play-3.png"
                   alt="Select Player 1"
+                  width={800}
+                  height={400}
                   className="w-full"
                 />
               </div>
@@ -88,9 +96,11 @@ export default function GamePlayPage() {
                 Player 2 Selection (localhost:3001):
               </h4>
               <div className="mt-4 overflow-hidden rounded-lg border bg-background">
-                <img
+                <Image
                   src="/game-play/game-play-4.png"
                   alt="Select Player 2"
+                  width={800}
+                  height={400}
                   className="w-full"
                 />
               </div>
@@ -112,9 +122,11 @@ export default function GamePlayPage() {
             <div>
               <h4 className="font-medium">Player 1 Wallet View:</h4>
               <div className="mt-4 overflow-hidden rounded-lg border bg-background">
-                <img
+                <Image
                   src="/game-play/game-play-5.png"
                   alt="Player 1 Wallet"
+                  width={800}
+                  height={400}
                   className="w-full"
                 />
               </div>
@@ -122,9 +134,11 @@ export default function GamePlayPage() {
             <div>
               <h4 className="font-medium">Player 2 Wallet View:</h4>
               <div className="mt-4 overflow-hidden rounded-lg border bg-background">
-                <img
+                <Image
                   src="/game-play/game-play-6.png"
                   alt="Player 2 Wallet"
+                  width={800}
+                  height={400}
                   className="w-full"
                 />
               </div>
@@ -150,9 +164,11 @@ export default function GamePlayPage() {
                 Copy Participant Data from Player 1:
               </h4>
               <div className="mt-4 overflow-hidden rounded-lg border bg-background">
-                <img
+                <Image
                   src="/game-play/game-play-7.png"
                   alt="Participant Data Copy"
+                  width={800}
+                  height={400}
                   className="w-full"
                 />
               </div>
@@ -162,9 +178,11 @@ export default function GamePlayPage() {
                 Paste Participant Data to Player 2:
               </h4>
               <div className="mt-4 overflow-hidden rounded-lg border bg-background">
-                <img
+                <Image
                   src="/game-play/game-play-8.png"
                   alt="Participant Data Paste"
+                  width={800}
+                  height={400}
                   className="w-full"
                 />
               </div>
@@ -181,9 +199,11 @@ export default function GamePlayPage() {
             to pay for protocol fees, and the second UTXO is the bet.
           </p>
           <div className="mt-4 overflow-hidden rounded-lg border bg-background">
-            <img
+            <Image
               src="/game-play/game-play-9.png"
               alt="Player 1 Send Bet Transaction"
+              width={800}
+              height={400}
               className="w-full"
             />
           </div>
@@ -202,9 +222,11 @@ export default function GamePlayPage() {
             <div>
               <h4 className="font-medium">Copy UTXOs from Player 1:</h4>
               <div className="mt-4 overflow-hidden rounded-lg border bg-background">
-                <img
+                <Image
                   src="/game-play/game-play-10.png"
                   alt="UTXO Exchange Copy"
+                  width={800}
+                  height={400}
                   className="w-full"
                 />
               </div>
@@ -212,9 +234,11 @@ export default function GamePlayPage() {
             <div>
               <h4 className="font-medium">Paste UTXOs to Player 2:</h4>
               <div className="mt-4 overflow-hidden rounded-lg border bg-background">
-                <img
+                <Image
                   src="/game-play/game-play-11.png"
                   alt="UTXO Exchange Paste"
+                  width={800}
+                  height={400}
                   className="w-full"
                 />
               </div>
@@ -230,9 +254,11 @@ export default function GamePlayPage() {
             other participant won't sign it because they have different values.
           </p>
           <div className="mt-4 overflow-hidden rounded-lg border bg-background">
-            <img
+            <Image
               src="/game-play/game-play-12.png"
               alt="Game Setup"
+              width={800}
+              height={400}
               className="w-full"
             />
           </div>
@@ -253,9 +279,11 @@ export default function GamePlayPage() {
             <div>
               <h4 className="font-medium">Ready to Start Game:</h4>
               <div className="mt-4 overflow-hidden rounded-lg border bg-background">
-                <img
+                <Image
                   src="/game-play/game-play-13.png"
                   alt="Ready Start Game"
+                  width={800}
+                  height={400}
                   className="w-full"
                 />
               </div>
@@ -265,9 +293,11 @@ export default function GamePlayPage() {
                 Player 2 Waiting for Player 1 to Start Game:
               </h4>
               <div className="mt-4 overflow-hidden rounded-lg border bg-background">
-                <img
+                <Image
                   src="/game-play/game-play-14.png"
                   alt="Wait Player 1 Start Game"
+                  width={800}
+                  height={400}
                   className="w-full"
                 />
               </div>
@@ -294,9 +324,11 @@ export default function GamePlayPage() {
                 Player 1 Waits for Player 2 Submit Answer:
               </h4>
               <div className="mt-4 overflow-hidden rounded-lg border bg-background">
-                <img
+                <Image
                   src="/game-play/game-play-15.png"
                   alt="Player 1 Waits for Player 2 Submit Answer"
+                  width={800}
+                  height={400}
                   className="w-full"
                 />
               </div>
@@ -304,9 +336,11 @@ export default function GamePlayPage() {
             <div>
               <h4 className="font-medium">Player 2 Submit Answer:</h4>
               <div className="mt-4 overflow-hidden rounded-lg border bg-background">
-                <img
+                <Image
                   src="/game-play/game-play-16.png"
                   alt="Player 2 Submit Answer"
+                  width={800}
+                  height={400}
                   className="w-full"
                 />
               </div>
@@ -326,9 +360,11 @@ export default function GamePlayPage() {
             <div>
               <h4 className="font-medium">Player 2 Wins:</h4>
               <div className="mt-4 overflow-hidden rounded-lg border bg-background">
-                <img
+                <Image
                   src="/game-play/game-play-17.png"
                   alt="Player 2 Wins"
+                  width={800}
+                  height={400}
                   className="w-full"
                 />
               </div>
@@ -336,9 +372,11 @@ export default function GamePlayPage() {
             <div>
               <h4 className="font-medium">Player 1 Loses:</h4>
               <div className="mt-4 overflow-hidden rounded-lg border bg-background">
-                <img
+                <Image
                   src="/game-play/game-play-18.png"
                   alt="Player 1 Loses"
+                  width={800}
+                  height={400}
                   className="w-full"
                 />
               </div>
