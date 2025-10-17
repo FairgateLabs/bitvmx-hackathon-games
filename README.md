@@ -45,4 +45,13 @@ The frontend resides in the `/frontend` directory and is developed using Next.js
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see [LICENSE](LICENSE) file for details.
+
+---
+
+## 🧩 Part of the BitVMX Ecosystem
+
+This repository is a component of the **BitVMX Ecosystem**, an open framework for disputable computation secured by Bitcoin.  
+You can find the index of all BitVMX open-source components at [**FairgateLabs/BitVMX**](https://github.com/FairgateLabs/BitVMX).
+
+---
